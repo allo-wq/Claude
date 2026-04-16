@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Particle Wave Animation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a1a;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
+    }
+    canvas { display: block; }
+    #label {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.25);
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="label">move your mouse</div>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+
+    let W, H, particles;
+    const PARTICLE_COUNT = 200;
+    const mouse = { x: 0, y: 0 };
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      mouse.x = W / 2;
+      mouse.y = H / 2;
+    }
+
+    class Particle {
+      constructor(i) {
+        this.index = i;
+        this.reset(true);
+      }
+
+      reset(init = false) {
+        this.angle = Math.random() * Math.PI * 2;
+        this.radius = 80 + Math.random() * Math.min(W, H) * 0.3;
+        this.speed = (0.002 + Math.random() * 0.004) * (Math.random() < 0.5 ? 1 : -1);
+        this.size = 1.5 + Math.random() * 2.5;
+        this.hue = 180 + Math.random() * 80; // cyan-to-purple range
+        this.alpha = 0.4 + Math.random() * 0.6;
+        this.wobble = Math.random() * Math.PI * 2;
+        this.wobbleSpeed = 0.01 + Math.random() * 0.02;
+        this.trail = [];
+        if (init) {
+          this.angle = (this.index / PARTICLE_COUNT) * Math.PI * 2;
+        }
+      }
+
+      update(cx, cy) {
+        this.angle += this.speed;
+        this.wobble += this.wobbleSpeed;
+
+        const mx = (mouse.x - W / 2) * 0.06;
+        const my = (mouse.y - H / 2) * 0.06;
+
+        const wobbleR = this.radius + Math.sin(this.wobble) * 20;
+        this.x = cx + mx + Math.cos(this.angle) * wobbleR;
+        this.y = cy + my + Math.sin(this.angle) * wobbleR * 0.55;
+
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > 12) this.trail.shift();
+      }
+
+      draw() {
+        // trail
+        for (let i = 0; i < this.trail.length - 1; i++) {
+          const t = i / this.trail.length;
+          ctx.beginPath();
+          ctx.moveTo(this.trail[i].x, this.trail[i].y);
+          ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
+          ctx.strokeStyle = `hsla(${this.hue}, 90%, 65%, ${t * this.alpha * 0.4})`;
+          ctx.lineWidth = this.size * t;
+          ctx.stroke();
+        }
+        // core
+        const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+        grd.addColorStop(0, `hsla(${this.hue}, 100%, 80%, ${this.alpha})`);
+        grd.addColorStop(1, `hsla(${this.hue}, 100%, 50%, 0)`);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = grd;
+        ctx.fill();
+      }
+    }
+
+    function init() {
+      resize();
+      particles = Array.from({ length: PARTICLE_COUNT }, (_, i) => new Particle(i));
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = 'rgba(10, 10, 26, 0.18)';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    function drawCenter(cx, cy) {
+      const r = 60;
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grd.addColorStop(0, 'rgba(120, 220, 255, 0.15)');
+      grd.addColorStop(1, 'rgba(120, 220, 255, 0)');
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+    }
+
+    let frame = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      frame++;
+
+      drawBackground();
+
+      const cx = W / 2;
+      const cy = H / 2;
+
+      drawCenter(cx, cy);
+
+      for (const p of particles) {
+        p.update(cx, cy);
+        p.draw();
+      }
+    }
+
+    window.addEventListener('resize', () => { resize(); });
+    window.addEventListener('mousemove', e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+    window.addEventListener('touchmove', e => {
+      mouse.x = e.touches[0].clientX;
+      mouse.y = e.touches[0].clientY;
+    }, { passive: true });
+
+    init();
+    animate();
+  </script>
+</body>
+</html>
