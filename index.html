@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>∞ The Digital Universe</title>
+  <style>
+    /* ─── Reset & Base ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050510;
+      --accent1: #7f5af0;
+      --accent2: #2cb67d;
+      --accent3: #ff8906;
+      --glow1: rgba(127, 90, 240, 0.6);
+      --glow2: rgba(44, 182, 125, 0.6);
+      --glass: rgba(255,255,255,0.04);
+      --glass-border: rgba(255,255,255,0.12);
+      --text: #fffffe;
+      --muted: #a7a9be;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* ─── Custom Cursor ─────────────────────────────────────────────── */
+    #cursor {
+      position: fixed;
+      width: 12px; height: 12px;
+      background: var(--accent1);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s, background 0.3s;
+      box-shadow: 0 0 20px var(--glow1);
+    }
+    #cursor-ring {
+      position: fixed;
+      width: 40px; height: 40px;
+      border: 1.5px solid var(--accent1);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: transform 0.18s ease-out, width 0.3s, height 0.3s, opacity 0.3s;
+      opacity: 0.6;
+    }
+    body:has(a:hover) #cursor-ring,
+    body:has(button:hover) #cursor-ring {
+      width: 60px; height: 60px; opacity: 0.3;
+    }
+
+    /* ─── Star Canvas ───────────────────────────────────────────────── */
+    #starfield {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* ─── Navbar ────────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 3rem;
+      backdrop-filter: blur(12px);
+      background: rgba(5,5,16,0.7);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .nav-logo {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.3s;
+      position: relative;
+    }
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0; right: 0;
+      height: 1px;
+      background: var(--accent1);
+      transform: scaleX(0);
+      transition: transform 0.3s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-links a:hover::after { transform: scaleX(1); }
+
+    /* ─── Sections ──────────────────────────────────────────────────── */
+    section {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ─── Hero ──────────────────────────────────────────────────────── */
+    #hero {
+      flex-direction: column;
+      text-align: center;
+      padding: 6rem 2rem 2rem;
+    }
+    .hero-eyebrow {
+      font-size: 0.8rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.3s forwards;
+    }
+    .hero-title {
+      font-size: clamp(3rem, 9vw, 8rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.5s forwards;
+    }
+    .gradient-word {
+      background: linear-gradient(135deg, var(--accent1) 0%, var(--accent2) 50%, var(--accent3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% 200%;
+      animation: gradientShift 4s ease infinite;
+    }
+    @keyframes gradientShift {
+      0%,100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      margin: 0 auto 3rem;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.7s forwards;
+    }
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.9s forwards;
+    }
+    .btn {
+      padding: 0.85rem 2rem;
+      border-radius: 100px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.3s;
+    }
+    .btn:hover { transform: translateY(-3px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      color: #fff;
+      box-shadow: 0 8px 32px var(--glow1);
+    }
+    .btn-primary:hover { box-shadow: 0 12px 48px var(--glow1); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--glass-border);
+      backdrop-filter: blur(8px);
+    }
+    .btn-ghost:hover { border-color: var(--accent1); box-shadow: 0 0 20px var(--glow1); }
+
+    /* Scroll indicator */
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0;
+      animation: fadeIn 1s 1.5s forwards;
+    }
+    .scroll-line {
+      width: 1px;
+      height: 50px;
+      background: linear-gradient(to bottom, var(--accent1), transparent);
+      animation: scrollPulse 2s ease-in-out infinite;
+    }
+    @keyframes scrollPulse {
+      0%,100% { opacity: 1; transform: scaleY(1); }
+      50%      { opacity: 0.3; transform: scaleY(0.7); }
+    }
+
+    /* ─── Orbs / Blobs ──────────────────────────────────────────────── */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      animation: orbFloat 8s ease-in-out infinite alternate;
+    }
+    .orb-1 { width:500px;height:500px;background:rgba(127,90,240,0.15);top:-100px;right:-100px; }
+    .orb-2 { width:400px;height:400px;background:rgba(44,182,125,0.12);bottom:0;left:-80px;animation-delay:-4s; }
+    .orb-3 { width:300px;height:300px;background:rgba(255,137,6,0.1);top:50%;left:50%;animation-delay:-2s; }
+    @keyframes orbFloat {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(30px,20px) scale(1.05); }
+    }
+
+    /* ─── Cards Section ─────────────────────────────────────────────── */
+    #features {
+      padding: 6rem 2rem;
+      flex-direction: column;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      color: var(--muted);
+      text-align: center;
+      max-width: 500px;
+      margin: 0 auto 4rem;
+      line-height: 1.7;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1100px;
+      width: 100%;
+    }
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(16px);
+      transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(127,90,240,0.08) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .card:hover { transform: translateY(-6px); border-color: var(--accent1); }
+    .card:hover::before { opacity: 1; }
+    .card:hover { box-shadow: 0 20px 60px rgba(127,90,240,0.2); }
+    .card-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1.2rem;
+      display: inline-block;
+      animation: iconFloat 3s ease-in-out infinite alternate;
+    }
+    @keyframes iconFloat {
+      from { transform: translateY(0) rotate(-2deg); }
+      to   { transform: translateY(-6px) rotate(2deg); }
+    }
+    .card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+      letter-spacing: -0.01em;
+    }
+    .card p {
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+    .card-tag {
+      display: inline-block;
+      margin-top: 1.2rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .tag-purple { background:rgba(127,90,240,0.18); color:var(--accent1); }
+    .tag-green  { background:rgba(44,182,125,0.18); color:var(--accent2); }
+    .tag-orange { background:rgba(255,137,6,0.18);  color:var(--accent3); }
+
+    /* ─── Interactive Orb Section ───────────────────────────────────── */
+    #interactive {
+      flex-direction: column;
+      padding: 6rem 2rem;
+      overflow: hidden;
+    }
+    .orb-playground {
+      width: min(500px, 90vw);
+      height: min(500px, 90vw);
+      position: relative;
+      margin: 3rem auto 0;
+    }
+    #orb-canvas { border-radius: 50%; display: block; }
+    .orb-label {
+      text-align: center;
+      color: var(--muted);
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+    }
+
+    /* ─── Stats ─────────────────────────────────────────────────────── */
+    #stats {
+      padding: 6rem 2rem;
+      flex-direction: column;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      max-width: 900px;
+      width: 100%;
+      text-align: center;
+    }
+    .stat-item { padding: 2rem; }
+    .stat-number {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-top: 0.5rem;
+    }
+
+    /* ─── Timeline ──────────────────────────────────────────────────── */
+    #journey {
+      padding: 6rem 2rem;
+      flex-direction: column;
+    }
+    .timeline {
+      max-width: 680px;
+      width: 100%;
+      position: relative;
+      margin-top: 3rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--accent1), var(--accent2), transparent);
+    }
+    .tl-item {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 3rem;
+      opacity: 0;
+      transform: translateX(-20px);
+      transition: opacity 0.6s, transform 0.6s;
+    }
+    .tl-item.visible { opacity: 1; transform: translateX(0); }
+    .tl-dot {
+      flex-shrink: 0;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--accent1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      box-shadow: 0 0 20px var(--glow1);
+      z-index: 1;
+    }
+    .tl-content h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    .tl-content p { color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+    .tl-year {
+      font-size: 0.75rem;
+      color: var(--accent2);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+    }
+
+    /* ─── Terminal ──────────────────────────────────────────────────── */
+    #terminal-section {
+      padding: 6rem 2rem;
+      flex-direction: column;
+    }
+    .terminal-window {
+      width: min(700px, 92vw);
+      background: #0d0d1a;
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px var(--glow1);
+      margin-top: 3rem;
+    }
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.8rem 1.2rem;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .t-dot { width:12px;height:12px;border-radius:50%; }
+    .t-red    { background:#ff5f57; }
+    .t-yellow { background:#febc2e; }
+    .t-green  { background:#28c840; }
+    .terminal-title { flex:1; text-align:center; color:var(--muted); font-size:0.78rem; letter-spacing:0.05em; }
+    .terminal-body { padding: 1.5rem; font-family: 'Courier New', monospace; font-size: 0.88rem; line-height: 1.9; }
+    .t-line { display: block; }
+    .t-prompt { color: var(--accent2); }
+    .t-cmd    { color: var(--text); }
+    .t-out    { color: var(--muted); }
+    .t-success{ color: var(--accent2); }
+    .t-info   { color: var(--accent1); }
+    .t-warn   { color: var(--accent3); }
+    .t-cursor {
+      display: inline-block;
+      width: 8px; height: 1em;
+      background: var(--accent2);
+      animation: blink 1s step-end infinite;
+      vertical-align: middle;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ─── Footer ────────────────────────────────────────────────────── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--glass-border);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--accent1); text-decoration: none; }
+    .footer-glow {
+      position: absolute;
+      bottom: -50px; left: 50%; transform: translateX(-50%);
+      width: 300px; height: 100px;
+      background: var(--accent1);
+      filter: blur(60px);
+      opacity: 0.08;
+      pointer-events: none;
+    }
+
+    /* ─── Animations ────────────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity:0; } to { opacity:1; }
+    }
+
+    /* ─── Scroll reveal ─────────────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ─── Responsive ────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Star canvas -->
+<canvas id="starfield"></canvas>
+
+<!-- ──── Navigation ──────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-logo">∞ Universe</div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#interactive">Explore</a></li>
+    <li><a href="#journey">Journey</a></li>
+    <li><a href="#terminal-section">Terminal</a></li>
+  </ul>
+</nav>
+
+<!-- ──── Hero ────────────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <p class="hero-eyebrow">✦ Welcome to the future of digital experience</p>
+  <h1 class="hero-title">
+    Think<br>
+    <span class="gradient-word">Beyond</span><br>
+    Reality
+  </h1>
+  <p class="hero-sub">
+    A digital universe where creativity has no boundaries.
+    Explore interactive dimensions, connect with ideas, and
+    reimagine what the web can be.
+  </p>
+  <div class="hero-cta">
+    <a href="#features" class="btn btn-primary">Explore Now</a>
+    <a href="#interactive" class="btn btn-ghost">See the Magic</a>
+  </div>
+
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- ──── Feature Cards ───────────────────────────────────────────────── -->
+<section id="features">
+  <h2 class="section-title reveal">
+    Dimensions of <span class="gradient-word">Possibility</span>
+  </h2>
+  <p class="section-sub reveal">
+    Each facet of this universe is crafted to push the boundaries of what you thought was possible.
+  </p>
+  <div class="cards-grid">
+    <div class="card reveal" style="--card-delay:0.1s">
+      <span class="card-icon">🌌</span>
+      <h3>Cosmic Design</h3>
+      <p>Inspired by the beauty of the cosmos — every pixel is a star, every gradient a nebula waiting to be discovered.</p>
+      <span class="card-tag tag-purple">Aesthetic</span>
+    </div>
+    <div class="card reveal" style="--card-delay:0.2s">
+      <span class="card-icon">⚡</span>
+      <h3>Zero Gravity UX</h3>
+      <p>Interactions that feel weightless. Elements respond to your presence like celestial bodies responding to gravity.</p>
+      <span class="card-tag tag-green">Interactive</span>
+    </div>
+    <div class="card reveal" style="--card-delay:0.3s">
+      <span class="card-icon">🔮</span>
+      <h3>Living Canvas</h3>
+      <p>The background isn't static — it breathes, pulses, and reacts. Your cursor leaves trails in the fabric of space.</p>
+      <span class="card-tag tag-orange">Dynamic</span>
+    </div>
+    <div class="card reveal" style="--card-delay:0.1s">
+      <span class="card-icon">🧬</span>
+      <h3>Adaptive Intelligence</h3>
+      <p>The design learns your movement patterns and subtly shifts its energy to match your pace and intent.</p>
+      <span class="card-tag tag-purple">Smart</span>
+    </div>
+    <div class="card reveal" style="--card-delay:0.2s">
+      <span class="card-icon">🎵</span>
+      <h3>Rhythm & Flow</h3>
+      <p>Every animation is tuned to a natural cadence — nothing jarring, nothing sudden. Pure, seamless motion.</p>
+      <span class="card-tag tag-green">Motion</span>
+    </div>
+    <div class="card reveal" style="--card-delay:0.3s">
+      <span class="card-icon">🛸</span>
+      <h3>Future-Forward</h3>
+      <p>Built with tomorrow's web in mind. CSS that pushes limits, JS that defies convention, HTML that tells a story.</p>
+      <span class="card-tag tag-orange">Cutting-edge</span>
+    </div>
+  </div>
+</section>
+
+<!-- ──── Interactive Orb ─────────────────────────────────────────────── -->
+<section id="interactive">
+  <h2 class="section-title reveal">
+    Touch the <span class="gradient-word">Cosmos</span>
+  </h2>
+  <p class="section-sub reveal">Move your cursor over the orb below and watch the universe respond.</p>
+  <div class="orb-playground">
+    <canvas id="orb-canvas"></canvas>
+  </div>
+  <p class="orb-label reveal">← Hover & move to interact →</p>
+</section>
+
+<!-- ──── Stats ────────────────────────────────────────────────────────── -->
+<section id="stats">
+  <div class="stats-grid">
+    <div class="stat-item reveal">
+      <div class="stat-number" data-target="4200">0</div>
+      <div class="stat-label">Stars Rendered</div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-number" data-target="99">0</div>
+      <div class="stat-label">Perf Score</div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-number" data-target="360">0</div>
+      <div class="stat-label">° of Creativity</div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-number" data-target="1">0</div>
+      <div class="stat-label">Universe Created</div>
+    </div>
+  </div>
+</section>
+
+<!-- ──── Timeline / Journey ──────────────────────────────────────────── -->
+<section id="journey">
+  <h2 class="section-title reveal">The <span class="gradient-word">Journey</span></h2>
+  <p class="section-sub reveal">From a spark of imagination to a living, breathing digital cosmos.</p>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot">💡</div>
+      <div class="tl-content">
+        <div class="tl-year">Origin</div>
+        <h4>The Spark</h4>
+        <p>It began with a single question: what if a website could feel like stepping into another dimension?</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">🎨</div>
+      <div class="tl-content">
+        <div class="tl-year">Design</div>
+        <h4>Cosmic Palette</h4>
+        <p>Colors chosen from nebulae, gradients mapped from stellar nurseries, typographic gravity inspired by pulsars.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">⚙️</div>
+      <div class="tl-content">
+        <div class="tl-year">Build</div>
+        <h4>Particle Physics</h4>
+        <p>Every star in the background is an independent particle with its own velocity, mass, and lifespan.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">🚀</div>
+      <div class="tl-content">
+        <div class="tl-year">Launch</div>
+        <h4>Into Orbit</h4>
+        <p>The universe went live. Visitors arrive and the cosmos expands — infinite, boundless, and always evolving.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">∞</div>
+      <div class="tl-content">
+        <div class="tl-year">Forever</div>
+        <h4>Always Expanding</h4>
+        <p>Like the universe itself, this experience will never stop growing. New dimensions, new discoveries — always.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ──── Terminal ────────────────────────────────────────────────────── -->
+<section id="terminal-section">
+  <h2 class="section-title reveal">Command the <span class="gradient-word">Universe</span></h2>
+  <p class="section-sub reveal">Every great universe started with a single command.</p>
+  <div class="terminal-window reveal">
+    <div class="terminal-bar">
+      <div class="t-dot t-red"></div>
+      <div class="t-dot t-yellow"></div>
+      <div class="t-dot t-green"></div>
+      <div class="terminal-title">universe@digital ~ bash</div>
+    </div>
+    <div class="terminal-body" id="terminal-body">
+    </div>
+  </div>
+</section>
+
+<!-- ──── Footer ──────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-glow"></div>
+  <p>
+    Crafted with 💜 somewhere in the cosmos &nbsp;·&nbsp;
+    <a href="#">Return to orbit</a>
+  </p>
+</footer>
+
+<!-- ──── Scripts ─────────────────────────────────────────────────────── -->
+<script>
+/* ── Cursor ──────────────────────────────────────────────────────────── */
+const cursor     = document.getElementById('cursor');
+const cursorRing = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+function animateCursor() {
+  rx += (mx - rx) * 0.18;
+  ry += (my - ry) * 0.18;
+  cursor.style.left     = mx + 'px';
+  cursor.style.top      = my + 'px';
+  cursorRing.style.left = rx + 'px';
+  cursorRing.style.top  = ry + 'px';
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+
+/* ── Starfield ────────────────────────────────────────────────────────── */
+(function() {
+  const canvas = document.getElementById('starfield');
+  const ctx    = canvas.getContext('2d');
+  let W, H, stars = [], mouse = {x:0, y:0};
+  const N = 220;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  class Star {
+    constructor() { this.reset(true); }
+    reset(init) {
+      this.x  = Math.random() * W;
+      this.y  = init ? Math.random() * H : -5;
+      this.r  = Math.random() * 1.5 + 0.3;
+      this.speed = Math.random() * 0.3 + 0.05;
+      this.opacity = Math.random() * 0.7 + 0.3;
+      this.twinkleSpeed = Math.random() * 0.02 + 0.005;
+      this.twinkleOffset = Math.random() * Math.PI * 2;
+      this.hue  = Math.random() < 0.3 ? 260 : (Math.random() < 0.5 ? 180 : 0);
+    }
+    draw(t) {
+      const tw = 0.5 + 0.5 * Math.sin(t * this.twinkleSpeed * 60 + this.twinkleOffset);
+      const o  = this.opacity * tw;
+      const col = this.hue === 0 ? `rgba(255,255,255,${o})`
+                : this.hue === 260 ? `rgba(180,140,255,${o})`
+                : `rgba(140,230,210,${o})`;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.fill();
+    }
+    update() {
+      // Subtle drift toward mouse
+      const dx = mouse.x - this.x;
+      const dy = mouse.y - this.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 200) {
+        this.x += dx * 0.0003;
+        this.y += dy * 0.0003;
+      }
+      this.y += this.speed;
+      if (this.y > H + 5) this.reset(false);
+    }
+  }
+
+  for (let i = 0; i < N; i++) stars.push(new Star());
+
+  // Shooting stars
+  let shooters = [];
+  class ShootingStar {
+    constructor() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H * 0.5;
+      this.len = Math.random() * 120 + 60;
+      this.speed = Math.random() * 8 + 5;
+      this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.3;
+      this.opacity = 1;
+      this.alive = true;
+    }
+    update() {
+      this.x += Math.cos(this.angle) * this.speed;
+      this.y += Math.sin(this.angle) * this.speed;
+      this.opacity -= 0.02;
+      if (this.opacity <= 0) this.alive = false;
+    }
+    draw() {
+      const tail = { x: this.x - Math.cos(this.angle)*this.len, y: this.y - Math.sin(this.angle)*this.len };
+      const g = ctx.createLinearGradient(tail.x, tail.y, this.x, this.y);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(1, `rgba(255,255,255,${this.opacity})`);
+      ctx.beginPath();
+      ctx.moveTo(tail.x, tail.y);
+      ctx.lineTo(this.x, this.y);
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+  let lastShooter = 0;
+  function render(t) {
+    ctx.clearRect(0, 0, W, H);
+
+    // Occasional shooting stars
+    if (t - lastShooter > 3000 && Math.random() < 0.3) {
+      shooters.push(new ShootingStar());
+      lastShooter = t;
+    }
+    shooters = shooters.filter(s => s.alive);
+    shooters.forEach(s => { s.update(); s.draw(); });
+
+    stars.forEach(s => { s.update(); s.draw(t); });
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+})();
+
+/* ── Card spotlight ──────────────────────────────────────────────────── */
+document.querySelectorAll('.card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+    card.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100) + '%');
+  });
+});
+
+/* ── Interactive Orb ─────────────────────────────────────────────────── */
+(function() {
+  const canvas = document.getElementById('orb-canvas');
+  const ctx    = canvas.getContext('2d');
+  const SIZE   = canvas.parentElement.offsetWidth;
+  canvas.width = canvas.height = SIZE;
+
+  let mouse = { x: SIZE/2, y: SIZE/2 };
+  let inside = false;
+  const particles = [];
+  const N = 180;
+
+  canvas.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - r.left;
+    mouse.y = e.clientY - r.top;
+    inside = true;
+  });
+  canvas.addEventListener('mouseleave', () => { inside = false; });
+
+  class OrbParticle {
+    constructor() { this.reset(); }
+    reset() {
+      const angle  = Math.random() * Math.PI * 2;
+      const radius = Math.random() * SIZE * 0.42;
+      this.x    = SIZE/2 + Math.cos(angle) * radius;
+      this.y    = SIZE/2 + Math.sin(angle) * radius;
+      this.baseX = this.x;
+      this.baseY = this.y;
+      this.vx   = (Math.random() - 0.5) * 0.5;
+      this.vy   = (Math.random() - 0.5) * 0.5;
+      this.r    = Math.random() * 2 + 0.5;
+      this.hue  = Math.random() * 80 + 240; // purple → teal
+      this.life = Math.random();
+    }
+    update() {
+      if (inside) {
+        const dx   = this.x - mouse.x;
+        const dy   = this.y - mouse.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 100) {
+          const force = (100 - dist) / 100;
+          this.vx += (dx / dist) * force * 0.8;
+          this.vy += (dy / dist) * force * 0.8;
+        }
+      }
+      // Spring back
+      const dx2 = this.baseX - this.x;
+      const dy2 = this.baseY - this.y;
+      this.vx += dx2 * 0.01;
+      this.vy += dy2 * 0.01;
+      this.vx *= 0.92;
+      this.vy *= 0.92;
+      this.x += this.vx;
+      this.y += this.vy;
+      this.life = (this.life + 0.005) % 1;
+    }
+    draw() {
+      const alpha = Math.sin(this.life * Math.PI) * 0.8 + 0.2;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${this.hue},80%,70%,${alpha})`;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < N; i++) particles.push(new OrbParticle());
+
+  function render(t) {
+    ctx.clearRect(0, 0, SIZE, SIZE);
+
+    // Clip to circle
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(SIZE/2, SIZE/2, SIZE/2, 0, Math.PI*2);
+    ctx.clip();
+
+    // Background glow
+    const bg = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE/2);
+    bg.addColorStop(0,   'rgba(127,90,240,0.15)');
+    bg.addColorStop(0.5, 'rgba(44,182,125,0.08)');
+    bg.addColorStop(1,   'rgba(5,5,16,0.95)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,SIZE,SIZE);
+
+    // Rotating ring
+    ctx.save();
+    ctx.translate(SIZE/2, SIZE/2);
+    ctx.rotate(t * 0.0004);
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, SIZE*0.38 - i*8, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(127,90,240,${0.06 - i*0.015})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Mouse-reactive glow
+    if (inside) {
+      const mg = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 80);
+      mg.addColorStop(0, 'rgba(127,90,240,0.3)');
+      mg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = mg;
+      ctx.fillRect(0, 0, SIZE, SIZE);
+    }
+
+    // Particles
+    particles.forEach(p => { p.update(); p.draw(); });
+
+    // Border glow
+    const border = ctx.createRadialGradient(SIZE/2, SIZE/2, SIZE/2-4, SIZE/2, SIZE/2, SIZE/2);
+    border.addColorStop(0, 'rgba(127,90,240,0.3)');
+    border.addColorStop(1, 'rgba(127,90,240,0)');
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(SIZE/2, SIZE/2, SIZE/2-1, 0, Math.PI*2);
+    ctx.stroke();
+
+    ctx.restore();
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+})();
+
+/* ── Scroll reveal ───────────────────────────────────────────────────── */
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      io.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal, .tl-item').forEach(el => io.observe(el));
+
+/* ── Counter animation ───────────────────────────────────────────────── */
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el     = e.target;
+    const target = +el.dataset.target;
+    const suffix = target === 99 ? '%' : target === 360 ? '°' : target === 1 ? '' : '+';
+    let cur = 0;
+    const step = target / 60;
+    function tick() {
+      cur = Math.min(cur + step, target);
+      el.textContent = Math.floor(cur).toLocaleString() + suffix;
+      if (cur < target) requestAnimationFrame(tick);
+    }
+    tick();
+    counterObs.unobserve(el);
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.stat-number').forEach(el => counterObs.observe(el));
+
+/* ── Terminal typewriter ─────────────────────────────────────────────── */
+(function() {
+  const body = document.getElementById('terminal-body');
+  const lines = [
+    { type:'prompt', cmd:'initialize --universe digital', delay:800 },
+    { type:'out',    text:'⣾ Booting cosmic engine...', delay:400 },
+    { type:'success',text:'✓ Particle system online   [180 nodes]', delay:300 },
+    { type:'success',text:'✓ Starfield rendered       [220 stars]', delay:300 },
+    { type:'success',text:'✓ Gradient engine loaded', delay:300 },
+    { type:'info',   text:'→ Calibrating dimensions...', delay:600 },
+    { type:'success',text:'✓ 3D depth layers activated', delay:300 },
+    { type:'warn',   text:'⚠ Reality buffer at 99.8% capacity', delay:400 },
+    { type:'out',    text:'', delay:200 },
+    { type:'prompt', cmd:'deploy --mode=infinite --beauty=maximum', delay:600 },
+    { type:'success',text:'✓ Universe deployed successfully', delay:500 },
+    { type:'info',   text:'→ Status: Expanding at ∞ km/s', delay:300 },
+    { type:'out',    text:'', delay:200 },
+    { type:'prompt', cmd:'echo "Welcome, explorer." ', delay:400 },
+    { type:'success',text:'"Welcome, explorer."', delay:300 },
+  ];
+
+  function colorClass(type) {
+    if (type === 'success') return 't-success';
+    if (type === 'info')    return 't-info';
+    if (type === 'warn')    return 't-warn';
+    return 't-out';
+  }
+
+  let idx = 0;
+  function nextLine() {
+    if (idx >= lines.length) {
+      // blinking cursor at end
+      const span = document.createElement('span');
+      span.className = 't-cursor';
+      body.appendChild(span);
+      return;
+    }
+    const line = lines[idx++];
+    setTimeout(() => {
+      const el = document.createElement('span');
+      el.className = 't-line';
+      if (line.type === 'prompt') {
+        el.innerHTML = `<span class="t-prompt">❯ </span><span class="t-cmd">${line.cmd}</span>`;
+      } else {
+        el.className += ' ' + colorClass(line.type);
+        el.textContent = line.text;
+      }
+      body.appendChild(el);
+      body.scrollTop = body.scrollHeight;
+      nextLine();
+    }, line.delay);
+  }
+
+  const termObs = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) { nextLine(); termObs.disconnect(); }
+  }, { threshold: 0.3 });
+  termObs.observe(document.getElementById('terminal-section'));
+})();
+</script>
+</body>
+</html>
