@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Geometry Dash Remake</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #07070f;
+    overflow: hidden;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #wrap {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  canvas {
+    background: #000;
+    box-shadow: 0 0 80px rgba(80, 60, 255, 0.25);
+    image-rendering: auto;
+  }
+  #hint {
+    position: absolute; bottom: 12px; left: 0; right: 0;
+    text-align: center; color: rgba(255,255,255,0.35);
+    font-size: 13px; letter-spacing: 1px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="960" height="540"></canvas></div>
+<div id="hint">SPACE / CLICK / TAP to jump &nbsp;•&nbsp; hold to fly the ship &nbsp;•&nbsp; M to mute</div>
+<script>
+'use strict';
+
+// ============================================================
+//  Geometry Dash Remake — single-file HTML5 canvas game
+// ============================================================
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ---- Tuning constants -------------------------------------
+const U          = 48;     // one grid unit, px
+const GROUND_Y   = 440;    // world y of the ground surface
+const SPEED      = 384;    // horizontal px/s (8 units/s)
+const GRAVITY    = 3000;   // cube gravity px/s^2
+const JUMP_V     = 880;    // cube jump velocity
+const PAD_V      = 1180;   // yellow pad boost
+const ORB_V      = 900;    // yellow orb boost
+const SHIP_GRAV  = 1500;   // ship gravity
+const SHIP_LIFT  = 3400;   // ship thrust accel (applied against gravity)
+const SHIP_VMAX  = 460;    // ship terminal velocity (both directions)
+const CEIL_UNITS = 7;      // ship-mode ceiling height in units above ground
+const PLAYER_S   = 40;     // player hitbox size
+
+// ---- Level definition -------------------------------------
+// Coordinates: x in grid units from the start line, y in units
+// above the ground (y=0 sits on the ground).
+const objects = [];
+const spike  = (x, y = 0)        => objects.push({ t: 'spike',  x, y });
+const block  = (x, y = 0)        => objects.push({ t: 'block',  x, y });
+const pad    = (x, y = 0)        => objects.push({ t: 'pad',    x, y });
+const orb    = (x, y)            => objects.push({ t: 'orb',    x, y, used: false });
+const portal = (x, mode)         => objects.push({ t: 'portal', x, y: 0, mode });
+// vertical ship pillar leaving an open gap [gapBottom, gapBottom+gapH)
+function pillar(x, gapBottom, gapH) {
+  for (let y = 0; y < CEIL_UNITS - 1; y++) {
+    if (y < gapBottom || y >= gapBottom + gapH) block(x, y);
+  }
+}
+
+function buildLevel() {
+  objects.length = 0;
+
+  // --- Cube intro: lone spikes, learn the jump ---
+  spike(20); spike(27); spike(34);
+  spike(42); spike(43);                       // double spike
+
+  // --- Platforms ---
+  block(50); block(51); block(52); spike(55);
+  block(60); block(62, 1); block(64, 1); spike(67);
+
+  // --- Pad launch over a spike field ---
+  pad(70);
+  spike(72); spike(73); spike(74);
+
+  // --- Orb chain over spikes ---
+  spike(85); spike(86); spike(87); spike(88);
+  orb(86.5, 2);
+
+  // --- Ship section ---
+  portal(97, 'ship');
+  pillar(108, 2, 3);
+  pillar(116, 3, 3);
+  pillar(124, 1, 3);
+  pillar(132, 3, 3);
+  pillar(140, 2, 3);
+  pillar(148, 1, 3);
+  portal(157, 'cube');
+
+  // --- Cube finale ---
+  spike(166);
+  spike(172); spike(173);
+  block(180); block(181); spike(181, 1);      // spike riding a platform
+  block(188); block(190, 1); block(192, 1); spike(195);
+  pad(200);
+  spike(202); spike(203); spike(204);
+  spike(211); spike(212); spike(213); spike(214);
+  orb(212.5, 2);
+  spike(222);
+}
+const LEVEL_END = 232 * U;   // finish line, world px
+const SHIP_ZONE = { from: 97 * U, to: 157 * U };  // ceiling strip drawn here
+
+// World-space rect for an object
+function rectOf(o) {
+  return { x: o.x * U, y: GROUND_Y - (o.y + 1) * U, w: U, h: U };
+}
+
+// ---- Game state -------------------------------------------
+const player = {
+  x: 0, y: 0, vy: 0,
+  mode: 'cube', grounded: false,
+  rot: 0, dead: false,
+};
+let camX = 0, camY = 0, shake = 0;
+let state = 'ready';          // ready | playing | dead | win
+let stateTimer = 0;
+let attempts = 1;
+let jumpBuffer = 0;           // seconds remaining on the buffered press
+let holding = false;
+let bestPct = +(localStorage.getItem('gdr-best') || 0);
+let muted = localStorage.getItem('gdr-muted') === '1';
+let particles = [];
+let time = 0;
+
+buildLevel();
+
+function resetRun() {
+  player.x = -6 * U;
+  player.y = GROUND_Y - PLAYER_S;
+  player.vy = 0;
+  player.mode = 'cube';
+  player.grounded = true;
+  player.rot = 0;
+  player.dead = false;
+  camX = player.x - 260;
+  camY = 0;
+  jumpBuffer = 0;
+  particles = [];
+  for (const o of objects) if (o.t === 'orb') o.used = false;
+  state = 'playing';
+}
+
+// ---- Input ------------------------------------------------
+function press() {
+  audio.ensure();
+  if (state === 'ready') { resetRun(); return; }
+  if (state === 'win' && stateTimer > 0.6) { attempts = 1; resetRun(); return; }
+  if (state === 'playing') jumpBuffer = 0.12;
+  holding = true;
+}
+function release() { holding = false; }
+
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); press(); }
+  if (e.code === 'KeyM') { muted = !muted; localStorage.setItem('gdr-muted', muted ? '1' : '0'); }
+});
+addEventListener('keyup', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') release();
+});
+addEventListener('pointerdown', press);
+addEventListener('pointerup', release);
+addEventListener('pointercancel', release);
+
+// ---- Audio (tiny WebAudio chiptune + sfx) ------------------
+const audio = {
+  ctx: null, nextBeat: 0, beat: 0,
+  ensure() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.nextBeat = this.ctx.currentTime + 0.05;
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  blip(freq, dur, type, vol) {
+    if (!this.ctx || muted) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(this.ctx.destination);
+    o.start(t); o.stop(t + dur);
+  },
+  jump()  { this.blip(520, 0.09, 'square', 0.05); },
+  boost() { this.blip(760, 0.12, 'square', 0.06); },
+  die() {
+    if (!this.ctx || muted) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(300, t);
+    o.frequency.exponentialRampToValueAtTime(40, t + 0.4);
+    g.gain.setValueAtTime(0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    o.connect(g).connect(this.ctx.destination);
+    o.start(t); o.stop(t + 0.4);
+  },
+  win() {
+    [523, 659, 784, 1047].forEach((f, i) =>
+      setTimeout(() => this.blip(f, 0.25, 'square', 0.07), i * 110));
+  },
+  // very small lookahead music scheduler: kick + bass pattern
+  bassNotes: [55, 55, 65.4, 73.4, 55, 55, 82.4, 73.4],
+  tick() {
+    if (!this.ctx || muted || state !== 'playing') return;
+    const spb = 60 / 140;  // 140 bpm
+    while (this.nextBeat < this.ctx.currentTime + 0.15) {
+      const t = this.nextBeat;
+      // kick
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(150, t);
+      o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+      g.gain.setValueAtTime(0.16, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      o.connect(g).connect(this.ctx.destination);
+      o.start(t); o.stop(t + 0.15);
+      // bass note (eighth notes)
+      for (let h = 0; h < 2; h++) {
+        const bt = t + h * spb / 2;
+        const bo = this.ctx.createOscillator(), bg = this.ctx.createGain();
+        bo.type = 'square';
+        bo.frequency.setValueAtTime(this.bassNotes[(this.beat * 2 + h) % 8], bt);
+        bg.gain.setValueAtTime(0.045, bt);
+        bg.gain.exponentialRampToValueAtTime(0.001, bt + spb * 0.45);
+        bo.connect(bg).connect(this.ctx.destination);
+        bo.start(bt); bo.stop(bt + spb * 0.5);
+      }
+      this.nextBeat += spb;
+      this.beat++;
+    }
+  },
+};
+
+// ---- Particles --------------------------------------------
+function burst(x, y, color, n, speed) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = speed * (0.3 + Math.random() * 0.7);
+    particles.push({
+      x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+      life: 0.5 + Math.random() * 0.5, age: 0,
+      size: 3 + Math.random() * 5, color,
+    });
+  }
+}
+function trail(x, y, color) {
+  particles.push({
+    x, y, vx: -SPEED * 0.4 + (Math.random() - 0.5) * 60,
+    vy: (Math.random() - 0.5) * 60,
+    life: 0.3 + Math.random() * 0.2, age: 0,
+    size: 2 + Math.random() * 4, color,
+  });
+}
+
+// ---- Death / win ------------------------------------------
+function die() {
+  if (player.dead) return;
+  player.dead = true;
+  state = 'dead';
+  stateTimer = 0;
+  shake = 14;
+  attempts++;
+  const pct = Math.min(100, Math.max(0, player.x / LEVEL_END * 100));
+  if (pct > bestPct) { bestPct = pct; localStorage.setItem('gdr-best', bestPct.toFixed(1)); }
+  burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#7df9ff', 40, 420);
+  burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#ff5577', 25, 300);
+  audio.die();
+}
+
+function winLevel() {
+  state = 'win';
+  stateTimer = 0;
+  bestPct = 100;
+  localStorage.setItem('gdr-best', '100.0');
+  burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#ffe14d', 60, 500);
+  audio.win();
+}
+
+// ---- Physics ----------------------------------------------
+const PHYS_DT = 1 / 240;
+
+function physicsStep(dt) {
+  const p = player;
+  const prevBottom = p.y + PLAYER_S;
+  const prevTop = p.y;
+
+  // vertical motion
+  if (p.mode === 'cube') {
+    p.vy += GRAVITY * dt;
+    if (p.grounded && (jumpBuffer > 0 || holding)) {
+      p.vy = -JUMP_V;
+      p.grounded = false;
+      jumpBuffer = 0;
+      audio.jump();
+    }
+  } else { // ship
+    p.vy += (holding ? SHIP_GRAV - SHIP_LIFT : SHIP_GRAV) * dt;
+    p.vy = Math.max(-SHIP_VMAX, Math.min(SHIP_VMAX, p.vy));
+  }
+
+  p.x += SPEED * dt;
+  p.y += p.vy * dt;
+  p.grounded = false;
+
+  // ground
+  if (p.y + PLAYER_S >= GROUND_Y) {
+    p.y = GROUND_Y - PLAYER_S;
+    p.vy = 0;
+    p.grounded = true;
+  }
+  // ship ceiling
+  if (p.mode === 'ship') {
+    const ceil = GROUND_Y - CEIL_UNITS * U;
+    if (p.y <= ceil) { p.y = ceil; p.vy = Math.max(0, p.vy); }
+  }
+
+  // objects near the player
+  for (const o of objects) {
+    const ox = o.x * U;
+    if (ox > p.x + 2 * U || ox + U < p.x - 2 * U) continue;
+    const r = rectOf(o);
+
+    if (o.t === 'block') {
+      if (p.x < r.x + r.w && p.x + PLAYER_S > r.x &&
+          p.y < r.y + r.h && p.y + PLAYER_S > r.y) {
+        if (prevBottom <= r.y + 12 && p.vy >= 0) {        // land on top
+          p.y = r.y - PLAYER_S; p.vy = 0; p.grounded = true;
+        } else if (prevTop >= r.y + r.h - 12 && p.vy <= 0) { // bonk underside
+          p.y = r.y + r.h; p.vy = 0;
+          if (p.mode === 'cube') die();                    // cube can't headbonk
+        } else {
+          die();                                           // side hit
+        }
+      }
+    } else if (o.t === 'spike') {
+      // forgiving inner hitbox
+      const sx = r.x + U * 0.32, sw = U * 0.36;
+      const sy = r.y + U * 0.35, sh = U * 0.65;
+      if (p.x < sx + sw && p.x + PLAYER_S > sx &&
+          p.y < sy + sh && p.y + PLAYER_S > sy) die();
+    } else if (o.t === 'pad') {
+      const py = GROUND_Y - (o.y * U) - 12;
+      if (p.x < r.x + U && p.x + PLAYER_S > r.x &&
+          p.y + PLAYER_S > py - 6 && p.y < py + 12) {
+        if (p.vy > -PAD_V * 0.9) { p.vy = -PAD_V; p.grounded = false; audio.boost(); }
+      }
+    } else if (o.t === 'orb') {
+      const cx = ox + U / 2, cy = GROUND_Y - (o.y + 0.5) * U;
+      const pcx = p.x + PLAYER_S / 2, pcy = p.y + PLAYER_S / 2;
+      const near = Math.abs(pcx - cx) < U * 0.9 && Math.abs(pcy - cy) < U * 0.9;
+      if (near && jumpBuffer > 0 && !o.used) {
+        o.used = true;
+        p.vy = -ORB_V;
+        p.grounded = false;
+        jumpBuffer = 0;
+        audio.boost();
+        burst(cx, cy, '#ffe14d', 12, 220);
+      }
+    } else if (o.t === 'portal') {
+      const px = ox + U * 0.2;
+      if (p.x + PLAYER_S > px && p.x < px + U * 0.6 && o.mode !== p.mode) {
+        p.mode = o.mode;
+        p.vy = Math.max(-300, Math.min(300, p.vy));
+        burst(ox + U / 2, p.y + PLAYER_S / 2, o.mode === 'ship' ? '#ff66cc' : '#5dff7a', 20, 260);
+      }
+    }
+  }
+
+  // rotation
+  if (p.mode === 'cube') {
+    if (p.grounded) {
+      const snap = Math.round(p.rot / (Math.PI / 2)) * (Math.PI / 2);
+      p.rot += (snap - p.rot) * Math.min(1, dt * 30);
+    } else {
+      p.rot += 5.8 * dt;
+    }
+  } else {
+    p.rot = Math.atan2(p.vy, SPEED) * 0.7;
+  }
+
+  if (p.x >= LEVEL_END) winLevel();
+}
+
+// ---- Update -----------------------------------------------
+let acc = 0;
+function update(dt) {
+  time += dt;
+  stateTimer += dt;
+  jumpBuffer = Math.max(0, jumpBuffer - dt);
+  audio.tick();
+
+  if (state === 'playing') {
+    acc += dt;
+    while (acc >= PHYS_DT && state === 'playing') {
+      physicsStep(PHYS_DT);
+      acc -= PHYS_DT;
+    }
+    // ground-slide / flight trail
+    if (player.grounded && Math.random() < 0.5)
+      trail(player.x, player.y + PLAYER_S, '#7df9ff');
+    if (player.mode === 'ship')
+      trail(player.x, player.y + PLAYER_S * 0.7, '#ff9de2');
+  }
+
+  if (state === 'dead' && stateTimer > 0.9) resetRun();
+
+  // camera
+  camX = player.x - 260;
+  const target = Math.min(0, (player.y + PLAYER_S / 2) - 290);
+  camY += (Math.min(0, target) - camY) * Math.min(1, dt * 6);
+  shake = Math.max(0, shake - dt * 40);
+
+  // particles
+  for (const pt of particles) {
+    pt.age += dt;
+    pt.x += pt.vx * dt;
+    pt.y += pt.vy * dt;
+    pt.vy += 500 * dt;
+  }
+  particles = particles.filter(pt => pt.age < pt.life);
+}
+
+// ---- Rendering --------------------------------------------
+function draw() {
+  const sx = (Math.random() - 0.5) * shake;
+  const sy = (Math.random() - 0.5) * shake;
+
+  // background — slowly shifting gradient
+  const hue = (time * 8) % 360;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `hsl(${hue}, 65%, 16%)`);
+  g.addColorStop(1, `hsl(${(hue + 50) % 360}, 70%, 30%)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // parallax squares
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = '#ffffff';
+  const par = camX * 0.3;
+  for (let i = 0; i < 12; i++) {
+    const bx = ((i * 173 - par) % (W + 200) + W + 200) % (W + 200) - 100;
+    const by = 60 + (i * 97) % 300;
+    const bs = 50 + (i * 53) % 90;
+    ctx.fillRect(bx, by, bs, bs);
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(-camX + sx, -camY + sy);
+
+  drawGround();
+  drawCeiling();
+  drawObjects();
+  drawFinish();
+  drawParticles();
+  if (!player.dead) drawPlayer();
+
+  ctx.restore();
+
+  drawHUD();
+}
+
+function drawGround() {
+  const left = camX - 50, right = camX + W + 50;
+  ctx.fillStyle = '#10101f';
+  ctx.fillRect(left, GROUND_Y, right - left, H);
+  // grid lines scrolling with the world
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let gx = Math.floor(left / U) * U; gx < right; gx += U) {
+    ctx.beginPath(); ctx.moveTo(gx, GROUND_Y); ctx.lineTo(gx, GROUND_Y + 100); ctx.stroke();
+  }
+  // glowing top edge
+  ctx.fillStyle = '#7df9ff';
+  ctx.fillRect(left, GROUND_Y, right - left, 3);
+  ctx.fillStyle = 'rgba(125,249,255,0.15)';
+  ctx.fillRect(left, GROUND_Y + 3, right - left, 8);
+}
+
+function drawCeiling() {
+  // ceiling strip only over the ship section
+  const cy = GROUND_Y - CEIL_UNITS * U;
+  const from = SHIP_ZONE.from - 2 * U, to = SHIP_ZONE.to + 2 * U;
+  if (camX + W < from || camX > to) return;
+  ctx.fillStyle = '#10101f';
+  ctx.fillRect(from, cy - 200, to - from, 200);
+  ctx.fillStyle = '#ff66cc';
+  ctx.fillRect(from, cy - 3, to - from, 3);
+  ctx.fillStyle = 'rgba(255,102,204,0.15)';
+  ctx.fillRect(from, cy - 11, to - from, 8);
+}
+
+function drawObjects() {
+  for (const o of objects) {
+    const ox = o.x * U;
+    if (ox + U < camX - U || ox > camX + W + U) continue;
+    const r = rectOf(o);
+
+    if (o.t === 'block') {
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = '#7df9ff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      ctx.strokeStyle = 'rgba(125,249,255,0.25)';
+      ctx.strokeRect(r.x + 6, r.y + 6, r.w - 12, r.h - 12);
+    } else if (o.t === 'spike') {
+      ctx.fillStyle = '#16162a';
+      ctx.strokeStyle = '#ff5577';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(r.x + 2, r.y + r.h);
+      ctx.lineTo(r.x + r.w / 2, r.y + 4);
+      ctx.lineTo(r.x + r.w - 2, r.y + r.h);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    } else if (o.t === 'pad') {
+      const py = GROUND_Y - o.y * U;
+      const pulse = 1 + Math.sin(time * 8) * 0.15;
+      ctx.fillStyle = '#ffe14d';
+      ctx.beginPath();
+      ctx.ellipse(r.x + U / 2, py - 4, U * 0.42 * pulse, 9 * pulse, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,225,77,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(r.x + U / 2, py - 4, U * 0.55 * pulse, 14 * pulse, 0, Math.PI, 0);
+      ctx.fill();
+    } else if (o.t === 'orb') {
+      const cx = ox + U / 2, cy = GROUND_Y - (o.y + 0.5) * U;
+      const pulse = 1 + Math.sin(time * 6) * 0.12;
+      ctx.globalAlpha = o.used ? 0.25 : 1;
+      ctx.strokeStyle = '#ffe14d';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, 16 * pulse, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#ffe14d';
+      ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (o.t === 'portal') {
+      const col = o.mode === 'ship' ? '#ff66cc' : '#5dff7a';
+      const ph = 3 * U, pw = U * 0.6;
+      const px = ox + U * 0.2, py = GROUND_Y - ph;
+      const pulse = Math.sin(time * 5) * 4;
+      ctx.save();
+      ctx.shadowColor = col; ctx.shadowBlur = 20;
+      ctx.strokeStyle = col; ctx.lineWidth = 5;
+      ctx.beginPath();
+      roundRectPath(px - pulse / 2, py, pw + pulse, ph, pw / 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = col;
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(o.mode === 'ship' ? 'SHIP' : 'CUBE', px + pw / 2, py - 10);
+    }
+  }
+}
+
+function roundRectPath(x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawFinish() {
+  if (LEVEL_END < camX - U || LEVEL_END > camX + W + U) return;
+  ctx.save();
+  ctx.shadowColor = '#ffe14d'; ctx.shadowBlur = 25;
+  ctx.fillStyle = '#ffe14d';
+  ctx.fillRect(LEVEL_END, GROUND_Y - 8 * U, 6, 8 * U);
+  ctx.restore();
+  // checkered flag
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+    ctx.fillStyle = (i + j) % 2 ? '#ffffff' : '#10101f';
+    ctx.fillRect(LEVEL_END + 6 + j * 14, GROUND_Y - 8 * U + i * 14, 14, 14);
+  }
+}
+
+function drawParticles() {
+  for (const pt of particles) {
+    ctx.globalAlpha = 1 - pt.age / pt.life;
+    ctx.fillStyle = pt.color;
+    const s = pt.size * (1 - pt.age / pt.life * 0.5);
+    ctx.fillRect(pt.x - s / 2, pt.y - s / 2, s, s);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPlayer() {
+  const p = player;
+  const cx = p.x + PLAYER_S / 2, cy = p.y + PLAYER_S / 2;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(p.rot);
+  ctx.shadowColor = '#7df9ff';
+  ctx.shadowBlur = 18;
+
+  if (p.mode === 'cube') {
+    ctx.fillStyle = '#1ec8e0';
+    ctx.fillRect(-PLAYER_S / 2, -PLAYER_S / 2, PLAYER_S, PLAYER_S);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#eafdff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-PLAYER_S / 2 + 2, -PLAYER_S / 2 + 2, PLAYER_S - 4, PLAYER_S - 4);
+    // face
+    ctx.fillStyle = '#0a2a33';
+    ctx.fillRect(-10, -9, 7, 10);
+    ctx.fillRect(4, -9, 7, 10);
+    ctx.fillRect(-8, 7, 17, 4);
+  } else {
+    // ship hull
+    ctx.fillStyle = '#ff9de2';
+    ctx.beginPath();
+    ctx.moveTo(PLAYER_S * 0.62, 0);
+    ctx.lineTo(-PLAYER_S * 0.5, -PLAYER_S * 0.34);
+    ctx.lineTo(-PLAYER_S * 0.34, 0);
+    ctx.lineTo(-PLAYER_S * 0.5, PLAYER_S * 0.34);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#ffe6f7';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    // cockpit
+    ctx.fillStyle = '#1ec8e0';
+    ctx.beginPath();
+    ctx.arc(2, -4, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawHUD() {
+  // progress bar
+  const pct = state === 'win' ? 1 : Math.min(1, Math.max(0, player.x / LEVEL_END));
+  const bw = 320, bx = (W - bw) / 2;
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(bx, 16, bw, 8);
+  ctx.fillStyle = '#5dff7a';
+  ctx.fillRect(bx, 16, bw * pct, 8);
+  // best marker
+  ctx.fillStyle = '#ffe14d';
+  ctx.fillRect(bx + bw * bestPct / 100 - 1, 12, 3, 16);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = '14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${(pct * 100).toFixed(0)}%`, W / 2, 44);
+  ctx.textAlign = 'left';
+  ctx.fillText(`Attempt ${attempts}`, 16, 28);
+  ctx.textAlign = 'right';
+  ctx.fillText(`Best ${bestPct.toFixed(1)}%${muted ? '  🔇' : ''}`, W - 16, 28);
+
+  if (state === 'ready') {
+    overlay('GEOMETRY DASH', 'REMAKE', 'press SPACE / tap to start');
+  } else if (state === 'win') {
+    overlay('LEVEL', 'COMPLETE!', stateTimer > 0.6 ? 'press SPACE / tap to play again' : '');
+  }
+}
+
+function overlay(line1, line2, sub) {
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.save();
+  ctx.shadowColor = '#7df9ff'; ctx.shadowBlur = 30;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 64px sans-serif';
+  ctx.fillText(line1, W / 2, H / 2 - 40);
+  ctx.fillStyle = '#7df9ff';
+  ctx.fillText(line2, W / 2, H / 2 + 30);
+  ctx.restore();
+  if (sub) {
+    const a = 0.6 + Math.sin(time * 4) * 0.35;
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.font = '18px sans-serif';
+    ctx.fillText(sub, W / 2, H / 2 + 90);
+  }
+}
+
+// ---- Resize-to-fit ----------------------------------------
+function fit() {
+  const s = Math.min(innerWidth / W, (innerHeight - 30) / H);
+  canvas.style.width = (W * s) + 'px';
+  canvas.style.height = (H * s) + 'px';
+}
+addEventListener('resize', fit);
+fit();
+
+// ---- Main loop --------------------------------------------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
