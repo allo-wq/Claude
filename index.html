@@ -34,7 +34,7 @@
 </head>
 <body>
 <div id="wrap"><canvas id="game" width="960" height="540"></canvas></div>
-<div id="hint">SPACE / CLICK / TAP to jump &nbsp;•&nbsp; hold to fly the ship &nbsp;•&nbsp; M to mute</div>
+<div id="hint">SPACE / TAP to jump &nbsp;•&nbsp; hold to fly the ship &nbsp;•&nbsp; ESC menu &nbsp;•&nbsp; M mute</div>
 <script>
 'use strict';
 
@@ -60,7 +60,7 @@ const SHIP_VMAX  = 460;    // ship terminal velocity (both directions)
 const CEIL_UNITS = 7;      // ship-mode ceiling height in units above ground
 const PLAYER_S   = 40;     // player hitbox size
 
-// ---- Level definition -------------------------------------
+// ---- Level building helpers -------------------------------
 // Coordinates: x in grid units from the start line, y in units
 // above the ground (y=0 sits on the ground).
 const objects = [];
@@ -76,47 +76,248 @@ function pillar(x, gapBottom, gapH) {
   }
 }
 
-function buildLevel() {
+// ---- Levels -----------------------------------------------
+const LEVELS = [
+  {
+    name: 'First Steps', diff: 'EASY', color: '#5dff7a', end: 232,
+    build() {
+      // --- Cube intro: lone spikes, learn the jump ---
+      spike(20); spike(27); spike(34);
+      spike(42); spike(43);                       // double spike
+
+      // --- Platforms ---
+      block(50); block(51); block(52); spike(55);
+      block(60); block(62, 1); block(64, 1); spike(67);
+
+      // --- Pad launch over a spike field ---
+      pad(70);
+      spike(72); spike(73); spike(74);
+
+      // --- Orb practice (tap while touching the orb for a boost) ---
+      orb(86.5, 2);
+
+      // --- Ship section ---
+      portal(97, 'ship');
+      pillar(108, 2, 3);
+      pillar(116, 3, 3);
+      pillar(124, 1, 3);
+      pillar(132, 3, 3);
+      pillar(140, 2, 3);
+      pillar(148, 1, 3);
+      portal(157, 'cube');
+
+      // --- Cube finale ---
+      spike(166);
+      spike(172); spike(173);
+      block(180); block(181); spike(181, 1);      // spike riding a platform
+      block(188); block(190, 1); block(192, 1); spike(195);
+      pad(200);
+      spike(202); spike(203); spike(204);
+      spike(211); spike(212); spike(213); spike(214);
+      orb(212.5, 2);
+      spike(222);
+    },
+  },
+  {
+    name: 'Sky High', diff: 'NORMAL', color: '#7df9ff', end: 240,
+    build() {
+      spike(18); spike(25);
+      // stair climb to a high ledge
+      block(31); block(33, 1); block(35, 2); block(36, 2); block(37, 2);
+      spike(42);
+      spike(48); spike(49);
+      pad(55); spike(57); spike(58); spike(59);
+      // hop across raised platforms with spikes in the gaps
+      block(66, 1); spike(67); block(68, 1); spike(69); block(70, 1);
+      spike(77);
+      spike(84); spike(85); orb(84.5, 2);
+      pad(92); spike(94); spike(95); spike(96);
+      block(104, 1); block(106); spike(109);
+      // short ship hop
+      portal(116, 'ship');
+      pillar(126, 2, 3); pillar(134, 3, 3); pillar(142, 2, 3);
+      portal(150, 'cube');
+      spike(158); spike(159);
+      block(166); block(168, 1); block(170, 2);
+      spike(176);
+      pad(184); spike(186); spike(187); spike(188);
+      spike(196); spike(197);
+      spike(204); spike(205); spike(206); spike(207); spike(208);
+      orb(206, 2);
+      spike(216); spike(217);
+      spike(226);
+    },
+  },
+  {
+    name: 'Pillar Run', diff: 'HARD', color: '#ff9de2', end: 250,
+    build() {
+      spike(16); spike(22);
+      // long ship corridor #1
+      portal(30, 'ship');
+      pillar(40, 2, 3); pillar(47, 3, 3); pillar(54, 1, 3); pillar(61, 3, 3);
+      pillar(68, 2, 3); pillar(75, 4, 2); pillar(82, 1, 3); pillar(89, 2, 3);
+      portal(97, 'cube');
+      spike(104); spike(105);
+      block(112); block(114, 1); spike(117);
+      pad(124); spike(126); spike(127); spike(128);
+      spike(133);
+      spike(140); spike(141); spike(142); spike(143); spike(144);
+      orb(142, 2);
+      // long ship corridor #2 — tighter gaps
+      portal(152, 'ship');
+      pillar(162, 3, 2); pillar(168, 1, 3); pillar(174, 4, 2); pillar(180, 2, 3);
+      pillar(186, 3, 2); pillar(192, 1, 3); pillar(198, 2, 3);
+      portal(206, 'cube');
+      spike(214); spike(215);
+      block(222); block(223); spike(223, 1);
+      spike(232); spike(233);
+      spike(241);
+    },
+  },
+  {
+    name: 'Orb Odyssey', diff: 'HARD', color: '#b07dff', end: 248,
+    build() {
+      spike(16); spike(23);
+      spike(30); spike(31); orb(30.5, 2);
+      pad(38); spike(40); spike(41); spike(42);
+      spike(50); spike(51); spike(52); spike(53); spike(54);
+      orb(52, 2);
+      block(62); block(64, 1); spike(67);
+      spike(74); spike(75);
+      spike(82); spike(83); spike(84); spike(85); spike(86);
+      orb(84, 2);
+      pad(94); spike(96); spike(97); spike(98);
+      portal(106, 'ship');
+      pillar(116, 2, 3); pillar(124, 4, 3); pillar(132, 1, 3); pillar(140, 3, 3);
+      portal(148, 'cube');
+      spike(156); spike(157);
+      // double-orb chain over a long bed
+      spike(164); spike(165); spike(166); spike(167);
+      spike(168); spike(169); spike(170); spike(171);
+      orb(166, 2); orb(169.5, 2.5);
+      spike(180); spike(181);
+      block(188); block(189); spike(189, 1);
+      pad(196); spike(198); spike(199); spike(200);
+      spike(208); spike(209); spike(210); spike(211); spike(212);
+      orb(210, 2);
+      spike(220); spike(221);
+      spike(230);
+    },
+  },
+  {
+    name: 'Spike Symphony', diff: 'HARDER', color: '#ffe14d', end: 244,
+    build() {
+      // metronome singles
+      spike(16); spike(22); spike(28); spike(34);
+      spike(41); spike(42); spike(48); spike(49);   // doubles
+      spike(56); spike(57); spike(58);              // first triple
+      pad(64); spike(66); spike(67); spike(68);
+      spike(76); spike(77); spike(78); spike(79); spike(80);
+      orb(78, 2);
+      spike(88); spike(89);
+      block(96); block(97); spike(102);
+      spike(110); spike(111); spike(112);
+      spike(116); spike(117); spike(118); spike(119); spike(120);
+      orb(118, 2);
+      spike(128); spike(129);
+      pad(136); spike(138); spike(139); spike(140);
+      spike(148); spike(149);
+      spike(156); spike(157); spike(158);
+      // ship breather
+      portal(164, 'ship');
+      pillar(174, 2, 3); pillar(182, 3, 3); pillar(190, 2, 3);
+      portal(198, 'cube');
+      spike(206); spike(207);
+      spike(214); spike(215); spike(216);
+      spike(224); spike(225); spike(226); spike(227); spike(228);
+      orb(226.5, 2);
+      spike(236); spike(237);
+    },
+  },
+  {
+    name: 'Skyline Sprint', diff: 'EXTREME', color: '#ffa94d', end: 252,
+    build() {
+      spike(15); spike(16);
+      block(22); block(23); spike(23, 1);
+      spike(30); spike(31); spike(32);
+      block(38); block(40, 1);
+      block(42, 2); block(43, 2); block(44, 2); block(45, 2);
+      spike(49);
+      pad(52); spike(54); spike(55); spike(56);
+      spike(63); spike(64);
+      portal(72, 'ship');
+      pillar(80, 2, 2); pillar(86, 3, 2); pillar(92, 1, 2);
+      pillar(98, 4, 2); pillar(104, 2, 2);
+      portal(112, 'cube');
+      spike(118); spike(119); spike(120);
+      spike(126); spike(127); spike(128); spike(129); spike(130);
+      orb(128, 2);
+      block(138); block(140, 1); spike(143); spike(144);
+      pad(150); spike(152); spike(153); spike(154);
+      spike(162); spike(163);
+      portal(170, 'ship');
+      pillar(178, 3, 2); pillar(184, 1, 2); pillar(190, 2, 2);
+      pillar(196, 4, 2); pillar(202, 3, 2);
+      portal(210, 'cube');
+      spike(216); spike(217); spike(218);
+      block(224); block(225); spike(225, 1);
+      spike(232); spike(233);
+      spike(242); spike(243);
+    },
+  },
+  {
+    name: 'Final Boss', diff: 'INSANE', color: '#ff5577', end: 256,
+    build() {
+      spike(14); spike(15);
+      spike(22); spike(23); spike(24);
+      block(30); block(31); spike(31, 1);
+      spike(38); spike(39); spike(40);
+      pad(46); spike(48); spike(49); spike(50);
+      spike(58); spike(59); spike(60);
+      // ship gauntlet #1 — narrow gaps
+      portal(66, 'ship');
+      pillar(74, 2, 2); pillar(80, 4, 2); pillar(86, 1, 2);
+      pillar(92, 3, 2); pillar(98, 2, 2);
+      portal(106, 'cube');
+      spike(112); spike(113);
+      block(118); block(120, 1);
+      block(122, 2); block(123, 2); block(124, 2); block(125, 2);
+      spike(129); spike(130);
+      spike(133); spike(134); spike(135); spike(136); spike(137);
+      orb(135, 2);
+      spike(146); spike(147); spike(148);
+      pad(154); spike(156); spike(157); spike(158);
+      // ship gauntlet #2
+      portal(166, 'ship');
+      pillar(174, 3, 2); pillar(180, 1, 2); pillar(186, 4, 2);
+      pillar(192, 2, 2); pillar(198, 3, 2); pillar(204, 1, 2);
+      portal(212, 'cube');
+      spike(218); spike(219); spike(220);
+      block(226); block(227); spike(227, 1);
+      spike(236); spike(237); spike(238);
+      spike(246); spike(247);
+    },
+  },
+];
+
+let currentLevel = 0;
+let LEVEL_END = 0;       // px
+let shipZones = [];      // [{from, to}] px, for ceiling rendering
+
+function loadLevel(i) {
+  currentLevel = i;
   objects.length = 0;
-
-  // --- Cube intro: lone spikes, learn the jump ---
-  spike(20); spike(27); spike(34);
-  spike(42); spike(43);                       // double spike
-
-  // --- Platforms ---
-  block(50); block(51); block(52); spike(55);
-  block(60); block(62, 1); block(64, 1); spike(67);
-
-  // --- Pad launch over a spike field ---
-  pad(70);
-  spike(72); spike(73); spike(74);
-
-  // --- Orb practice (tap while touching the orb for a boost) ---
-  orb(86.5, 2);
-
-  // --- Ship section ---
-  portal(97, 'ship');
-  pillar(108, 2, 3);
-  pillar(116, 3, 3);
-  pillar(124, 1, 3);
-  pillar(132, 3, 3);
-  pillar(140, 2, 3);
-  pillar(148, 1, 3);
-  portal(157, 'cube');
-
-  // --- Cube finale ---
-  spike(166);
-  spike(172); spike(173);
-  block(180); block(181); spike(181, 1);      // spike riding a platform
-  block(188); block(190, 1); block(192, 1); spike(195);
-  pad(200);
-  spike(202); spike(203); spike(204);
-  spike(211); spike(212); spike(213); spike(214);
-  orb(212.5, 2);
-  spike(222);
+  LEVELS[i].build();
+  LEVEL_END = LEVELS[i].end * U;
+  shipZones = [];
+  let open = null;
+  const portals = objects.filter(o => o.t === 'portal').sort((a, b) => a.x - b.x);
+  for (const p of portals) {
+    if (p.mode === 'ship' && open === null) open = p.x * U;
+    else if (p.mode === 'cube' && open !== null) { shipZones.push({ from: open, to: p.x * U }); open = null; }
+  }
+  if (open !== null) shipZones.push({ from: open, to: LEVEL_END });
 }
-const LEVEL_END = 232 * U;   // finish line, world px
-const SHIP_ZONE = { from: 97 * U, to: 157 * U };  // ceiling strip drawn here
 
 // World-space rect for an object
 function rectOf(o) {
@@ -130,17 +331,23 @@ const player = {
   rot: 0, dead: false,
 };
 let camX = 0, camY = 0, shake = 0;
-let state = 'ready';          // ready | playing | dead | win
+let state = 'menu';           // menu | playing | dead | win
 let stateTimer = 0;
 let attempts = 1;
+let selected = 0;             // menu selection
 let jumpBuffer = 0;           // seconds remaining on the buffered press
 let holding = false;
-let bestPct = +(localStorage.getItem('gdr-best') || 0);
 let muted = localStorage.getItem('gdr-muted') === '1';
 let particles = [];
 let time = 0;
 
-buildLevel();
+// per-level best percentage (migrates the old single-level save)
+const bests = LEVELS.map((_, i) => +(localStorage.getItem('gdr-best-' + i) || 0));
+if (localStorage.getItem('gdr-best') && !localStorage.getItem('gdr-best-0')) {
+  bests[0] = +localStorage.getItem('gdr-best');
+  localStorage.setItem('gdr-best-0', bests[0].toFixed(1));
+}
+function saveBest(i) { localStorage.setItem('gdr-best-' + i, bests[i].toFixed(1)); }
 
 function resetRun() {
   player.x = -6 * U;
@@ -158,25 +365,71 @@ function resetRun() {
   state = 'playing';
 }
 
+function startLevel(i) {
+  loadLevel(i);
+  attempts = 1;
+  resetRun();
+}
+
 // ---- Input ------------------------------------------------
-function press() {
-  audio.ensure();
-  if (state === 'ready') { resetRun(); return; }
-  if (state === 'win' && stateTimer > 0.6) { attempts = 1; resetRun(); return; }
+const MENU_ROWS = { x: (W - 560) / 2, y: 150, w: 560, h: 56, gap: 10 };
+const EXIT_BOX = { x: W - 48, y: 6, w: 40, h: 32 };
+
+function gamePress() {
   if (state === 'playing') jumpBuffer = 0.12;
+  if (state === 'win' && stateTimer > 0.6) advance();
   holding = true;
+}
+function advance() {
+  if (currentLevel < LEVELS.length - 1) startLevel(currentLevel + 1);
+  else state = 'menu';
 }
 function release() { holding = false; }
 
 addEventListener('keydown', e => {
   if (e.repeat) return;
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); press(); }
-  if (e.code === 'KeyM') { muted = !muted; localStorage.setItem('gdr-muted', muted ? '1' : '0'); }
+  audio.ensure();
+  if (e.code === 'KeyM') { muted = !muted; localStorage.setItem('gdr-muted', muted ? '1' : '0'); return; }
+  if (e.code === 'Escape') { if (state !== 'menu') state = 'menu'; return; }
+  if (state === 'menu') {
+    if (e.code === 'ArrowUp'   || e.code === 'KeyW') selected = (selected + LEVELS.length - 1) % LEVELS.length;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') selected = (selected + 1) % LEVELS.length;
+    if (e.code === 'Space' || e.code === 'Enter') startLevel(selected);
+    return;
+  }
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); gamePress(); }
 });
 addEventListener('keyup', e => {
   if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') release();
 });
-addEventListener('pointerdown', press);
+
+function canvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+}
+addEventListener('pointerdown', e => {
+  audio.ensure();
+  const p = canvasPos(e);
+  if (state === 'menu') {
+    for (let i = 0; i < LEVELS.length; i++) {
+      const ry = MENU_ROWS.y + i * (MENU_ROWS.h + MENU_ROWS.gap);
+      if (p.x >= MENU_ROWS.x && p.x <= MENU_ROWS.x + MENU_ROWS.w &&
+          p.y >= ry && p.y <= ry + MENU_ROWS.h) {
+        selected = i;
+        startLevel(i);
+        return;
+      }
+    }
+    return;
+  }
+  if (state === 'playing' &&
+      p.x >= EXIT_BOX.x && p.x <= EXIT_BOX.x + EXIT_BOX.w &&
+      p.y >= EXIT_BOX.y && p.y <= EXIT_BOX.y + EXIT_BOX.h) {
+    state = 'menu';
+    return;
+  }
+  gamePress();
+});
 addEventListener('pointerup', release);
 addEventListener('pointercancel', release);
 
@@ -281,7 +534,7 @@ function die() {
   shake = 14;
   attempts++;
   const pct = Math.min(100, Math.max(0, player.x / LEVEL_END * 100));
-  if (pct > bestPct) { bestPct = pct; localStorage.setItem('gdr-best', bestPct.toFixed(1)); }
+  if (pct > bests[currentLevel]) { bests[currentLevel] = pct; saveBest(currentLevel); }
   burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#7df9ff', 40, 420);
   burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#ff5577', 25, 300);
   audio.die();
@@ -290,8 +543,8 @@ function die() {
 function winLevel() {
   state = 'win';
   stateTimer = 0;
-  bestPct = 100;
-  localStorage.setItem('gdr-best', '100.0');
+  bests[currentLevel] = 100;
+  saveBest(currentLevel);
   burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#ffe14d', 60, 500);
   audio.win();
 }
@@ -466,6 +719,8 @@ function draw() {
   }
   ctx.restore();
 
+  if (state === 'menu') { drawMenu(); return; }
+
   ctx.save();
   ctx.translate(-camX + sx, -camY + sy);
 
@@ -479,6 +734,50 @@ function draw() {
   ctx.restore();
 
   drawHUD();
+}
+
+function drawMenu() {
+  ctx.textAlign = 'center';
+  ctx.save();
+  ctx.shadowColor = '#7df9ff'; ctx.shadowBlur = 30;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 52px sans-serif';
+  ctx.fillText('GEOMETRY DASH', W / 2, 72);
+  ctx.fillStyle = '#7df9ff';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.fillText('R E M A K E', W / 2, 110);
+  ctx.restore();
+
+  for (let i = 0; i < LEVELS.length; i++) {
+    const lvl = LEVELS[i];
+    const ry = MENU_ROWS.y + i * (MENU_ROWS.h + MENU_ROWS.gap);
+    const sel = i === selected;
+    ctx.fillStyle = sel ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.07)';
+    ctx.fillRect(MENU_ROWS.x, ry, MENU_ROWS.w, MENU_ROWS.h);
+    if (sel) {
+      ctx.strokeStyle = lvl.color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(MENU_ROWS.x + 1, ry + 1, MENU_ROWS.w - 2, MENU_ROWS.h - 2);
+    }
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText(`${i + 1}. ${lvl.name}`, MENU_ROWS.x + 20, ry + 35);
+    ctx.fillStyle = lvl.color;
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(lvl.diff, MENU_ROWS.x + 300, ry + 34);
+    ctx.textAlign = 'right';
+    const b = bests[i];
+    ctx.fillStyle = b >= 100 ? '#ffe14d' : 'rgba(255,255,255,0.7)';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(b >= 100 ? '★ 100%' : `best ${b.toFixed(0)}%`, MENU_ROWS.x + MENU_ROWS.w - 20, ry + 35);
+  }
+
+  ctx.textAlign = 'center';
+  const a = 0.5 + Math.sin(time * 4) * 0.3;
+  ctx.fillStyle = `rgba(255,255,255,${a})`;
+  ctx.font = '15px sans-serif';
+  ctx.fillText('tap a level or press SPACE to play', W / 2, H - 28);
 }
 
 function drawGround() {
@@ -499,16 +798,18 @@ function drawGround() {
 }
 
 function drawCeiling() {
-  // ceiling strip only over the ship section
+  // ceiling strips over the ship sections
   const cy = GROUND_Y - CEIL_UNITS * U;
-  const from = SHIP_ZONE.from - 2 * U, to = SHIP_ZONE.to + 2 * U;
-  if (camX + W < from || camX > to) return;
-  ctx.fillStyle = '#10101f';
-  ctx.fillRect(from, cy - 200, to - from, 200);
-  ctx.fillStyle = '#ff66cc';
-  ctx.fillRect(from, cy - 3, to - from, 3);
-  ctx.fillStyle = 'rgba(255,102,204,0.15)';
-  ctx.fillRect(from, cy - 11, to - from, 8);
+  for (const z of shipZones) {
+    const from = z.from - 2 * U, to = z.to + 2 * U;
+    if (camX + W < from || camX > to) continue;
+    ctx.fillStyle = '#10101f';
+    ctx.fillRect(from, cy - 200, to - from, 200);
+    ctx.fillStyle = '#ff66cc';
+    ctx.fillRect(from, cy - 3, to - from, 3);
+    ctx.fillStyle = 'rgba(255,102,204,0.15)';
+    ctx.fillRect(from, cy - 11, to - from, 8);
+  }
 }
 
 function drawObjects() {
@@ -666,21 +967,29 @@ function drawHUD() {
   ctx.fillRect(bx, 16, bw * pct, 8);
   // best marker
   ctx.fillStyle = '#ffe14d';
-  ctx.fillRect(bx + bw * bestPct / 100 - 1, 12, 3, 16);
+  ctx.fillRect(bx + bw * bests[currentLevel] / 100 - 1, 12, 3, 16);
 
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.font = '14px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(`${(pct * 100).toFixed(0)}%`, W / 2, 44);
   ctx.textAlign = 'left';
-  ctx.fillText(`Attempt ${attempts}`, 16, 28);
+  ctx.fillText(`${LEVELS[currentLevel].name} — Attempt ${attempts}`, 16, 28);
   ctx.textAlign = 'right';
-  ctx.fillText(`Best ${bestPct.toFixed(1)}%${muted ? '  🔇' : ''}`, W - 16, 28);
+  ctx.fillText(`Best ${bests[currentLevel].toFixed(1)}%${muted ? '  🔇' : ''}`, W - 64, 28);
 
-  if (state === 'ready') {
-    overlay('GEOMETRY DASH', 'REMAKE', 'press SPACE / tap to start');
-  } else if (state === 'win') {
-    overlay('LEVEL', 'COMPLETE!', stateTimer > 0.6 ? 'press SPACE / tap to play again' : '');
+  // exit-to-menu button
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(EXIT_BOX.x, EXIT_BOX.y, EXIT_BOX.w, EXIT_BOX.h);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.fillText('✕', EXIT_BOX.x + EXIT_BOX.w / 2, EXIT_BOX.y + 22);
+
+  if (state === 'win') {
+    const last = currentLevel === LEVELS.length - 1;
+    overlay('LEVEL', 'COMPLETE!',
+      stateTimer > 0.6 ? (last ? 'all levels complete! tap for menu' : 'tap / SPACE for next level') : '');
   }
 }
 
@@ -714,6 +1023,7 @@ addEventListener('resize', fit);
 fit();
 
 // ---- Main loop --------------------------------------------
+loadLevel(0);
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);

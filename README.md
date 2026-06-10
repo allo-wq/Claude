@@ -21,20 +21,20 @@ python3 -m http.server 8000
 
 ## Features
 
+- **Seven hand-built levels** with a level-select menu, from EASY to INSANE
 - **Cube and ship modes** with portals to switch between them
 - Spikes, platform blocks, yellow jump pads, and yellow jump orbs
-- One hand-built level (~30 s) with a verified-beatable layout
 - Death particles, screen shake, parallax background, rotation physics
 - Procedural chiptune music and sound effects via WebAudio (no assets)
-- Attempts counter, progress bar, and best-percentage saved in `localStorage`
+- Attempts counter, progress bar, and per-level best % saved in `localStorage`
 - Fixed-timestep physics (240 Hz) so jumps feel the same on any refresh rate
 
 ## Testing
 
-The level layout is machine-verified: `test/solve.js` loads the game's real
+Every level is machine-verified: `test/solve.js` loads the game's real
 physics code in Node (with DOM stubs) and runs a breadth-first search over
-hold/release inputs at physics resolution to prove the level can be completed.
+hold/release inputs at physics resolution to prove each level can be completed.
 
 ```sh
-node test/solve.js   # prints "LEVEL IS BEATABLE ✔" and exits 0
+node test/solve.js   # verifies all levels, exits 0 when all are beatable
 ```
