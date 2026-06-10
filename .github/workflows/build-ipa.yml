@@ -12,6 +12,8 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -45,3 +47,23 @@ jobs:
         with:
           name: GDRemake-unsigned-ipa
           path: GDRemake-unsigned.ipa
+
+      - name: Publish IPA to the ipa-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ipa-latest \
+            --title "GD Remake — latest IPA" \
+            --notes "Unsigned iOS build of the latest commit. Sideload with Sideloadly or AltStore." \
+            || true
+          gh release upload ipa-latest GDRemake-unsigned.ipa --clobber
+
+      - name: Push IPA to the ipa-dist branch
+        run: |
+          mkdir dist
+          cp GDRemake-unsigned.ipa dist/
+          cd dist
+          git init -b ipa-dist
+          git -c user.name=ci -c user.email=ci@invalid add GDRemake-unsigned.ipa
+          git -c user.name=ci -c user.email=ci@invalid commit -m "IPA build ${GITHUB_SHA::7}"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" ipa-dist
