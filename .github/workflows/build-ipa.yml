@@ -1,0 +1,47 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/geometry-dash-remake-wkl4n4, main]
+    paths:
+      - index.html
+      - ios/**
+      - .github/workflows/build-ipa.yml
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Bundle the game into the app resources
+        run: cp index.html ios/Resources/index.html
+
+      - name: Generate Xcode project
+        run: cd ios && xcodegen generate
+
+      - name: Build (unsigned)
+        run: |
+          cd ios
+          xcodebuild -project GDRemake.xcodeproj \
+            -target GDRemake \
+            -configuration Release \
+            -sdk iphoneos \
+            build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -r ios/build/Release-iphoneos/GDRemake.app Payload/
+          zip -r GDRemake-unsigned.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GDRemake-unsigned-ipa
+          path: GDRemake-unsigned.ipa
