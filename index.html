@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Geometry Dash Remake</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #07070f;
+    overflow: hidden;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #wrap {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  canvas {
+    background: #000;
+    box-shadow: 0 0 80px rgba(80, 60, 255, 0.25);
+    image-rendering: auto;
+  }
+  #hint {
+    position: absolute; bottom: 12px; left: 0; right: 0;
+    text-align: center; color: rgba(255,255,255,0.35);
+    font-size: 13px; letter-spacing: 1px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="960" height="540"></canvas></div>
+<div id="hint">SPACE / TAP to jump &nbsp;•&nbsp; hold to fly the ship &nbsp;•&nbsp; ESC menu &nbsp;•&nbsp; M mute</div>
+<script>
+'use strict';
+
+// ============================================================
+//  Geometry Dash Remake — single-file HTML5 canvas game
+// ============================================================
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ---- Tuning constants -------------------------------------
+const U          = 48;     // one grid unit, px
+const GROUND_Y   = 440;    // world y of the ground surface
+const SPEED      = 384;    // horizontal px/s (8 units/s)
+const GRAVITY    = 3000;   // cube gravity px/s^2
+const JUMP_V     = 880;    // cube jump velocity
+const PAD_V      = 1180;   // yellow pad boost
+const ORB_V      = 900;    // yellow orb boost
+const SHIP_GRAV  = 1500;   // ship gravity
+const SHIP_LIFT  = 3400;   // ship thrust accel (applied against gravity)
+const SHIP_VMAX  = 460;    // ship terminal velocity (both directions)
+const CEIL_UNITS = 7;      // ship-mode ceiling height in units above ground
+const PLAYER_S   = 40;     // player hitbox size
+
+// ---- Level building helpers -------------------------------
+// Coordinates: x in grid units from the start line, y in units
+// above the ground (y=0 sits on the ground).
+const objects = [];
+const spike  = (x, y = 0)        => objects.push({ t: 'spike',  x, y });
+const block  = (x, y = 0)        => objects.push({ t: 'block',  x, y });
+const pad    = (x, y = 0)        => objects.push({ t: 'pad',    x, y });
+const orb    = (x, y)            => objects.push({ t: 'orb',    x, y, used: false });
+const portal = (x, mode)         => objects.push({ t: 'portal', x, y: 0, mode });
+// vertical ship pillar leaving an open gap [gapBottom, gapBottom+gapH)
+function pillar(x, gapBottom, gapH) {
+  for (let y = 0; y < CEIL_UNITS - 1; y++) {
+    if (y < gapBottom || y >= gapBottom + gapH) block(x, y);
+  }
+}
+
+// ---- Levels -----------------------------------------------
+const LEVELS = [
+  {
+    name: 'First Steps', diff: 'EASY', color: '#5dff7a', end: 232,
+    build() {
+      // --- Cube intro: lone spikes, learn the jump ---
+      spike(20); spike(27); spike(34);
+      spike(42); spike(43);                       // double spike
+
+      // --- Platforms ---
+      block(50); block(51); block(52); spike(55);
+      block(60); block(62, 1); block(64, 1); spike(67);
+
+      // --- Pad launch over a spike field ---
+      pad(70);
+      spike(72); spike(73); spike(74);
+
+      // --- Orb practice (tap while touching the orb for a boost) ---
+      orb(86.5, 2);
+
+      // --- Ship section ---
+      portal(97, 'ship');
+      pillar(108, 2, 3);
+      pillar(116, 3, 3);
+      pillar(124, 1, 3);
+      pillar(132, 3, 3);
+      pillar(140, 2, 3);
+      pillar(148, 1, 3);
+      portal(157, 'cube');
+
+      // --- Cube finale ---
+      spike(166);
+      spike(172); spike(173);
+      block(180); block(181); spike(181, 1);      // spike riding a platform
+      block(188); block(190, 1); block(192, 1); spike(195);
+      pad(200);
+      spike(202); spike(203); spike(204);
+      spike(211); spike(212); spike(213); spike(214);
+      orb(212.5, 2);
+      spike(222);
+    },
+  },
+  {
+    name: 'Sky High', diff: 'NORMAL', color: '#7df9ff', end: 240,
+    build() {
+      spike(18); spike(25);
+      // stair climb to a high ledge
+      block(31); block(33, 1); block(35, 2); block(36, 2); block(37, 2);
+      spike(42);
+      spike(48); spike(49);
+      pad(55); spike(57); spike(58); spike(59);
+      // hop across raised platforms with spikes in the gaps
+      block(66, 1); spike(67); block(68, 1); spike(69); block(70, 1);
+      spike(77);
+      spike(84); spike(85); orb(84.5, 2);
+      pad(92); spike(94); spike(95); spike(96);
+      block(104, 1); block(106); spike(109);
+      // short ship hop
+      portal(116, 'ship');
+      pillar(126, 2, 3); pillar(134, 3, 3); pillar(142, 2, 3);
+      portal(150, 'cube');
+      spike(158); spike(159);
+      block(166); block(168, 1); block(170, 2);
+      spike(176);
+      pad(184); spike(186); spike(187); spike(188);
+      spike(196); spike(197);
+      spike(204); spike(205); spike(206); spike(207); spike(208);
+      orb(206, 2);
+      spike(216); spike(217);
+      spike(226);
+    },
+  },
+  {
+    name: 'Pillar Run', diff: 'HARD', color: '#ff9de2', end: 250,
+    build() {
+      spike(16); spike(22);
+      // long ship corridor #1
+      portal(30, 'ship');
+      pillar(40, 2, 3); pillar(47, 3, 3); pillar(54, 1, 3); pillar(61, 3, 3);
+      pillar(68, 2, 3); pillar(75, 4, 2); pillar(82, 1, 3); pillar(89, 2, 3);
+      portal(97, 'cube');
+      spike(104); spike(105);
+      block(112); block(114, 1); spike(117);
+      pad(124); spike(126); spike(127); spike(128);
+      spike(133);
+      spike(140); spike(141); spike(142); spike(143); spike(144);
+      orb(142, 2);
+      // long ship corridor #2 — tighter gaps
+      portal(152, 'ship');
+      pillar(162, 3, 2); pillar(168, 1, 3); pillar(174, 4, 2); pillar(180, 2, 3);
+      pillar(186, 3, 2); pillar(192, 1, 3); pillar(198, 2, 3);
+      portal(206, 'cube');
+      spike(214); spike(215);
+      block(222); block(223); spike(223, 1);
+      spike(232); spike(233);
+      spike(241);
+    },
+  },
+  {
+    name: 'Orb Odyssey', diff: 'HARD', color: '#b07dff', end: 248,
+    build() {
+      spike(16); spike(23);
+      spike(30); spike(31); orb(30.5, 2);
+      pad(38); spike(40); spike(41); spike(42);
+      spike(50); spike(51); spike(52); spike(53); spike(54);
+      orb(52, 2);
+      block(62); block(64, 1); spike(67);
+      spike(74); spike(75);
+      spike(82); spike(83); spike(84); spike(85); spike(86);
+      orb(84, 2);
+      pad(94); spike(96); spike(97); spike(98);
+      portal(106, 'ship');
+      pillar(116, 2, 3); pillar(124, 4, 3); pillar(132, 1, 3); pillar(140, 3, 3);
+      portal(148, 'cube');
+      spike(156); spike(157);
+      // double-orb chain over a long bed
+      spike(164); spike(165); spike(166); spike(167);
+      spike(168); spike(169); spike(170); spike(171);
+      orb(166, 2); orb(169.5, 2.5);
+      spike(180); spike(181);
+      block(188); block(189); spike(189, 1);
+      pad(196); spike(198); spike(199); spike(200);
+      spike(208); spike(209); spike(210); spike(211); spike(212);
+      orb(210, 2);
+      spike(220); spike(221);
+      spike(230);
+    },
+  },
+  {
+    name: 'Spike Symphony', diff: 'HARDER', color: '#ffe14d', end: 244,
+    build() {
+      // metronome singles
+      spike(16); spike(22); spike(28); spike(34);
+      spike(41); spike(42); spike(48); spike(49);   // doubles
+      spike(56); spike(57); spike(58);              // first triple
+      pad(64); spike(66); spike(67); spike(68);
+      spike(76); spike(77); spike(78); spike(79); spike(80);
+      orb(78, 2);
+      spike(88); spike(89);
+      block(96); block(97); spike(102);
+      spike(110); spike(111); spike(112);
+      spike(116); spike(117); spike(118); spike(119); spike(120);
+      orb(118, 2);
+      spike(128); spike(129);
+      pad(136); spike(138); spike(139); spike(140);
+      spike(148); spike(149);
+      spike(156); spike(157); spike(158);
+      // ship breather
+      portal(164, 'ship');
+      pillar(174, 2, 3); pillar(182, 3, 3); pillar(190, 2, 3);
+      portal(198, 'cube');
+      spike(206); spike(207);
+      spike(214); spike(215); spike(216);
+      spike(224); spike(225); spike(226); spike(227); spike(228);
+      orb(226.5, 2);
+      spike(236); spike(237);
+    },
+  },
+  {
+    name: 'Skyline Sprint', diff: 'EXTREME', color: '#ffa94d', end: 252,
+    build() {
+      spike(15); spike(16);
+      block(22); block(23); spike(23, 1);
+      spike(30); spike(31); spike(32);
+      block(38); block(40, 1);
+      block(42, 2); block(43, 2); block(44, 2); block(45, 2);
+      spike(49);
+      pad(52); spike(54); spike(55); spike(56);
+      spike(63); spike(64);
+      portal(72, 'ship');
+      pillar(80, 2, 2); pillar(86, 3, 2); pillar(92, 1, 2);
+      pillar(98, 4, 2); pillar(104, 2, 2);
+      portal(112, 'cube');
+      spike(118); spike(119); spike(120);
+      spike(126); spike(127); spike(128); spike(129); spike(130);
+      orb(128, 2);
+      block(138); block(140, 1); spike(143); spike(144);
+      pad(150); spike(152); spike(153); spike(154);
+      spike(162); spike(163);
+      portal(170, 'ship');
+      pillar(178, 3, 2); pillar(184, 1, 2); pillar(190, 2, 2);
+      pillar(196, 4, 2); pillar(202, 3, 2);
+      portal(210, 'cube');
+      spike(216); spike(217); spike(218);
+      block(224); block(225); spike(225, 1);
+      spike(232); spike(233);
+      spike(242); spike(243);
+    },
+  },
+  {
+    name: 'Final Boss', diff: 'INSANE', color: '#ff5577', end: 256,
+    build() {
+      spike(14); spike(15);
+      spike(22); spike(23); spike(24);
+      block(30); block(31); spike(31, 1);
+      spike(38); spike(39); spike(40);
+      pad(46); spike(48); spike(49); spike(50);
+      spike(58); spike(59); spike(60);
+      // ship gauntlet #1 — narrow gaps
+      portal(66, 'ship');
+      pillar(74, 2, 2); pillar(80, 4, 2); pillar(86, 1, 2);
+      pillar(92, 3, 2); pillar(98, 2, 2);
+      portal(106, 'cube');
+      spike(112); spike(113);
+      block(118); block(120, 1);
+      block(122, 2); block(123, 2); block(124, 2); block(125, 2);
+      spike(129); spike(130);
+      spike(133); spike(134); spike(135); spike(136); spike(137);
+      orb(135, 2);
+      spike(146); spike(147); spike(148);
+      pad(154); spike(156); spike(157); spike(158);
+      // ship gauntlet #2
+      portal(166, 'ship');
+      pillar(174, 3, 2); pillar(180, 1, 2); pillar(186, 4, 2);
+      pillar(192, 2, 2); pillar(198, 3, 2); pillar(204, 1, 2);
+      portal(212, 'cube');
+      spike(218); spike(219); spike(220);
+      block(226); block(227); spike(227, 1);
+      spike(236); spike(237); spike(238);
+      spike(246); spike(247);
+    },
+  },
+];
+
+let currentLevel = 0;
+let LEVEL_END = 0;       // px
+let shipZones = [];      // [{from, to}] px, for ceiling rendering
+
+function loadLevel(i) {
+  currentLevel = i;
+  objects.length = 0;
+  LEVELS[i].build();
+  LEVEL_END = LEVELS[i].end * U;
+  shipZones = [];
+  let open = null;
+  const portals = objects.filter(o => o.t === 'portal').sort((a, b) => a.x - b.x);
+  for (const p of portals) {
+    if (p.mode === 'ship' && open === null) open = p.x * U;
+    else if (p.mode === 'cube' && open !== null) { shipZones.push({ from: open, to: p.x * U }); open = null; }
+  }
+  if (open !== null) shipZones.push({ from: open, to: LEVEL_END });
+}
+
+// World-space rect for an object
+function rectOf(o) {
+  return { x: o.x * U, y: GROUND_Y - (o.y + 1) * U, w: U, h: U };
+}
+
+// ---- Game state -------------------------------------------
+const player = {
+  x: 0, y: 0, vy: 0,
+  mode: 'cube', grounded: false,
+  rot: 0, dead: false,
+};
+let camX = 0, camY = 0, shake = 0;
+let state = 'menu';           // menu | playing | dead | win
+let stateTimer = 0;
+let attempts = 1;
+let selected = 0;             // menu selection
+let jumpBuffer = 0;           // seconds remaining on the buffered press
+let holding = false;
+let muted = localStorage.getItem('gdr-muted') === '1';
+let particles = [];
+let time = 0;
+
+// per-level best percentage (migrates the old single-level save)
+const bests = LEVELS.map((_, i) => +(localStorage.getItem('gdr-best-' + i) || 0));
+if (localStorage.getItem('gdr-best') && !localStorage.getItem('gdr-best-0')) {
+  bests[0] = +localStorage.getItem('gdr-best');
+  localStorage.setItem('gdr-best-0', bests[0].toFixed(1));
+}
+function saveBest(i) { localStorage.setItem('gdr-best-' + i, bests[i].toFixed(1)); }
+
+function resetRun() {
+  player.x = -6 * U;
+  player.y = GROUND_Y - PLAYER_S;
+  player.vy = 0;
+  player.mode = 'cube';
+  player.grounded = true;
+  player.rot = 0;
+  player.dead = false;
+  camX = player.x - 260;
+  camY = 0;
+  jumpBuffer = 0;
+  particles = [];
+  for (const o of objects) if (o.t === 'orb') o.used = false;
+  state = 'playing';
+}
+
+function startLevel(i) {
+  loadLevel(i);
+  attempts = 1;
+  resetRun();
+}
+
+// ---- Input ------------------------------------------------
+const MENU_ROWS = { x: (W - 560) / 2, y: 150, w: 560, h: 56, gap: 10 };
+const EXIT_BOX = { x: W - 48, y: 6, w: 40, h: 32 };
+
+function gamePress() {
+  if (state === 'playing') jumpBuffer = 0.12;
+  if (state === 'win' && stateTimer > 0.6) advance();
+  holding = true;
+}
+function advance() {
+  if (currentLevel < LEVELS.length - 1) startLevel(currentLevel + 1);
+  else state = 'menu';
+}
+function release() { holding = false; }
+
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  audio.ensure();
+  if (e.code === 'KeyM') { muted = !muted; localStorage.setItem('gdr-muted', muted ? '1' : '0'); return; }
+  if (e.code === 'Escape') { if (state !== 'menu') state = 'menu'; return; }
+  if (state === 'menu') {
+    if (e.code === 'ArrowUp'   || e.code === 'KeyW') selected = (selected + LEVELS.length - 1) % LEVELS.length;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') selected = (selected + 1) % LEVELS.length;
+    if (e.code === 'Space' || e.code === 'Enter') startLevel(selected);
+    return;
+  }
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); gamePress(); }
+});
+addEventListener('keyup', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') release();
+});
+
+function canvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+}
+addEventListener('pointerdown', e => {
+  audio.ensure();
+  const p = canvasPos(e);
+  if (state === 'menu') {
+    for (let i = 0; i < LEVELS.length; i++) {
+      const ry = MENU_ROWS.y + i * (MENU_ROWS.h + MENU_ROWS.gap);
+      if (p.x >= MENU_ROWS.x && p.x <= MENU_ROWS.x + MENU_ROWS.w &&
+          p.y >= ry && p.y <= ry + MENU_ROWS.h) {
+        selected = i;
+        startLevel(i);
+        return;
+      }
+    }
+    return;
+  }
+  if (state === 'playing' &&
+      p.x >= EXIT_BOX.x && p.x <= EXIT_BOX.x + EXIT_BOX.w &&
+      p.y >= EXIT_BOX.y && p.y <= EXIT_BOX.y + EXIT_BOX.h) {
+    state = 'menu';
+    return;
+  }
+  gamePress();
+});
+addEventListener('pointerup', release);
+addEventListener('pointercancel', release);
+
+// ---- Audio (tiny WebAudio chiptune + sfx) ------------------
+const audio = {
+  ctx: null, nextBeat: 0, beat: 0,
+  ensure() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.nextBeat = this.ctx.currentTime + 0.05;
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  blip(freq, dur, type, vol) {
+    if (!this.ctx || muted) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(this.ctx.destination);
+    o.start(t); o.stop(t + dur);
+  },
+  jump()  { this.blip(520, 0.09, 'square', 0.05); },
+  boost() { this.blip(760, 0.12, 'square', 0.06); },
+  die() {
+    if (!this.ctx || muted) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(300, t);
+    o.frequency.exponentialRampToValueAtTime(40, t + 0.4);
+    g.gain.setValueAtTime(0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    o.connect(g).connect(this.ctx.destination);
+    o.start(t); o.stop(t + 0.4);
+  },
+  win() {
+    [523, 659, 784, 1047].forEach((f, i) =>
+      setTimeout(() => this.blip(f, 0.25, 'square', 0.07), i * 110));
+  },
+  // very small lookahead music scheduler: kick + bass pattern
+  bassNotes: [55, 55, 65.4, 73.4, 55, 55, 82.4, 73.4],
+  tick() {
+    if (!this.ctx || muted || state !== 'playing') return;
+    const spb = 60 / 140;  // 140 bpm
+    while (this.nextBeat < this.ctx.currentTime + 0.15) {
+      const t = this.nextBeat;
+      // kick
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(150, t);
+      o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+      g.gain.setValueAtTime(0.16, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      o.connect(g).connect(this.ctx.destination);
+      o.start(t); o.stop(t + 0.15);
+      // bass note (eighth notes)
+      for (let h = 0; h < 2; h++) {
+        const bt = t + h * spb / 2;
+        const bo = this.ctx.createOscillator(), bg = this.ctx.createGain();
+        bo.type = 'square';
+        bo.frequency.setValueAtTime(this.bassNotes[(this.beat * 2 + h) % 8], bt);
+        bg.gain.setValueAtTime(0.045, bt);
+        bg.gain.exponentialRampToValueAtTime(0.001, bt + spb * 0.45);
+        bo.connect(bg).connect(this.ctx.destination);
+        bo.start(bt); bo.stop(bt + spb * 0.5);
+      }
+      this.nextBeat += spb;
+      this.beat++;
+    }
+  },
+};
+
+// ---- Particles --------------------------------------------
+function burst(x, y, color, n, speed) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = speed * (0.3 + Math.random() * 0.7);
+    particles.push({
+      x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+      life: 0.5 + Math.random() * 0.5, age: 0,
+      size: 3 + Math.random() * 5, color,
+    });
+  }
+}
+function trail(x, y, color) {
+  particles.push({
+    x, y, vx: -SPEED * 0.4 + (Math.random() - 0.5) * 60,
+    vy: (Math.random() - 0.5) * 60,
+    life: 0.3 + Math.random() * 0.2, age: 0,
+    size: 2 + Math.random() * 4, color,
+  });
+}
+
+// ---- Death / win ------------------------------------------
+function die() {
+  if (player.dead) return;
+  player.dead = true;
+  state = 'dead';
+  stateTimer = 0;
+  shake = 14;
+  attempts++;
+  const pct = Math.min(100, Math.max(0, player.x / LEVEL_END * 100));
+  if (pct > bests[currentLevel]) { bests[currentLevel] = pct; saveBest(currentLevel); }
+  burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#7df9ff', 40, 420);
+  burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#ff5577', 25, 300);
+  audio.die();
+}
+
+function winLevel() {
+  state = 'win';
+  stateTimer = 0;
+  bests[currentLevel] = 100;
+  saveBest(currentLevel);
+  burst(player.x + PLAYER_S / 2, player.y + PLAYER_S / 2, '#ffe14d', 60, 500);
+  audio.win();
+}
+
+// ---- Physics ----------------------------------------------
+const PHYS_DT = 1 / 240;
+
+function physicsStep(dt) {
+  const p = player;
+  const prevBottom = p.y + PLAYER_S;
+  const prevTop = p.y;
+
+  // vertical motion
+  if (p.mode === 'cube') {
+    p.vy += GRAVITY * dt;
+    if (p.grounded && (jumpBuffer > 0 || holding)) {
+      p.vy = -JUMP_V;
+      p.grounded = false;
+      jumpBuffer = 0;
+      audio.jump();
+    }
+  } else { // ship
+    p.vy += (holding ? SHIP_GRAV - SHIP_LIFT : SHIP_GRAV) * dt;
+    p.vy = Math.max(-SHIP_VMAX, Math.min(SHIP_VMAX, p.vy));
+  }
+
+  p.x += SPEED * dt;
+  p.y += p.vy * dt;
+  p.grounded = false;
+
+  // ground
+  if (p.y + PLAYER_S >= GROUND_Y) {
+    p.y = GROUND_Y - PLAYER_S;
+    p.vy = 0;
+    p.grounded = true;
+  }
+  // ship ceiling
+  if (p.mode === 'ship') {
+    const ceil = GROUND_Y - CEIL_UNITS * U;
+    if (p.y <= ceil) { p.y = ceil; p.vy = Math.max(0, p.vy); }
+  }
+
+  // objects near the player
+  for (const o of objects) {
+    const ox = o.x * U;
+    if (ox > p.x + 2 * U || ox + U < p.x - 2 * U) continue;
+    const r = rectOf(o);
+
+    if (o.t === 'block') {
+      if (p.x < r.x + r.w && p.x + PLAYER_S > r.x &&
+          p.y < r.y + r.h && p.y + PLAYER_S > r.y) {
+        if (prevBottom <= r.y + 12 && p.vy >= 0) {        // land on top
+          p.y = r.y - PLAYER_S; p.vy = 0; p.grounded = true;
+        } else if (prevTop >= r.y + r.h - 12 && p.vy <= 0) { // bonk underside
+          p.y = r.y + r.h; p.vy = 0;
+          if (p.mode === 'cube') die();                    // cube can't headbonk
+        } else {
+          die();                                           // side hit
+        }
+      }
+    } else if (o.t === 'spike') {
+      // forgiving inner hitbox
+      const sx = r.x + U * 0.32, sw = U * 0.36;
+      const sy = r.y + U * 0.35, sh = U * 0.65;
+      if (p.x < sx + sw && p.x + PLAYER_S > sx &&
+          p.y < sy + sh && p.y + PLAYER_S > sy) die();
+    } else if (o.t === 'pad') {
+      const py = GROUND_Y - (o.y * U) - 12;
+      if (p.x < r.x + U && p.x + PLAYER_S > r.x &&
+          p.y + PLAYER_S > py - 6 && p.y < py + 12) {
+        if (p.vy > -PAD_V * 0.9) { p.vy = -PAD_V; p.grounded = false; audio.boost(); }
+      }
+    } else if (o.t === 'orb') {
+      const cx = ox + U / 2, cy = GROUND_Y - (o.y + 0.5) * U;
+      const pcx = p.x + PLAYER_S / 2, pcy = p.y + PLAYER_S / 2;
+      const near = Math.abs(pcx - cx) < U * 0.9 && Math.abs(pcy - cy) < U * 0.9;
+      if (near && jumpBuffer > 0 && !o.used) {
+        o.used = true;
+        p.vy = -ORB_V;
+        p.grounded = false;
+        jumpBuffer = 0;
+        audio.boost();
+        burst(cx, cy, '#ffe14d', 12, 220);
+      }
+    } else if (o.t === 'portal') {
+      const px = ox + U * 0.2;
+      if (p.x + PLAYER_S > px && p.x < px + U * 0.6 && o.mode !== p.mode) {
+        p.mode = o.mode;
+        p.vy = Math.max(-300, Math.min(300, p.vy));
+        burst(ox + U / 2, p.y + PLAYER_S / 2, o.mode === 'ship' ? '#ff66cc' : '#5dff7a', 20, 260);
+      }
+    }
+  }
+
+  // rotation
+  if (p.mode === 'cube') {
+    if (p.grounded) {
+      const snap = Math.round(p.rot / (Math.PI / 2)) * (Math.PI / 2);
+      p.rot += (snap - p.rot) * Math.min(1, dt * 30);
+    } else {
+      p.rot += 5.8 * dt;
+    }
+  } else {
+    p.rot = Math.atan2(p.vy, SPEED) * 0.7;
+  }
+
+  if (p.x >= LEVEL_END) winLevel();
+}
+
+// ---- Update -----------------------------------------------
+let acc = 0;
+function update(dt) {
+  time += dt;
+  stateTimer += dt;
+  jumpBuffer = Math.max(0, jumpBuffer - dt);
+  audio.tick();
+
+  if (state === 'playing') {
+    acc += dt;
+    while (acc >= PHYS_DT && state === 'playing') {
+      physicsStep(PHYS_DT);
+      acc -= PHYS_DT;
+    }
+    // ground-slide / flight trail
+    if (player.grounded && Math.random() < 0.5)
+      trail(player.x, player.y + PLAYER_S, '#7df9ff');
+    if (player.mode === 'ship')
+      trail(player.x, player.y + PLAYER_S * 0.7, '#ff9de2');
+  }
+
+  if (state === 'dead' && stateTimer > 0.9) resetRun();
+
+  // camera
+  camX = player.x - 260;
+  const target = Math.min(0, (player.y + PLAYER_S / 2) - 290);
+  camY += (Math.min(0, target) - camY) * Math.min(1, dt * 6);
+  shake = Math.max(0, shake - dt * 40);
+
+  // particles
+  for (const pt of particles) {
+    pt.age += dt;
+    pt.x += pt.vx * dt;
+    pt.y += pt.vy * dt;
+    pt.vy += 500 * dt;
+  }
+  particles = particles.filter(pt => pt.age < pt.life);
+}
+
+// ---- Rendering --------------------------------------------
+function draw() {
+  const sx = (Math.random() - 0.5) * shake;
+  const sy = (Math.random() - 0.5) * shake;
+
+  // background — slowly shifting gradient
+  const hue = (time * 8) % 360;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `hsl(${hue}, 65%, 16%)`);
+  g.addColorStop(1, `hsl(${(hue + 50) % 360}, 70%, 30%)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // parallax squares
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = '#ffffff';
+  const par = camX * 0.3;
+  for (let i = 0; i < 12; i++) {
+    const bx = ((i * 173 - par) % (W + 200) + W + 200) % (W + 200) - 100;
+    const by = 60 + (i * 97) % 300;
+    const bs = 50 + (i * 53) % 90;
+    ctx.fillRect(bx, by, bs, bs);
+  }
+  ctx.restore();
+
+  if (state === 'menu') { drawMenu(); return; }
+
+  ctx.save();
+  ctx.translate(-camX + sx, -camY + sy);
+
+  drawGround();
+  drawCeiling();
+  drawObjects();
+  drawFinish();
+  drawParticles();
+  if (!player.dead) drawPlayer();
+
+  ctx.restore();
+
+  drawHUD();
+}
+
+function drawMenu() {
+  ctx.textAlign = 'center';
+  ctx.save();
+  ctx.shadowColor = '#7df9ff'; ctx.shadowBlur = 30;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 52px sans-serif';
+  ctx.fillText('GEOMETRY DASH', W / 2, 72);
+  ctx.fillStyle = '#7df9ff';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.fillText('R E M A K E', W / 2, 110);
+  ctx.restore();
+
+  for (let i = 0; i < LEVELS.length; i++) {
+    const lvl = LEVELS[i];
+    const ry = MENU_ROWS.y + i * (MENU_ROWS.h + MENU_ROWS.gap);
+    const sel = i === selected;
+    ctx.fillStyle = sel ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.07)';
+    ctx.fillRect(MENU_ROWS.x, ry, MENU_ROWS.w, MENU_ROWS.h);
+    if (sel) {
+      ctx.strokeStyle = lvl.color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(MENU_ROWS.x + 1, ry + 1, MENU_ROWS.w - 2, MENU_ROWS.h - 2);
+    }
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText(`${i + 1}. ${lvl.name}`, MENU_ROWS.x + 20, ry + 35);
+    ctx.fillStyle = lvl.color;
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(lvl.diff, MENU_ROWS.x + 300, ry + 34);
+    ctx.textAlign = 'right';
+    const b = bests[i];
+    ctx.fillStyle = b >= 100 ? '#ffe14d' : 'rgba(255,255,255,0.7)';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(b >= 100 ? '★ 100%' : `best ${b.toFixed(0)}%`, MENU_ROWS.x + MENU_ROWS.w - 20, ry + 35);
+  }
+
+  ctx.textAlign = 'center';
+  const a = 0.5 + Math.sin(time * 4) * 0.3;
+  ctx.fillStyle = `rgba(255,255,255,${a})`;
+  ctx.font = '15px sans-serif';
+  ctx.fillText('tap a level or press SPACE to play', W / 2, H - 28);
+}
+
+function drawGround() {
+  const left = camX - 50, right = camX + W + 50;
+  ctx.fillStyle = '#10101f';
+  ctx.fillRect(left, GROUND_Y, right - left, H);
+  // grid lines scrolling with the world
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let gx = Math.floor(left / U) * U; gx < right; gx += U) {
+    ctx.beginPath(); ctx.moveTo(gx, GROUND_Y); ctx.lineTo(gx, GROUND_Y + 100); ctx.stroke();
+  }
+  // glowing top edge
+  ctx.fillStyle = '#7df9ff';
+  ctx.fillRect(left, GROUND_Y, right - left, 3);
+  ctx.fillStyle = 'rgba(125,249,255,0.15)';
+  ctx.fillRect(left, GROUND_Y + 3, right - left, 8);
+}
+
+function drawCeiling() {
+  // ceiling strips over the ship sections
+  const cy = GROUND_Y - CEIL_UNITS * U;
+  for (const z of shipZones) {
+    const from = z.from - 2 * U, to = z.to + 2 * U;
+    if (camX + W < from || camX > to) continue;
+    ctx.fillStyle = '#10101f';
+    ctx.fillRect(from, cy - 200, to - from, 200);
+    ctx.fillStyle = '#ff66cc';
+    ctx.fillRect(from, cy - 3, to - from, 3);
+    ctx.fillStyle = 'rgba(255,102,204,0.15)';
+    ctx.fillRect(from, cy - 11, to - from, 8);
+  }
+}
+
+function drawObjects() {
+  for (const o of objects) {
+    const ox = o.x * U;
+    if (ox + U < camX - U || ox > camX + W + U) continue;
+    const r = rectOf(o);
+
+    if (o.t === 'block') {
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = '#7df9ff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      ctx.strokeStyle = 'rgba(125,249,255,0.25)';
+      ctx.strokeRect(r.x + 6, r.y + 6, r.w - 12, r.h - 12);
+    } else if (o.t === 'spike') {
+      ctx.fillStyle = '#16162a';
+      ctx.strokeStyle = '#ff5577';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(r.x + 2, r.y + r.h);
+      ctx.lineTo(r.x + r.w / 2, r.y + 4);
+      ctx.lineTo(r.x + r.w - 2, r.y + r.h);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    } else if (o.t === 'pad') {
+      const py = GROUND_Y - o.y * U;
+      const pulse = 1 + Math.sin(time * 8) * 0.15;
+      ctx.fillStyle = '#ffe14d';
+      ctx.beginPath();
+      ctx.ellipse(r.x + U / 2, py - 4, U * 0.42 * pulse, 9 * pulse, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,225,77,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(r.x + U / 2, py - 4, U * 0.55 * pulse, 14 * pulse, 0, Math.PI, 0);
+      ctx.fill();
+    } else if (o.t === 'orb') {
+      const cx = ox + U / 2, cy = GROUND_Y - (o.y + 0.5) * U;
+      const pulse = 1 + Math.sin(time * 6) * 0.12;
+      ctx.globalAlpha = o.used ? 0.25 : 1;
+      ctx.strokeStyle = '#ffe14d';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, 16 * pulse, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#ffe14d';
+      ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (o.t === 'portal') {
+      const col = o.mode === 'ship' ? '#ff66cc' : '#5dff7a';
+      const ph = 3 * U, pw = U * 0.6;
+      const px = ox + U * 0.2, py = GROUND_Y - ph;
+      const pulse = Math.sin(time * 5) * 4;
+      ctx.save();
+      ctx.shadowColor = col; ctx.shadowBlur = 20;
+      ctx.strokeStyle = col; ctx.lineWidth = 5;
+      ctx.beginPath();
+      roundRectPath(px - pulse / 2, py, pw + pulse, ph, pw / 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = col;
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(o.mode === 'ship' ? 'SHIP' : 'CUBE', px + pw / 2, py - 10);
+    }
+  }
+}
+
+function roundRectPath(x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawFinish() {
+  if (LEVEL_END < camX - U || LEVEL_END > camX + W + U) return;
+  ctx.save();
+  ctx.shadowColor = '#ffe14d'; ctx.shadowBlur = 25;
+  ctx.fillStyle = '#ffe14d';
+  ctx.fillRect(LEVEL_END, GROUND_Y - 8 * U, 6, 8 * U);
+  ctx.restore();
+  // checkered flag
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+    ctx.fillStyle = (i + j) % 2 ? '#ffffff' : '#10101f';
+    ctx.fillRect(LEVEL_END + 6 + j * 14, GROUND_Y - 8 * U + i * 14, 14, 14);
+  }
+}
+
+function drawParticles() {
+  for (const pt of particles) {
+    ctx.globalAlpha = 1 - pt.age / pt.life;
+    ctx.fillStyle = pt.color;
+    const s = pt.size * (1 - pt.age / pt.life * 0.5);
+    ctx.fillRect(pt.x - s / 2, pt.y - s / 2, s, s);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPlayer() {
+  const p = player;
+  const cx = p.x + PLAYER_S / 2, cy = p.y + PLAYER_S / 2;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(p.rot);
+  ctx.shadowColor = '#7df9ff';
+  ctx.shadowBlur = 18;
+
+  if (p.mode === 'cube') {
+    ctx.fillStyle = '#1ec8e0';
+    ctx.fillRect(-PLAYER_S / 2, -PLAYER_S / 2, PLAYER_S, PLAYER_S);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#eafdff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-PLAYER_S / 2 + 2, -PLAYER_S / 2 + 2, PLAYER_S - 4, PLAYER_S - 4);
+    // face
+    ctx.fillStyle = '#0a2a33';
+    ctx.fillRect(-10, -9, 7, 10);
+    ctx.fillRect(4, -9, 7, 10);
+    ctx.fillRect(-8, 7, 17, 4);
+  } else {
+    // ship hull
+    ctx.fillStyle = '#ff9de2';
+    ctx.beginPath();
+    ctx.moveTo(PLAYER_S * 0.62, 0);
+    ctx.lineTo(-PLAYER_S * 0.5, -PLAYER_S * 0.34);
+    ctx.lineTo(-PLAYER_S * 0.34, 0);
+    ctx.lineTo(-PLAYER_S * 0.5, PLAYER_S * 0.34);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#ffe6f7';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    // cockpit
+    ctx.fillStyle = '#1ec8e0';
+    ctx.beginPath();
+    ctx.arc(2, -4, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawHUD() {
+  // progress bar
+  const pct = state === 'win' ? 1 : Math.min(1, Math.max(0, player.x / LEVEL_END));
+  const bw = 320, bx = (W - bw) / 2;
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(bx, 16, bw, 8);
+  ctx.fillStyle = '#5dff7a';
+  ctx.fillRect(bx, 16, bw * pct, 8);
+  // best marker
+  ctx.fillStyle = '#ffe14d';
+  ctx.fillRect(bx + bw * bests[currentLevel] / 100 - 1, 12, 3, 16);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = '14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${(pct * 100).toFixed(0)}%`, W / 2, 44);
+  ctx.textAlign = 'left';
+  ctx.fillText(`${LEVELS[currentLevel].name} — Attempt ${attempts}`, 16, 28);
+  ctx.textAlign = 'right';
+  ctx.fillText(`Best ${bests[currentLevel].toFixed(1)}%${muted ? '  🔇' : ''}`, W - 64, 28);
+
+  // exit-to-menu button
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(EXIT_BOX.x, EXIT_BOX.y, EXIT_BOX.w, EXIT_BOX.h);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.fillText('✕', EXIT_BOX.x + EXIT_BOX.w / 2, EXIT_BOX.y + 22);
+
+  if (state === 'win') {
+    const last = currentLevel === LEVELS.length - 1;
+    overlay('LEVEL', 'COMPLETE!',
+      stateTimer > 0.6 ? (last ? 'all levels complete! tap for menu' : 'tap / SPACE for next level') : '');
+  }
+}
+
+function overlay(line1, line2, sub) {
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.save();
+  ctx.shadowColor = '#7df9ff'; ctx.shadowBlur = 30;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 64px sans-serif';
+  ctx.fillText(line1, W / 2, H / 2 - 40);
+  ctx.fillStyle = '#7df9ff';
+  ctx.fillText(line2, W / 2, H / 2 + 30);
+  ctx.restore();
+  if (sub) {
+    const a = 0.6 + Math.sin(time * 4) * 0.35;
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.font = '18px sans-serif';
+    ctx.fillText(sub, W / 2, H / 2 + 90);
+  }
+}
+
+// ---- Resize-to-fit ----------------------------------------
+function fit() {
+  const s = Math.min(innerWidth / W, (innerHeight - 30) / H);
+  canvas.style.width = (W * s) + 'px';
+  canvas.style.height = (H * s) + 'px';
+}
+addEventListener('resize', fit);
+fit();
+
+// ---- Main loop --------------------------------------------
+loadLevel(0);
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
