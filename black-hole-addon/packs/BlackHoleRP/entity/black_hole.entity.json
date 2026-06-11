@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "bh:black_hole",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/black_hole"
+      },
+      "geometry": {
+        "default": "geometry.bh.black_hole"
+      },
+      "animations": {
+        "spin": "animation.bh.black_hole.spin"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.bh_size = query.property('bh:size');"
+        ],
+        "scale": "variable.bh_size",
+        "animate": ["spin"]
+      },
+      "render_controllers": ["controller.render.bh_black_hole"]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bh:singularity_core"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "OEO",
+      "ENE",
+      "OEO"
+    ],
+    "key": {
+      "O": { "item": "minecraft:obsidian" },
+      "E": { "item": "minecraft:end_crystal" },
+      "N": { "item": "minecraft:nether_star" }
+    },
+    "unlock": [
+      { "item": "minecraft:nether_star" }
+    ],
+    "result": {
+      "item": "bh:singularity_core",
+      "count": 1
+    }
+  }
+}

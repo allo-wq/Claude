@@ -1,0 +1,24 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "bh:stabilizer_rod",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": "bh_stabilizer_rod",
+      "minecraft:display_name": {
+        "value": "item.bh.stabilizer_rod.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:glint": true,
+      "minecraft:rarity": "rare",
+      "minecraft:durability": {
+        "max_durability": 16
+      },
+      "minecraft:hand_equipped": true
+    }
+  }
+}

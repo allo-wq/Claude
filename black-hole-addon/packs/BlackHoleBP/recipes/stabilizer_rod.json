@@ -1,0 +1,26 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "bh:stabilizer_rod"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "  D",
+      " B ",
+      "I  "
+    ],
+    "key": {
+      "D": { "item": "minecraft:diamond" },
+      "B": { "item": "minecraft:blaze_rod" },
+      "I": { "item": "minecraft:iron_ingot" }
+    },
+    "unlock": [
+      { "item": "minecraft:blaze_rod" }
+    ],
+    "result": {
+      "item": "bh:stabilizer_rod",
+      "count": 1
+    }
+  }
+}

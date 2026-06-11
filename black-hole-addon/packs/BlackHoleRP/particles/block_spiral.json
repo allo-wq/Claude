@@ -1,0 +1,57 @@
+{
+  "format_version": "1.10.0",
+  "particle_effect": {
+    "description": {
+      "identifier": "bh:block_spiral",
+      "basic_render_parameters": {
+        "material": "particles_alpha",
+        "texture": "textures/particle/bh_shard"
+      }
+    },
+    "components": {
+      "minecraft:emitter_rate_instant": {
+        "num_particles": 5
+      },
+      "minecraft:emitter_lifetime_once": {
+        "active_time": 0.1
+      },
+      "minecraft:emitter_shape_point": {
+        "offset": [0, 0, 0]
+      },
+      "minecraft:particle_lifetime_expression": {
+        "max_lifetime": "0.7 + variable.particle_random_1 * 0.4"
+      },
+      "minecraft:particle_motion_parametric": {
+        "relative_position": [
+          "variable.start_radius * (1 - variable.particle_age / variable.particle_lifetime) * math.cos(variable.particle_random_2 * 360 + variable.particle_age * 540)",
+          "(variable.particle_random_3 - 0.5) * variable.start_radius * 0.7 * (1 - variable.particle_age / variable.particle_lifetime)",
+          "variable.start_radius * (1 - variable.particle_age / variable.particle_lifetime) * math.sin(variable.particle_random_2 * 360 + variable.particle_age * 540)"
+        ],
+        "rotation": "variable.particle_random_4 * 360 + variable.particle_age * 600"
+      },
+      "minecraft:particle_appearance_billboard": {
+        "size": [
+          "0.22 * (1 - 0.7 * variable.particle_age / variable.particle_lifetime)",
+          "0.22 * (1 - 0.7 * variable.particle_age / variable.particle_lifetime)"
+        ],
+        "facing_camera_mode": "rotate_xyz",
+        "uv": {
+          "texture_width": 16,
+          "texture_height": 16,
+          "uv": [0, 0],
+          "uv_size": [16, 16]
+        }
+      },
+      "minecraft:particle_appearance_tinting": {
+        "color": {
+          "gradient": {
+            "0.0": "#FF9C8E80",
+            "0.7": "#FF55404E",
+            "1.0": "#FF0E0312"
+          },
+          "interpolant": "variable.particle_age / variable.particle_lifetime"
+        }
+      }
+    }
+  }
+}

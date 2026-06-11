@@ -1,0 +1,27 @@
+{
+  "format_version": "1.10.0",
+  "animations": {
+    "animation.bh.black_hole.spin": {
+      "loop": true,
+      "bones": {
+        "core": {
+          "rotation": ["0", "query.life_time * 220", "0"]
+        },
+        "shell_a": {
+          "rotation": ["query.life_time * 90", "query.life_time * -160", "0"]
+        },
+        "shell_b": {
+          "rotation": ["query.life_time * -70", "query.life_time * 120", "query.life_time * 40"]
+        },
+        "disk": {
+          "rotation": ["0", "query.life_time * 300", "0"],
+          "scale": [
+            "1 + math.sin(query.life_time * 180) * 0.06",
+            "1",
+            "1 + math.cos(query.life_time * 180) * 0.06"
+          ]
+        }
+      }
+    }
+  }
+}

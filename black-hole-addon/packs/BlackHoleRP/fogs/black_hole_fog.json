@@ -1,0 +1,22 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "bh:black_hole_fog"
+    },
+    "distance": {
+      "air": {
+        "fog_color": "#0A0014",
+        "distance_start": 4.0,
+        "distance_end": 40.0,
+        "render_distance_type": "fixed"
+      },
+      "water": {
+        "fog_color": "#05000A",
+        "distance_start": 2.0,
+        "distance_end": 20.0,
+        "render_distance_type": "fixed"
+      }
+    }
+  }
+}

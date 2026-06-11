@@ -1,0 +1,155 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.bh.black_hole",
+        "texture_width": 128,
+        "texture_height": 128,
+        "visible_bounds_width": 6,
+        "visible_bounds_height": 6,
+        "visible_bounds_offset": [
+          0,
+          1,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            16,
+            0
+          ]
+        },
+        {
+          "name": "core",
+          "parent": "root",
+          "pivot": [
+            0,
+            16,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -7,
+                9,
+                -7
+              ],
+              "size": [
+                14,
+                14,
+                14
+              ],
+              "uv": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "name": "shell_a",
+          "parent": "root",
+          "pivot": [
+            0,
+            16,
+            0
+          ],
+          "rotation": [
+            45,
+            45,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -7,
+                9,
+                -7
+              ],
+              "size": [
+                14,
+                14,
+                14
+              ],
+              "uv": [
+                0,
+                28
+              ],
+              "inflate": 0.5
+            }
+          ]
+        },
+        {
+          "name": "shell_b",
+          "parent": "root",
+          "pivot": [
+            0,
+            16,
+            0
+          ],
+          "rotation": [
+            -35,
+            20,
+            45
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -7,
+                9,
+                -7
+              ],
+              "size": [
+                14,
+                14,
+                14
+              ],
+              "uv": [
+                0,
+                28
+              ],
+              "inflate": 1.0
+            }
+          ]
+        },
+        {
+          "name": "disk",
+          "parent": "root",
+          "pivot": [
+            0,
+            16,
+            0
+          ],
+          "rotation": [
+            12,
+            0,
+            8
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -13,
+                15.5,
+                -13
+              ],
+              "size": [
+                26,
+                1,
+                26
+              ],
+              "uv": [
+                0,
+                56
+              ],
+              "inflate": 0.2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

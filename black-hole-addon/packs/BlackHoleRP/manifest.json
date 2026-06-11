@@ -1,0 +1,17 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Black Hole [RP]",
+    "description": "Visuals, sounds, particles and fog for the Black Hole add-on.",
+    "uuid": "d7baeae2-e974-4eb5-aab0-8e19951ccbe7",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 90]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "ea804bef-eee9-4e86-8615-f7ec3e902671",
+      "version": [1, 0, 0]
+    }
+  ]
+}

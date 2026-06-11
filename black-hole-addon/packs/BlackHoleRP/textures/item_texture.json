@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "BlackHoleRP",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "bh_singularity_core": {
+      "textures": "textures/items/singularity_core"
+    },
+    "bh_stabilizer_rod": {
+      "textures": "textures/items/stabilizer_rod"
+    }
+  }
+}
