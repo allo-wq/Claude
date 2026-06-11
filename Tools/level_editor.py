@@ -166,7 +166,7 @@ def level1():
     b.checkpoint_marker()
     b.pad_launch(4, 2)
     b.platform_gap(2, 3, 2, 2)
-    b.spike_row(2, 2).spike_row(3, 2)
+    b.spike_row(2, 2).spike_row(2, 2)
     b.checkpoint_marker()
     b.block_step(1, 2, rest_beats=1).block_step(2, 2, rest_beats=2)
     b.spike_row(1, 1).spike_row(1, 1).spike_row(2, 2)
