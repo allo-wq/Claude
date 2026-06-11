@@ -5,6 +5,9 @@ on:
     branches: ["main", "claude/**"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build unsigned IPA
@@ -53,6 +56,24 @@ jobs:
           name: GeometryRush-unsigned-ipa
           path: GeometryRush-unsigned.ipa
           retention-days: 90
+
+      # Also commit the IPA to dist/ on the branch so it can be fetched
+      # over git ([skip ci] prevents a rebuild loop).
+      - name: Commit IPA to dist/
+        if: github.ref_type == 'branch'
+        run: |
+          mkdir -p dist
+          cp GeometryRush-unsigned.ipa dist/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dist/GeometryRush-unsigned.ipa
+          if git diff --cached --quiet; then
+            echo "IPA unchanged, nothing to commit"
+          else
+            git commit -m "Add built IPA to dist/ [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
 
       - name: Build (simulator smoke check)
         run: |
