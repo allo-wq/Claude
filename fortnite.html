@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Victory Isle — Battle Royale</title>
+<style>
+  html,body{margin:0;padding:0;overflow:hidden;background:#000;height:100%;
+    font-family:'Segoe UI',Arial,sans-serif;-webkit-user-select:none;user-select:none;
+    touch-action:none}
+  canvas{display:block}
+  #hud{position:fixed;inset:0;pointer-events:none;color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  #crosshair{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-size:22px;color:#fff;opacity:.9}
+  #bars{position:absolute;left:18px;bottom:18px;width:260px}
+  .bar{height:14px;background:rgba(0,0,0,.5);border-radius:7px;margin-top:6px;overflow:hidden}
+  .bar>div{height:100%;border-radius:7px;transition:width .15s}
+  #hpfill{background:linear-gradient(90deg,#3ddc54,#7dff8e);width:100%}
+  #shfill{background:linear-gradient(90deg,#23a6f0,#7fd4ff);width:0%}
+  #ammo{position:absolute;right:22px;bottom:18px;text-align:right;font-size:26px;font-weight:700}
+  #ammo small{font-size:14px;font-weight:400;opacity:.85;display:block}
+  #topright{position:absolute;right:18px;top:14px;text-align:right;font-size:16px;font-weight:600}
+  #map{position:absolute;right:18px;top:70px;width:150px;height:150px;border-radius:8px;
+    background:rgba(10,25,40,.55);border:1px solid rgba(255,255,255,.35)}
+  #storm{position:absolute;left:50%;top:14px;transform:translateX(-50%);
+    font-size:15px;font-weight:600;color:#e6c8ff}
+  #feed{position:absolute;left:18px;top:14px;font-size:14px;line-height:1.5;opacity:.95}
+  #msg{position:absolute;left:50%;top:62%;transform:translateX(-50%);
+    font-size:18px;font-weight:600;color:#ffe98a}
+  #hit{position:absolute;left:50%;top:44%;transform:translateX(-50%);
+    font-size:20px;font-weight:800;color:#ffd34d;opacity:0;transition:opacity .4s}
+  #vignette{position:absolute;inset:0;opacity:0;
+    background:radial-gradient(ellipse at center,transparent 55%,rgba(255,0,0,.55) 100%)}
+  #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;background:rgba(5,10,25,.78);color:#fff;text-align:center;z-index:10}
+  #overlay h1{font-size:42px;margin:0 0 8px;letter-spacing:1px}
+  #overlay p{max-width:560px;line-height:1.6;margin:6px 18px;opacity:.92}
+  #overlay button{pointer-events:auto;margin-top:18px;font-size:20px;font-weight:700;
+    padding:12px 34px;border:0;border-radius:10px;background:#ffd34d;color:#222;cursor:pointer}
+  .touchbtn{position:fixed;border-radius:50%;background:rgba(255,255,255,.18);
+    border:2px solid rgba(255,255,255,.45);color:#fff;display:none;align-items:center;
+    justify-content:center;font-size:13px;font-weight:700;z-index:5;pointer-events:auto}
+  #joy{position:fixed;left:30px;bottom:90px;width:120px;height:120px;border-radius:50%;
+    background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);display:none;z-index:5}
+  #joyk{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;
+    background:rgba(255,255,255,.45)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="vignette"></div>
+  <div id="crosshair">+</div>
+  <div id="feed"></div>
+  <div id="storm"></div>
+  <div id="topright">
+    <span id="alive">20</span> ALIVE &nbsp;|&nbsp; <span id="kills">0</span> ELIMS
+  </div>
+  <canvas id="map" width="150" height="150"></canvas>
+  <div id="bars">
+    <div class="bar"><div id="shfill"></div></div>
+    <div class="bar"><div id="hpfill"></div></div>
+  </div>
+  <div id="ammo"></div>
+  <div id="msg"></div>
+  <div id="hit"></div>
+</div>
+
+<div id="joy"><div id="joyk"></div></div>
+<div class="touchbtn" id="btnFire" style="right:36px;bottom:110px;width:84px;height:84px">FIRE</div>
+<div class="touchbtn" id="btnJump" style="right:140px;bottom:60px;width:60px;height:60px">JUMP</div>
+<div class="touchbtn" id="btnBuild" style="right:52px;bottom:215px;width:60px;height:60px">BUILD</div>
+<div class="touchbtn" id="btnSwap" style="right:140px;bottom:215px;width:60px;height:60px">SWAP</div>
+
+<div id="overlay">
+  <h1>VICTORY ISLE</h1>
+  <p>A battle royale on a procedural island. You and 19 others drop in —
+     the storm closes — only one walks out.</p>
+  <p><b>WASD</b> move · <b>Mouse</b> aim · <b>Click</b> fire · <b>Shift</b> sprint ·
+     <b>Space</b> jump · <b>Q</b> build wall · <b>R</b> reload ·
+     <b>1</b> rifle <b>2</b> shotgun <b>3</b> pickaxe (chop trees for wood)</p>
+  <p>On mobile: left stick moves, drag right side to aim, buttons to act.</p>
+  <button id="playbtn">DROP IN</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+// ============================== basics ==============================
+const TOUCH = 'ontouchstart' in window;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9fd1ff);
+scene.fog = new THREE.Fog(0x9fd1ff, 120, 700);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, .1, 2000);
+camera.rotation.order = 'YXZ';
+const renderer = new THREE.WebGLRenderer({antialias:!TOUCH});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+addEventListener('resize', ()=>{ camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x3c5e34, .95));
+const sun = new THREE.DirectionalLight(0xfff3d6, .9);
+sun.position.set(180, 260, 120); scene.add(sun);
+
+// ============================== terrain ==============================
+const ISLE = 420;            // island radius
+function terrainHeight(x, z){
+  let h = 8*Math.sin(x*.010)*Math.cos(z*.013)
+        + 5*Math.sin(x*.030+1.7)*Math.sin(z*.021+2.1)
+        + 2.5*Math.sin(x*.070+4.2)*Math.cos(z*.052+1.1)
+        + 1.2*Math.sin(x*.130)*Math.sin(z*.110);
+  const d = Math.sqrt(x*x+z*z);
+  const fall = Math.max(0, 1 - Math.pow(d/ISLE, 3));
+  return (h+11)*fall - 2.5;
+}
+function groundY(x,z){ return Math.max(terrainHeight(x,z), -1); }
+
+{
+  const g = new THREE.PlaneGeometry(1000, 1000, 150, 150);
+  g.rotateX(-Math.PI/2);
+  const pos = g.attributes.position, col = [];
+  for(let i=0;i<pos.count;i++){
+    const x = pos.getX(i), z = pos.getZ(i);
+    const h = terrainHeight(x, z);
+    pos.setY(i, h);
+    let c;
+    if(h < .6)       c = [.83,.76,.52];          // sand
+    else if(h < 14)  c = [.22+h*.008,.50,.21];   // grass
+    else if(h < 21)  c = [.45,.43,.40];          // rock
+    else             c = [.92,.92,.95];          // snow
+    col.push(c[0],c[1],c[2]);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
+  g.computeVertexNormals();
+  scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({vertexColors:true})));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(3000,3000),
+    new THREE.MeshLambertMaterial({color:0x1d6fb8, transparent:true, opacity:.85}));
+  water.rotation.x = -Math.PI/2; water.position.y = 0; scene.add(water);
+}
+
+// blockers = things bullets/sight collide with (filled below)
+const blockers = [];
+
+// ============================== props ==============================
+const trees = [];
+{
+  const trunkMat = new THREE.MeshLambertMaterial({color:0x6b4426});
+  const leafMat  = new THREE.MeshLambertMaterial({color:0x1d5e2a});
+  for(let i=0;i<160;i++){
+    const a = Math.random()*Math.PI*2, r = Math.sqrt(Math.random())*(ISLE-40);
+    const x = Math.cos(a)*r, z = Math.sin(a)*r, h = terrainHeight(x,z);
+    if(h < 2 || h > 15) continue;
+    const t = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,4,6), trunkMat);
+    trunk.position.y = 2;
+    const leaf1 = new THREE.Mesh(new THREE.ConeGeometry(2.4,4.5,7), leafMat);
+    leaf1.position.y = 5.4;
+    const leaf2 = new THREE.Mesh(new THREE.ConeGeometry(1.7,3.4,7), leafMat);
+    leaf2.position.y = 7.6;
+    t.add(trunk, leaf1, leaf2);
+    t.position.set(x, h, z);
+    scene.add(t);
+    const tree = {mesh:t, trunk, hp:100, x, z};
+    trunk.userData.tree = tree;
+    trees.push(tree); blockers.push(trunk);
+  }
+  // rocks
+  const rockMat = new THREE.MeshLambertMaterial({color:0x7e7e78});
+  for(let i=0;i<40;i++){
+    const a = Math.random()*Math.PI*2, r = Math.sqrt(Math.random())*(ISLE-30);
+    const x = Math.cos(a)*r, z = Math.sin(a)*r, h = terrainHeight(x,z);
+    if(h < 1) continue;
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(.8+Math.random()*1.8), rockMat);
+    rock.position.set(x, h+.4, z);
+    rock.rotation.set(Math.random(),Math.random(),Math.random());
+    scene.add(rock); blockers.push(rock);
+  }
+  // simple buildings
+  const wallMat = new THREE.MeshLambertMaterial({color:0xb8a98c});
+  const roofMat = new THREE.MeshLambertMaterial({color:0x8a4a3a});
+  [[60,40],[-110,80],[30,-150],[-70,-90],[150,-60],[-180,-20]].forEach(([x,z])=>{
+    const h = terrainHeight(x,z); if(h < 2) return;
+    const b = new THREE.Mesh(new THREE.BoxGeometry(10,6,8), wallMat);
+    b.position.set(x, h+3, z);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(8,4,4), roofMat);
+    roof.position.set(x, h+8, z); roof.rotation.y = Math.PI/4;
+    scene.add(b, roof); blockers.push(b);
+  });
+}
+
+// loot chests
+const chests = [];
+{
+  const mat = new THREE.MeshLambertMaterial({color:0xd9a514, emissive:0x6b4f00});
+  for(let i=0;i<28;i++){
+    const a = Math.random()*Math.PI*2, r = Math.sqrt(Math.random())*(ISLE-50);
+    const x = Math.cos(a)*r, z = Math.sin(a)*r, h = terrainHeight(x,z);
+    if(h < 1.5) continue;
+    const c = new THREE.Mesh(new THREE.BoxGeometry(1.1,.8,.8), mat);
+    c.position.set(x, h+.4, z); c.rotation.y = Math.random()*Math.PI;
+    scene.add(c); chests.push({mesh:c, x, z, open:false});
+  }
+}
+
+// ============================== storm ==============================
+const stormPhases = [
+  {wait:25, shrink:30, r:290, dps:1},
+  {wait:20, shrink:25, r:185, dps:2},
+  {wait:15, shrink:20, r:110, dps:5},
+  {wait:12, shrink:15, r:55,  dps:8},
+  {wait:10, shrink:15, r:15,  dps:10},
+  {wait:8,  shrink:25, r:2,   dps:14},
+];
+const storm = {r:ISLE, cx:0, cz:0, phase:0, t:stormPhases[0].wait, state:'wait',
+  from:{r:ISLE,cx:0,cz:0}, to:{r:ISLE,cx:0,cz:0}, dps:1};
+const stormMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(1, 1, 500, 64, 1, true),
+  new THREE.MeshBasicMaterial({color:0xb04cff, transparent:true, opacity:.22,
+    side:THREE.DoubleSide, depthWrite:false}));
+scene.add(stormMesh);
+function pickNextCircle(){
+  const ph = stormPhases[storm.phase];
+  const maxOff = Math.max(0,(storm.r-ph.r))*.8;
+  const a = Math.random()*Math.PI*2, d = Math.random()*maxOff;
+  let cx = storm.cx+Math.cos(a)*d, cz = storm.cz+Math.sin(a)*d;
+  const lim = ISLE-60-ph.r;                       // keep zone on land
+  const cd = Math.sqrt(cx*cx+cz*cz);
+  if(lim > 0 && cd > lim){ cx *= lim/cd; cz *= lim/cd; }
+  storm.from = {r:storm.r, cx:storm.cx, cz:storm.cz};
+  storm.to   = {r:ph.r, cx, cz};
+}
+pickNextCircle();
+function updateStorm(dt){
+  const ph = stormPhases[storm.phase];
+  storm.t -= dt;
+  if(storm.state === 'wait'){
+    if(storm.t <= 0){ storm.state = 'shrink'; storm.t = ph.shrink; }
+  } else {
+    const k = 1 - Math.max(storm.t,0)/ph.shrink;
+    storm.r  = storm.from.r  + (storm.to.r -storm.from.r )*k;
+    storm.cx = storm.from.cx + (storm.to.cx-storm.from.cx)*k;
+    storm.cz = storm.from.cz + (storm.to.cz-storm.from.cz)*k;
+    if(storm.t <= 0 && storm.phase < stormPhases.length-1){
+      storm.phase++; storm.dps = stormPhases[storm.phase].dps;
+      storm.state = 'wait'; storm.t = stormPhases[storm.phase].wait;
+      pickNextCircle();
+    }
+  }
+  stormMesh.scale.set(storm.r, 1, storm.r);
+  stormMesh.position.set(storm.cx, 200, storm.cz);
+  stormMesh.material.opacity = .18 + .06*Math.sin(performance.now()*.002);
+}
+function inStorm(x,z){
+  const dx = x-storm.cx, dz = z-storm.cz;
+  return dx*dx+dz*dz > storm.r*storm.r;
+}
+
+// ============================== player ==============================
+const player = {
+  pos: new THREE.Vector3(), vy:0, yaw:0, pitch:0,
+  hp:100, shield:0, wood:120, alive:true, kills:0,
+  weapon:0, onGround:false, phase:'menu',  // menu | drop | play
+};
+const weapons = [
+  {name:'Assault Rifle', mag:30, ammo:30, reserve:120, dmg:24, rate:.13,
+   spread:.012, auto:true, range:300},
+  {name:'Shotgun', mag:8, ammo:8, reserve:32, dmg:11, pellets:8, rate:.85,
+   spread:.05, auto:false, range:40},
+  {name:'Pickaxe', melee:true, dmg:25, rate:.5, range:3.6},
+];
+{ // spawn position chosen at drop
+  const a = Math.random()*Math.PI*2;
+  player.pos.set(Math.cos(a)*180, 320, Math.sin(a)*180);
+}
+
+// ============================== bots ==============================
+const BOT_NAMES = ['Raven','Drift','Jonesy','Skye','Meow','Peely','Midas','Crux',
+  'Brite','Rippley','Fade','Hush','Kado','Lynx','Oro','Zenith','Bunker','Maverick','Tempo'];
+const bots = [];
+function makeBot(name){
+  const g = new THREE.Group();
+  const shirt = new THREE.Color().setHSL(Math.random(), .7, .5);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,1.3,8),
+    new THREE.MeshLambertMaterial({color:shirt}));
+  body.position.y = .85;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.32,10,8),
+    new THREE.MeshLambertMaterial({color:0xe8c39e}));
+  head.position.y = 1.85; head.userData.isHead = true;
+  const gun = new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.9),
+    new THREE.MeshLambertMaterial({color:0x333}));
+  gun.position.set(.3,1.3,.45);
+  g.add(body, head, gun);
+  const a = Math.random()*Math.PI*2, r = 80+Math.random()*(ISLE-160);
+  const x = Math.cos(a)*r, z = Math.sin(a)*r;
+  g.position.set(x, groundY(x,z), z);
+  scene.add(g);
+  const bot = {name, mesh:g, head, hp:100, alive:true,
+    wp:null, shootCd:2+Math.random()*3, losT:0, los:false, dying:0};
+  body.userData.bot = bot; head.userData.bot = bot;
+  return bot;
+}
+BOT_NAMES.forEach(n=>bots.push(makeBot(n)));
+function botsAlive(){ return bots.filter(b=>b.alive).length; }
+
+// ============================== walls (building) ==============================
+const walls = [];
+const woodMat = new THREE.MeshLambertMaterial({color:0x9a6b3f});
+function buildWall(){
+  if(player.wood < 10){ flashMsg('Not enough wood — chop trees with pickaxe (3)'); return; }
+  player.wood -= 10;
+  const dirx = -Math.sin(player.yaw), dirz = -Math.cos(player.yaw);
+  const x = player.pos.x + dirx*3.2, z = player.pos.z + dirz*3.2;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(4,3.4,.28), woodMat.clone());
+  m.position.set(x, groundY(x,z)+1.7, z);
+  m.rotation.y = player.yaw;
+  scene.add(m);
+  const w = {mesh:m, hp:150};
+  m.userData.wall = w;
+  walls.push(w); blockers.push(m);
+  snd(160,.08,'square',.15);
+}
+
+// ============================== input ==============================
+const keys = {};
+let firing = false, locked = false;
+addEventListener('keydown', e=>{
+  keys[e.code] = true;
+  if(e.code==='KeyR') reload();
+  if(e.code==='KeyQ') if(player.phase==='play'&&player.alive) buildWall();
+  if(e.code==='Digit1') switchWeapon(0);
+  if(e.code==='Digit2') switchWeapon(1);
+  if(e.code==='Digit3') switchWeapon(2);
+});
+addEventListener('keyup', e=>keys[e.code]=false);
+document.addEventListener('pointerlockchange',
+  ()=>{ locked = document.pointerLockElement === renderer.domElement; });
+addEventListener('mousemove', e=>{
+  if(!locked) return;
+  player.yaw   -= e.movementX*.0023;
+  player.pitch -= e.movementY*.0023;
+  player.pitch = Math.max(-1.45, Math.min(1.45, player.pitch));
+});
+renderer.domElement.addEventListener('mousedown', e=>{
+  if(player.phase!=='play') return;
+  if(!locked && !TOUCH){ renderer.domElement.requestPointerLock(); return; }
+  if(e.button===0) firing = true;
+});
+addEventListener('mouseup', ()=>firing=false);
+
+// touch controls
+const joy = {x:0, y:0, id:null};
+let lookId = null, lookLast = null;
+if(TOUCH){
+  document.getElementById('joy').style.display = 'block';
+  document.querySelectorAll('.touchbtn').forEach(b=>b.style.display='flex');
+  const joyEl = document.getElementById('joy'), knob = document.getElementById('joyk');
+  addEventListener('touchstart', e=>{
+    for(const t of e.changedTouches){
+      if(t.clientX < innerWidth*.45 && joy.id===null){
+        joy.id = t.identifier; joy.bx = t.clientX; joy.by = t.clientY;
+      } else if(lookId===null && !e.target.classList.contains('touchbtn')){
+        lookId = t.identifier; lookLast = {x:t.clientX, y:t.clientY};
+      }
+    }
+  }, {passive:false});
+  addEventListener('touchmove', e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier===joy.id){
+        const dx = t.clientX-joy.bx, dy = t.clientY-joy.by, m = Math.hypot(dx,dy)||1;
+        const c = Math.min(m,50);
+        joy.x = dx/m*(c/50); joy.y = dy/m*(c/50);
+        knob.style.left = 35+dx/m*c+'px'; knob.style.top = 35+dy/m*c+'px';
+      } else if(t.identifier===lookId){
+        player.yaw   -= (t.clientX-lookLast.x)*.005;
+        player.pitch -= (t.clientY-lookLast.y)*.005;
+        player.pitch = Math.max(-1.45, Math.min(1.45, player.pitch));
+        lookLast = {x:t.clientX, y:t.clientY};
+      }
+    }
+  }, {passive:false});
+  addEventListener('touchend', e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier===joy.id){ joy.id=null; joy.x=joy.y=0;
+        knob.style.left='35px'; knob.style.top='35px'; }
+      if(t.identifier===lookId) lookId=null;
+    }
+  });
+  const bind = (id,down,up)=>{ const el=document.getElementById(id);
+    el.addEventListener('touchstart',e=>{e.stopPropagation();down();},{passive:true});
+    if(up) el.addEventListener('touchend',e=>{e.stopPropagation();up();},{passive:true}); };
+  bind('btnFire', ()=>firing=true, ()=>firing=false);
+  bind('btnJump', ()=>keys.Space=true, ()=>keys.Space=false);
+  bind('btnBuild', ()=>{ if(player.phase==='play'&&player.alive) buildWall(); });
+  bind('btnSwap', ()=>switchWeapon((player.weapon+1)%3));
+}
+
+// ============================== audio ==============================
+let AC = null;
+function snd(freq, dur, type, vol, slide){
+  if(!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type||'square'; o.frequency.value = freq;
+  if(slide) o.frequency.exponentialRampToValueAtTime(slide, AC.currentTime+dur);
+  g.gain.value = vol||.1;
+  g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime+dur);
+  o.connect(g).connect(AC.destination);
+  o.start(); o.stop(AC.currentTime+dur);
+}
+
+// ============================== shooting ==============================
+const raycaster = new THREE.Raycaster();
+const tracers = [];
+let fireCd = 0, reloading = 0;
+function switchWeapon(i){ player.weapon = i; reloading = 0; }
+function reload(){
+  const w = weapons[player.weapon];
+  if(w.melee || reloading>0 || w.ammo===w.mag || w.reserve<=0) return;
+  reloading = 1.6; snd(220,.25,'sawtooth',.06,80);
+}
+function addTracer(a, b, color){
+  const g = new THREE.BufferGeometry().setFromPoints([a,b]);
+  const line = new THREE.Line(g,
+    new THREE.LineBasicMaterial({color:color||0xfff2a0, transparent:true, opacity:.9}));
+  scene.add(line); tracers.push({line, ttl:.09});
+}
+function showHit(n, head){
+  const el = document.getElementById('hit');
+  el.textContent = (head?'HEADSHOT ':'')+n;
+  el.style.color = head?'#ff5b5b':'#ffd34d';
+  el.style.opacity = 1;
+  clearTimeout(showHit.t); showHit.t = setTimeout(()=>el.style.opacity=0, 350);
+}
+function botTargets(){
+  const list = [];
+  bots.forEach(b=>{ if(b.alive) list.push(...b.mesh.children); });
+  return list;
+}
+function fireShot(){
+  const w = weapons[player.weapon];
+  if(w.melee){ swingPickaxe(w); return; }
+  if(reloading>0) return;
+  if(w.ammo<=0){ reload(); return; }
+  w.ammo--; fireCd = w.rate;
+  snd(w.pellets?90:140, .09, 'sawtooth', .14, 40);
+  const shots = w.pellets||1;
+  const targets = botTargets().concat(blockers);
+  for(let s=0;s<shots;s++){
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    dir.x += (Math.random()-.5)*w.spread*2;
+    dir.y += (Math.random()-.5)*w.spread*2;
+    dir.z += (Math.random()-.5)*w.spread*2;
+    dir.normalize();
+    raycaster.set(camera.position, dir);
+    raycaster.far = w.range;
+    const hits = raycaster.intersectObjects(targets, false);
+    let end = camera.position.clone().add(dir.clone().multiplyScalar(w.range));
+    if(hits.length){
+      const h = hits[0]; end = h.point;
+      const ud = h.object.userData;
+      if(ud.bot && ud.bot.alive){
+        const head = !!ud.isHead;
+        const dmg = Math.round(w.dmg*(head?1.8:1));
+        damageBot(ud.bot, dmg, 'You');
+        showHit(dmg, head);
+        snd(head?880:520,.07,'square',.08);
+      } else if(ud.wall){
+        ud.wall.hp -= w.dmg*shots;
+        if(ud.wall.hp<=0) destroyWall(ud.wall);
+      } else if(ud.tree){
+        ud.tree.hp -= w.dmg;
+        if(ud.tree.hp<=0) fellTree(ud.tree);
+      }
+    }
+    const muzzle = camera.position.clone()
+      .add(dir.clone().multiplyScalar(1.2))
+      .add(new THREE.Vector3(0,-.18,0));
+    addTracer(muzzle, end);
+  }
+  player.pitch += .008;  // recoil
+}
+function swingPickaxe(w){
+  fireCd = w.rate;
+  snd(300,.08,'triangle',.08,120);
+  const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  raycaster.set(camera.position, dir); raycaster.far = w.range;
+  const hits = raycaster.intersectObjects(botTargets().concat(blockers), false);
+  if(!hits.length) return;
+  const ud = hits[0].object.userData;
+  if(ud.tree){
+    player.wood += 20; ud.tree.hp -= 34;
+    flashMsg('+20 wood ('+player.wood+')');
+    snd(180,.1,'square',.1);
+    if(ud.tree.hp<=0) fellTree(ud.tree);
+  } else if(ud.bot && ud.bot.alive){
+    damageBot(ud.bot, w.dmg, 'You'); showHit(w.dmg,false);
+  } else if(ud.wall){
+    ud.wall.hp -= 50; if(ud.wall.hp<=0) destroyWall(ud.wall);
+  }
+}
+function fellTree(t){
+  scene.remove(t.mesh);
+  const i = blockers.indexOf(t.trunk); if(i>=0) blockers.splice(i,1);
+}
+function destroyWall(w){
+  scene.remove(w.mesh);
+  const i = blockers.indexOf(w.mesh); if(i>=0) blockers.splice(i,1);
+  const j = walls.indexOf(w); if(j>=0) walls.splice(j,1);
+}
+
+// ============================== damage / eliminations ==============================
+function killfeed(msg){
+  const f = document.getElementById('feed');
+  const d = document.createElement('div'); d.textContent = msg;
+  f.prepend(d);
+  while(f.children.length>5) f.removeChild(f.lastChild);
+  setTimeout(()=>d.remove(), 6000);
+}
+function damageBot(b, dmg, by){
+  b.hp -= dmg;
+  if(b.hp<=0 && b.alive){
+    b.alive = false; b.dying = 1.4;
+    if(by==='You'){ player.kills++; killfeed('You eliminated '+b.name); snd(700,.2,'square',.12,200); }
+    else killfeed(by+' eliminated '+b.name);
+  }
+}
+function damagePlayer(dmg){
+  if(!player.alive) return;
+  const s = Math.min(player.shield, dmg);
+  player.shield -= s; dmg -= s;
+  player.hp -= dmg;
+  const v = document.getElementById('vignette');
+  v.style.opacity = .9;
+  setTimeout(()=>v.style.opacity=0, 320);
+  snd(110,.15,'sawtooth',.12,60);
+  if(player.hp<=0){
+    player.hp = 0; player.alive = false;
+    endGame(false);
+  }
+}
+function flashMsg(t){
+  const el = document.getElementById('msg');
+  el.textContent = t;
+  clearTimeout(flashMsg.t); flashMsg.t = setTimeout(()=>el.textContent='', 1800);
+}
+function endGame(won){
+  const o = document.getElementById('overlay');
+  const place = won?1:botsAlive()+1;
+  o.innerHTML = '<h1 style="color:'+(won?'#ffd34d':'#ff6b6b')+'">'+
+    (won?'#1 VICTORY ROYALE':'ELIMINATED — #'+place)+'</h1>'+
+    '<p>'+player.kills+' elimination'+(player.kills===1?'':'s')+'</p>'+
+    '<button onclick="location.reload()">PLAY AGAIN</button>';
+  o.classList.remove('hidden');
+  if(document.pointerLockElement) document.exitPointerLock();
+}
+
+// ============================== bot AI ==============================
+const _v = new THREE.Vector3();
+function updateBots(dt){
+  const px = player.pos.x, pz = player.pos.z;
+  bots.forEach(b=>{
+    if(!b.alive){
+      if(b.dying>0){
+        b.dying -= dt;
+        b.mesh.rotation.x = Math.min(Math.PI/2, b.mesh.rotation.x+dt*3);
+        if(b.dying<=0) scene.remove(b.mesh);
+      }
+      return;
+    }
+    const bx = b.mesh.position.x, bz = b.mesh.position.z;
+    // storm damage
+    if(inStorm(bx,bz)){
+      b.hp -= storm.dps*dt*1.4;
+      if(b.hp<=0){ b.alive=false; b.dying=1.4; killfeed('The storm eliminated '+b.name); return; }
+    }
+    const dToPlayer = Math.hypot(px-bx, pz-bz);
+    // refresh line-of-sight a couple times a second
+    b.losT -= dt;
+    if(b.losT<=0){
+      b.losT = .5+Math.random()*.3;
+      b.los = false;
+      if(player.alive && player.phase==='play' && dToPlayer<70){
+        _v.set(px-bx, (player.pos.y+1.2)-(b.mesh.position.y+1.8), pz-bz).normalize();
+        raycaster.set(new THREE.Vector3(bx, b.mesh.position.y+1.8, bz), _v);
+        raycaster.far = dToPlayer;
+        b.los = raycaster.intersectObjects(blockers, false).length===0;
+      }
+    }
+    if(b.los){
+      // face the player and exchange fire
+      b.mesh.rotation.y = Math.atan2(px-bx, pz-bz);
+      b.shootCd -= dt;
+      if(b.shootCd<=0){
+        b.shootCd = 1.1+Math.random()*1.6;
+        const hitChance = Math.max(.08, .5 - dToPlayer/180);
+        const from = new THREE.Vector3(bx, b.mesh.position.y+1.8, bz);
+        if(Math.random()<hitChance){
+          damagePlayer(6+Math.floor(Math.random()*9));
+          addTracer(from, camera.position.clone(), 0xff8866);
+        } else {
+          const miss = camera.position.clone();
+          miss.x += (Math.random()-.5)*4; miss.y += (Math.random()-.5)*3;
+          miss.z += (Math.random()-.5)*4;
+          addTracer(from, miss, 0xff8866);
+        }
+        snd(120,.07,'sawtooth',.05,50);
+      }
+      // strafe a bit
+      const sx = Math.cos(b.mesh.rotation.y), sz = -Math.sin(b.mesh.rotation.y);
+      const sway = Math.sin(performance.now()*.001+b.mesh.id)*2.2;
+      b.mesh.position.x += sx*sway*dt; b.mesh.position.z += sz*sway*dt;
+    } else {
+      // wander toward the safe zone
+      if(!b.wp || Math.hypot(b.wp.x-bx, b.wp.z-bz)<4 || inStorm(b.wp.x,b.wp.z)){
+        const a = Math.random()*Math.PI*2;
+        const r = Math.sqrt(Math.random())*Math.max(storm.to.r-10, 15);
+        b.wp = {x:storm.to.cx+Math.cos(a)*r, z:storm.to.cz+Math.sin(a)*r};
+      }
+      const dx = b.wp.x-bx, dz = b.wp.z-bz, m = Math.hypot(dx,dz)||1;
+      const sp = inStorm(bx,bz)?9:5.5;
+      b.mesh.position.x += dx/m*sp*dt;
+      b.mesh.position.z += dz/m*sp*dt;
+      b.mesh.rotation.y = Math.atan2(dx,dz);
+    }
+    b.mesh.position.y = groundY(b.mesh.position.x, b.mesh.position.z);
+  });
+}
+// occasional bot-vs-bot fights elsewhere on the island
+let botFightT = 8;
+function updateBotFights(dt){
+  botFightT -= dt;
+  if(botFightT>0) return;
+  botFightT = 7+Math.random()*9;
+  const alive = bots.filter(b=>b.alive);
+  if(alive.length<2) return;
+  // prefer victims far from the player so fights feel distant
+  alive.sort((a,b)=>
+    b.mesh.position.distanceTo(player.pos)-a.mesh.position.distanceTo(player.pos));
+  const victim = alive[Math.floor(Math.random()*Math.min(5,alive.length))];
+  let killer = alive[Math.floor(Math.random()*alive.length)];
+  if(killer===victim) killer = alive.find(b=>b!==victim);
+  if(victim.mesh.position.distanceTo(player.pos)<60) return; // not near the player
+  victim.alive = false; victim.dying = 1.4;
+  killfeed(killer.name+' eliminated '+victim.name);
+}
+
+// ============================== HUD ==============================
+const mapCtx = document.getElementById('map').getContext('2d');
+function drawMap(){
+  const c = mapCtx, S = 150, k = S/(ISLE*2.3);
+  c.clearRect(0,0,S,S);
+  const cx = x=>S/2+x*k, cz = z=>S/2+z*k;
+  c.fillStyle = 'rgba(70,140,80,.8)';
+  c.beginPath(); c.arc(S/2,S/2,ISLE*k,0,7); c.fill();
+  c.strokeStyle = 'rgba(190,90,255,.95)'; c.lineWidth = 2;
+  c.beginPath(); c.arc(cx(storm.cx),cz(storm.cz),storm.r*k,0,7); c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 1;
+  c.beginPath(); c.arc(cx(storm.to.cx),cz(storm.to.cz),storm.to.r*k,0,7); c.stroke();
+  c.save();
+  c.translate(cx(player.pos.x), cz(player.pos.z));
+  c.rotate(-player.yaw);
+  c.fillStyle = '#fff';
+  c.beginPath(); c.moveTo(0,-6); c.lineTo(4,4); c.lineTo(-4,4); c.fill();
+  c.restore();
+}
+function updateHUD(){
+  document.getElementById('hpfill').style.width = player.hp+'%';
+  document.getElementById('shfill').style.width = player.shield+'%';
+  document.getElementById('alive').textContent = botsAlive()+(player.alive?1:0);
+  document.getElementById('kills').textContent = player.kills;
+  const w = weapons[player.weapon];
+  document.getElementById('ammo').innerHTML = w.melee
+    ? 'Pickaxe<small>'+player.wood+' wood</small>'
+    : (reloading>0?'RELOADING':w.ammo+' / '+w.reserve)+
+      '<small>'+w.name+' · '+player.wood+' wood</small>';
+  const st = document.getElementById('storm');
+  st.textContent = storm.phase>=stormPhases.length-1 && storm.state==='shrink'
+    ? 'FINAL STORM'
+    : (storm.state==='wait'?'Storm shrinks in ':'Storm shrinking — ')+Math.ceil(storm.t)+'s';
+  drawMap();
+}
+
+// ============================== movement ==============================
+function updatePlayer(dt){
+  if(!player.alive) return;
+  const fwd = (keys.KeyW?1:0)-(keys.KeyS?1:0) + (TOUCH?-joy.y:0);
+  const str = (keys.KeyD?1:0)-(keys.KeyA?1:0) + (TOUCH?joy.x:0);
+  const sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
+
+  if(player.phase==='drop'){
+    const g = groundY(player.pos.x, player.pos.z);
+    const glide = player.pos.y < g+90;
+    player.pos.y -= (glide?9:30)*dt;
+    const sp = 19;
+    player.pos.x += (-sin*fwd + cos*str)*sp*dt;
+    player.pos.z += (-cos*fwd - sin*str)*sp*dt;
+    flashMsg(glide?'Gliding — steer with movement':'Skydiving!');
+    if(player.pos.y <= g+1.8){
+      player.pos.y = g+1.8; player.phase = 'play';
+      flashMsg('Good luck out there!');
+    }
+  } else {
+    const sp = keys.ShiftLeft||keys.ShiftRight ? 11.5 : 7.5;
+    player.pos.x += (-sin*fwd + cos*str)*sp*dt;
+    player.pos.z += (-cos*fwd - sin*str)*sp*dt;
+    // keep on the island
+    const d = Math.hypot(player.pos.x, player.pos.z);
+    if(d > ISLE+20){ player.pos.x *= (ISLE+20)/d; player.pos.z *= (ISLE+20)/d; }
+    const g = groundY(player.pos.x, player.pos.z)+1.8;
+    player.vy -= 22*dt;
+    player.pos.y += player.vy*dt;
+    if(player.pos.y <= g){ player.pos.y = g; player.vy = 0; player.onGround = true; }
+    else player.onGround = false;
+    if(keys.Space && player.onGround){ player.vy = 8.5; player.onGround = false; }
+    // storm damage
+    if(inStorm(player.pos.x, player.pos.z)){
+      stormTick += dt;
+      if(stormTick>=1){ stormTick = 0; damagePlayer(storm.dps); }
+    } else stormTick = 0;
+    // chest pickup
+    chests.forEach(ch=>{
+      if(ch.open) return;
+      if(Math.hypot(ch.x-player.pos.x, ch.z-player.pos.z)<2.4){
+        ch.open = true; scene.remove(ch.mesh);
+        weapons[0].reserve += 60; weapons[1].reserve += 16;
+        player.shield = Math.min(100, player.shield+50);
+        flashMsg('Chest: +ammo, +50 shield');
+        snd(660,.3,'sine',.12,990);
+      }
+    });
+  }
+  camera.position.copy(player.pos);
+  camera.rotation.set(player.pitch, player.yaw, 0);
+}
+let stormTick = 0;
+
+// ============================== main loop ==============================
+const clock = new THREE.Clock();
+let won = false;
+function loop(){
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), .05);
+  if(player.phase!=='menu'){
+    updateStorm(dt);
+    updatePlayer(dt);
+    updateBots(dt);
+    updateBotFights(dt);
+    // firing
+    fireCd -= dt;
+    if(reloading>0){
+      reloading -= dt;
+      if(reloading<=0){
+        const w = weapons[player.weapon];
+        const take = Math.min(w.mag-w.ammo, w.reserve);
+        w.ammo += take; w.reserve -= take;
+      }
+    }
+    if(firing && player.alive && player.phase==='play' && fireCd<=0){
+      fireShot();
+      if(!weapons[player.weapon].auto) firing = TOUCH?firing:false;
+    }
+    // tracers fade
+    for(let i=tracers.length-1;i>=0;i--){
+      tracers[i].ttl -= dt;
+      tracers[i].line.material.opacity = Math.max(0, tracers[i].ttl/.09);
+      if(tracers[i].ttl<=0){ scene.remove(tracers[i].line); tracers.splice(i,1); }
+    }
+    // win check
+    if(!won && player.alive && player.phase==='play' && botsAlive()===0){
+      won = true; endGame(true);
+    }
+    updateHUD();
+  }
+  renderer.render(scene, camera);
+}
+loop();
+
+// ============================== start ==============================
+document.getElementById('playbtn').addEventListener('click', ()=>{
+  AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+  document.getElementById('overlay').classList.add('hidden');
+  player.phase = 'drop';
+  if(!TOUCH) renderer.domElement.requestPointerLock();
+  snd(440,.4,'sine',.1,880);
+});
+</script>
+</body>
+</html>
