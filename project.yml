@@ -1,0 +1,39 @@
+name: GeometryRush
+options:
+  bundleIdPrefix: com.geometryrush
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    INFOPLIST_FILE: Sources/Info.plist
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: ""
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "NO"
+targets:
+  GeometryRush:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources/Levels
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.geometryrush.game
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: "NO"
+schemes:
+  GeometryRush:
+    build:
+      targets:
+        GeometryRush: all
+    run:
+      config: Debug
+    archive:
+      config: Release

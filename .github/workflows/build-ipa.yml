@@ -1,0 +1,66 @@
+name: Build IPA
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Validate level files
+        run: |
+          for f in Resources/Levels/*.json; do
+            python3 Tools/level_editor.py validate "$f"
+          done
+
+      - name: Build (unsigned, device)
+        run: |
+          xcodebuild \
+            -project GeometryRush.xcodeproj \
+            -scheme GeometryRush \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package IPA
+        run: |
+          APP_PATH="build/Build/Products/Release-iphoneos/GeometryRush.app"
+          test -d "$APP_PATH"
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qry GeometryRush-unsigned.ipa Payload
+          ls -lh GeometryRush-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeometryRush-unsigned-ipa
+          path: GeometryRush-unsigned.ipa
+          retention-days: 90
+
+      - name: Build (simulator smoke check)
+        run: |
+          xcodebuild \
+            -project GeometryRush.xcodeproj \
+            -scheme GeometryRush \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build-sim \
+            CODE_SIGNING_ALLOWED=NO \
+            build
