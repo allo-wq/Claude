@@ -46,44 +46,7 @@ final class MusicEngine {
         sampleRate = format.sampleRate
 
         let node = AVAudioSourceNode { [weak self] _, _, frameCount, audioBufferList -> OSStatus in
-            guard let self = self else { return noErr }
-            let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
-            let spb = 60.0 / self.bpm * self.sampleRate          // samples per beat
-            for frame in 0..<Int(frameCount) {
-                let n = Double(self.frameCounter + Int64(frame))
-                let beatPos = n.truncatingRemainder(dividingBy: spb) / spb
-                let beatIndex = Int(n / spb)
-                let t = n / self.sampleRate
-
-                // kick: pitch-swept sine with fast decay on every beat
-                let kickEnv = exp(-beatPos * 18)
-                let kick = sin(2 * .pi * (140 - beatPos * 90) * (beatPos * spb / self.sampleRate)) * kickEnv * 0.7
-
-                // hat: noise burst on the offbeat
-                let offPos = (beatPos + 0.5).truncatingRemainder(dividingBy: 1)
-                let hat = (Double.random(in: -1...1)) * exp(-offPos * 40) * 0.12
-
-                // bass: square wave, note from the bar pattern
-                let bar = (beatIndex / 4) % self.pattern.count
-                let freq = 55.0 * pow(2, self.pattern[bar] / 12.0)
-                let square: Double = sin(2 * .pi * freq * t) > 0 ? 1 : -1
-                let bassEnv = 0.5 + 0.5 * exp(-beatPos * 4)
-                let bass = square * 0.10 * bassEnv
-
-                // lead arp on 16ths, two octaves up
-                let sixteenth = Int(n / (spb / 4)) % 8
-                let arpOffsets: [Double] = [0, 7, 12, 7, 0, 7, 15, 12]
-                let leadFreq = 220.0 * pow(2, (self.pattern[bar] + arpOffsets[sixteenth]) / 12.0)
-                let sixteenthPos = n.truncatingRemainder(dividingBy: spb / 4) / (spb / 4)
-                let lead = sin(2 * .pi * leadFreq * t) * exp(-sixteenthPos * 6) * 0.08
-
-                let sample = Float(kick + hat + bass + lead)
-                for buffer in ablPointer {
-                    let buf = UnsafeMutableBufferPointer<Float>(buffer)
-                    buf[frame] = sample
-                }
-            }
-            self.frameCounter += Int64(frameCount)
+            self?.render(frameCount: frameCount, audioBufferList: audioBufferList)
             return noErr
         }
 
@@ -93,6 +56,54 @@ final class MusicEngine {
         sourceNode = node
         try? engine.start()
         running = true
+    }
+
+    private func render(frameCount: AVAudioFrameCount, audioBufferList: UnsafeMutablePointer<AudioBufferList>) {
+        let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
+        let spb: Double = 60.0 / bpm * sampleRate          // samples per beat
+        for frame in 0..<Int(frameCount) {
+            let n: Double = Double(frameCounter + Int64(frame))
+            let value: Float = sample(n: n, spb: spb)
+            for buffer in ablPointer {
+                let buf = UnsafeMutableBufferPointer<Float>(buffer)
+                buf[frame] = value
+            }
+        }
+        frameCounter += Int64(frameCount)
+    }
+
+    private func sample(n: Double, spb: Double) -> Float {
+        let beatPos: Double = n.truncatingRemainder(dividingBy: spb) / spb
+        let beatIndex: Int = Int(n / spb)
+        let t: Double = n / sampleRate
+        let twoPi: Double = 2.0 * Double.pi
+
+        // kick: pitch-swept sine with fast decay on every beat
+        let kickEnv: Double = exp(-beatPos * 18.0)
+        let kickFreq: Double = 140.0 - beatPos * 90.0
+        let kickPhase: Double = twoPi * kickFreq * (beatPos * spb / sampleRate)
+        let kick: Double = sin(kickPhase) * kickEnv * 0.7
+
+        // hat: noise burst on the offbeat
+        let offPos: Double = (beatPos + 0.5).truncatingRemainder(dividingBy: 1.0)
+        let hat: Double = Double.random(in: -1.0...1.0) * exp(-offPos * 40.0) * 0.12
+
+        // bass: square wave, note from the bar pattern
+        let bar: Int = (beatIndex / 4) % pattern.count
+        let bassFreq: Double = 55.0 * pow(2.0, pattern[bar] / 12.0)
+        let square: Double = sin(twoPi * bassFreq * t) > 0.0 ? 1.0 : -1.0
+        let bassEnv: Double = 0.5 + 0.5 * exp(-beatPos * 4.0)
+        let bass: Double = square * 0.10 * bassEnv
+
+        // lead arp on 16ths, two octaves up
+        let sixteenth: Int = Int(n / (spb / 4.0)) % 8
+        let arpOffsets: [Double] = [0, 7, 12, 7, 0, 7, 15, 12]
+        let leadNote: Double = pattern[bar] + arpOffsets[sixteenth]
+        let leadFreq: Double = 220.0 * pow(2.0, leadNote / 12.0)
+        let sixteenthPos: Double = n.truncatingRemainder(dividingBy: spb / 4.0) / (spb / 4.0)
+        let lead: Double = sin(twoPi * leadFreq * t) * exp(-sixteenthPos * 6.0) * 0.08
+
+        return Float(kick + hat + bass + lead)
     }
 
     func stop() {

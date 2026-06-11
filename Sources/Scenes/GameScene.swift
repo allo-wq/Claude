@@ -432,12 +432,13 @@ final class GameScene: SKScene {
 
     private func checkSpikes() {
         let ts = GameConstants.tileSize
-        // forgiving hitbox, like GD
-        let hb = GameConstants.playerSize * 0.4
+        // forgiving hitbox, like GD — tuned so an N-spike row is clearable
+        // at each level's speed (see Tools/level_editor.py beat grid)
+        let hb = GameConstants.playerSize * 0.35
         for s in spikes {
             let sx = (Double(s.x) + 0.5) * ts
             let sy = (Double(s.y) + 0.5) * ts
-            if abs(player.x - sx) < hb + ts * 0.22 && abs(player.y - sy) < hb + ts * 0.3 {
+            if abs(player.x - sx) < hb + ts * 0.125 && abs(player.y - sy) < hb + ts * 0.2 {
                 player.dead = true
                 return
             }

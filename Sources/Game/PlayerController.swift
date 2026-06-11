@@ -97,7 +97,7 @@ final class PlayerController {
     }
 
     func boostFromPad() {
-        vy = 1450 * gravityDir
+        vy = 1600 * gravityDir
         grounded = false
     }
 

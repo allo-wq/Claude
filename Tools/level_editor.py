@@ -156,7 +156,7 @@ class LevelBuilder:
 # ---------------------------------------------------------------------------
 
 def level1():
-    b = LevelBuilder(1, "Stereo Steps", "Easy", 100, 2, "cube",
+    b = LevelBuilder(1, "Stereo Steps", "Easy", 100, 3, "cube",
                      {"top": "#1a2b6d", "bottom": "#0a0f2e", "ground": "#2233aa", "accent": "#00e5ff"})
     b.gap(4)
     b.spike_row(1, 2).spike_row(1, 2).spike_row(2, 2)
@@ -175,7 +175,7 @@ def level1():
 
 
 def level2():
-    b = LevelBuilder(2, "Neon Flight", "Normal", 115, 2, "cube",
+    b = LevelBuilder(2, "Neon Flight", "Normal", 115, 3, "cube",
                      {"top": "#3d1a5b", "bottom": "#120a2e", "ground": "#7b2fbf", "accent": "#ff2ec4"})
     b.gap(4)
     b.spike_row(2, 1).spike_row(2, 1).spike_row(3, 2)
@@ -199,7 +199,7 @@ def level2():
 
 
 def level3():
-    b = LevelBuilder(3, "Bounce Circuit", "Hard", 128, 2, "cube",
+    b = LevelBuilder(3, "Bounce Circuit", "Hard", 128, 3, "cube",
                      {"top": "#0b4a2f", "bottom": "#03160d", "ground": "#0e8a4f", "accent": "#aaff00"})
     b.gap(4)
     b.spike_row(2, 1).spike_row(3, 1).spike_row(2, 2)
@@ -233,7 +233,7 @@ def level3():
 
 
 def level4():
-    b = LevelBuilder(4, "Wavelength", "Harder", 140, 2, "cube",
+    b = LevelBuilder(4, "Wavelength", "Harder", 140, 3, "cube",
                      {"top": "#5b1a1a", "bottom": "#1c0505", "ground": "#bf2f2f", "accent": "#ffb300"})
     b.gap(4)
     b.spike_row(3, 1).spike_row(2, 1).pad_launch(5, 1)
@@ -261,7 +261,7 @@ def level4():
 
 
 def level5():
-    b = LevelBuilder(5, "Overdrive", "Insane", 160, 2, "cube",
+    b = LevelBuilder(5, "Overdrive", "Insane", 160, 3, "cube",
                      {"top": "#33104d", "bottom": "#0d0314", "ground": "#8a0e6f", "accent": "#ff3355"})
     b.gap(4)
     b.spike_row(3, 1).spike_row(3, 1).spike_row(2, 1).spike_row(3, 1)
