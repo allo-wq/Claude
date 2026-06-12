@@ -1,0 +1,26 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "veil:wick_of_souls_recipe"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "S",
+      "T",
+      "B"
+    ],
+    "key": {
+      "S": { "item": "minecraft:string" },
+      "T": { "item": "minecraft:soul_torch" },
+      "B": { "item": "minecraft:bone" }
+    },
+    "unlock": [
+      { "item": "minecraft:soul_torch" }
+    ],
+    "result": {
+      "item": "veil:wick_of_souls",
+      "count": 1
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "veil:wisp",
+      "materials": { "default": "entity_emissive_alpha" },
+      "textures": { "default": "textures/entity/wisp" },
+      "geometry": { "default": "geometry.veil_wisp" },
+      "animations": {
+        "idle": "animation.veil.wisp.idle"
+      },
+      "scripts": {
+        "animate": ["idle"]
+      },
+      "render_controllers": ["controller.render.default"],
+      "spawn_egg": {
+        "base_color": "#54E8E3",
+        "overlay_color": "#0B0D12"
+      }
+    }
+  }
+}

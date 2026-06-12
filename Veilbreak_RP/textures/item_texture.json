@@ -1,0 +1,11 @@
+{
+  "resource_pack_name": "veilbreak",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "veil_soulrend": { "textures": "textures/items/soulrend_icon" },
+    "veil_hollow_lantern": { "textures": "textures/items/hollow_lantern_icon" },
+    "veil_wick_of_souls": { "textures": "textures/items/wick_of_souls" },
+    "veil_roadster_key": { "textures": "textures/items/roadster_key" },
+    "veil_soulforged_iron": { "textures": "textures/items/soulforged_iron" }
+  }
+}

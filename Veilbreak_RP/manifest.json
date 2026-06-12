@@ -1,0 +1,17 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Veilbreak [RP]",
+    "description": "Noxhollow, the Hollow Lantern — models, textures, animations, particles, sounds.",
+    "uuid": "439f890f-58e6-4919-a8ca-95b5448d2394",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 50]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "ad30c5bc-30b8-4a01-9b60-77096a4cf64e",
+      "version": [1, 0, 0]
+    }
+  ]
+}

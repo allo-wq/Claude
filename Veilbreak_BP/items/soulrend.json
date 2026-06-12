@@ -1,0 +1,29 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "veil:soulrend",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.sword"
+      }
+    },
+    "components": {
+      "minecraft:icon": { "textures": { "default": "veil_soulrend" } },
+      "minecraft:display_name": { "value": "item.veil:soulrend" },
+      "minecraft:hand_equipped": true,
+      "minecraft:max_stack_size": 1,
+      "minecraft:damage": 9,
+      "minecraft:durability": { "max_durability": 1250 },
+      "minecraft:enchantable": { "slot": "sword", "value": 14 },
+      "minecraft:repairable": {
+        "repair_items": [
+          {
+            "items": ["veil:soulforged_iron"],
+            "repair_amount": 312
+          }
+        ]
+      }
+    }
+  }
+}

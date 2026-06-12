@@ -1,0 +1,33 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "veil:noxhollow",
+      "materials": { "default": "entity_emissive_alpha" },
+      "textures": {
+        "default": "textures/entity/noxhollow",
+        "rage": "textures/entity/noxhollow_rage"
+      },
+      "geometry": { "default": "geometry.veil_noxhollow" },
+      "animations": {
+        "idle": "animation.veil.noxhollow.idle",
+        "walk": "animation.veil.noxhollow.walk",
+        "melee": "animation.veil.noxhollow.melee",
+        "cast": "animation.veil.noxhollow.cast",
+        "snuff": "animation.veil.noxhollow.snuff",
+        "roar": "animation.veil.noxhollow.roar",
+        "hurt": "animation.veil.noxhollow.hurt",
+        "death": "animation.veil.noxhollow.death",
+        "general": "controller.animation.veil.noxhollow.general"
+      },
+      "scripts": {
+        "animate": ["general"]
+      },
+      "render_controllers": ["controller.render.veil.noxhollow"],
+      "spawn_egg": {
+        "base_color": "#0B0D12",
+        "overlay_color": "#54E8E3"
+      }
+    }
+  }
+}

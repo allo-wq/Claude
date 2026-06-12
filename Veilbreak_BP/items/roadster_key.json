@@ -1,0 +1,18 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "veil:roadster_key",
+      "menu_category": {
+        "category": "items",
+        "group": "itemGroup.name.tool"
+      }
+    },
+    "components": {
+      "minecraft:icon": { "textures": { "default": "veil_roadster_key" } },
+      "minecraft:display_name": { "value": "item.veil:roadster_key" },
+      "minecraft:max_stack_size": 1,
+      "minecraft:glint": true
+    }
+  }
+}

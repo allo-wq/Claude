@@ -1,0 +1,21 @@
+## Veilbreak — Noxhollow, the Hollow Lantern
+
+entity.veil:noxhollow.name=Noxhollow, the Hollow Lantern
+entity.veil:wisp.name=Hollow Wisp
+entity.veil:hollow_roadster.name=Hollow Roadster
+entity.veil:soul_ember.name=Soul Ember
+
+item.veil:soulrend=Soulrend
+item.veil:hollow_lantern=The Hollow Lantern
+item.veil:wick_of_souls=Wick of Souls
+item.veil:roadster_key=Roadster Key
+item.veil:soulforged_iron=Soulforged Iron
+
+tile.veil:dim_iron.name=Dim Iron
+tile.veil:noxhollow_skull.name=Noxhollow's Skull
+
+item.spawn_egg.entity.veil:noxhollow.name=Spawn Noxhollow
+item.spawn_egg.entity.veil:wisp.name=Spawn Hollow Wisp
+item.spawn_egg.entity.veil:hollow_roadster.name=Spawn Hollow Roadster
+
+action.interact.drive=Drive

@@ -1,0 +1,45 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "veil:hollow_roadster",
+      "is_spawnable": false,
+      "is_summonable": true
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": ["veil_vehicle", "inanimate"]
+      },
+      "minecraft:collision_box": { "width": 1.7, "height": 1.1 },
+      "minecraft:health": { "value": 60, "max": 60 },
+      "minecraft:physics": {},
+      "minecraft:persistent": {},
+      "minecraft:knockback_resistance": { "value": 1.0 },
+      "minecraft:pushable": { "is_pushable": false, "is_pushable_by_piston": true },
+      "minecraft:variable_max_auto_step": {
+        "base_value": 1.0625,
+        "controlled_value": 1.0625
+      },
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "on_damage": {
+              "filters": { "test": "has_damage", "value": "fall" }
+            },
+            "deals_damage": false
+          }
+        ]
+      },
+      "minecraft:rideable": {
+        "seat_count": 2,
+        "family_types": ["player"],
+        "interact_text": "action.interact.drive",
+        "pull_in_entities": false,
+        "seats": [
+          { "position": [-0.35, 0.85, -0.15], "lock_rider_rotation": 181 },
+          { "position": [0.35, 0.85, -0.15], "lock_rider_rotation": 181 }
+        ]
+      }
+    }
+  }
+}

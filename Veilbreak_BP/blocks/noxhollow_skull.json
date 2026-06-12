@@ -1,0 +1,33 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "veil:noxhollow_skull",
+      "menu_category": {
+        "category": "construction"
+      }
+    },
+    "components": {
+      "minecraft:geometry": "geometry.veil_noxhollow_skull",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "veil_noxhollow_skull",
+          "render_method": "alpha_test"
+        }
+      },
+      "minecraft:collision_box": {
+        "origin": [-4, 0, -4],
+        "size": [8, 9, 8]
+      },
+      "minecraft:selection_box": {
+        "origin": [-4, 0, -4],
+        "size": [8, 9, 8]
+      },
+      "minecraft:destructible_by_mining": { "seconds_to_destroy": 0.8 },
+      "minecraft:destructible_by_explosion": { "explosion_resistance": 6 },
+      "minecraft:map_color": "#54E8E3",
+      "minecraft:light_dampening": 0,
+      "minecraft:light_emission": 7
+    }
+  }
+}

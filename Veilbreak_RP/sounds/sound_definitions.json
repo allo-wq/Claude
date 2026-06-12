@@ -1,0 +1,96 @@
+{
+  "format_version": "1.14.0",
+  "sound_definitions": {
+    "veil.music.boss": {
+      "category": "music",
+      "min_distance": 0.0,
+      "max_distance": 64.0,
+      "sounds": [
+        { "name": "sounds/music/game/nether/soulsand_valley/so_below", "stream": true, "volume": 0.7, "load_on_low_memory": true }
+      ]
+    },
+    "veil.noxhollow.roar": {
+      "category": "hostile",
+      "max_distance": 48.0,
+      "sounds": [{ "name": "sounds/mob/wither/spawn", "volume": 1.0, "pitch": 0.8 }]
+    },
+    "veil.noxhollow.hurt": {
+      "category": "hostile",
+      "max_distance": 32.0,
+      "sounds": [{ "name": "sounds/mob/ghast/scream1", "volume": 0.8, "pitch": 0.6 }]
+    },
+    "veil.noxhollow.death": {
+      "category": "hostile",
+      "max_distance": 64.0,
+      "sounds": [{ "name": "sounds/mob/wither/death", "volume": 1.0, "pitch": 0.75 }]
+    },
+    "veil.noxhollow.emerge": {
+      "category": "hostile",
+      "max_distance": 64.0,
+      "sounds": [{ "name": "sounds/mob/wither/spawn", "volume": 1.0, "pitch": 0.55 }]
+    },
+    "veil.snuff.charge": {
+      "category": "hostile",
+      "max_distance": 32.0,
+      "sounds": [{ "name": "sounds/beacon/deactivate", "volume": 1.0, "pitch": 0.7 }]
+    },
+    "veil.snuff.blast": {
+      "category": "hostile",
+      "max_distance": 48.0,
+      "sounds": [
+        { "name": "sounds/random/fizz", "volume": 1.0, "pitch": 0.5 },
+        { "name": "sounds/beacon/deactivate", "volume": 1.0, "pitch": 0.5 }
+      ]
+    },
+    "veil.soulburst.warn": {
+      "category": "hostile",
+      "max_distance": 32.0,
+      "sounds": [{ "name": "sounds/beacon/power", "volume": 1.0, "pitch": 0.6 }]
+    },
+    "veil.soulburst.blast": {
+      "category": "hostile",
+      "max_distance": 48.0,
+      "sounds": [{ "name": "sounds/random/explode1", "volume": 1.0, "pitch": 1.1 }]
+    },
+    "veil.lantern.shatter": {
+      "category": "player",
+      "max_distance": 32.0,
+      "sounds": ["sounds/random/glass1", "sounds/random/glass2", "sounds/random/glass3"]
+    },
+    "veil.lantern.beam": {
+      "category": "player",
+      "max_distance": 16.0,
+      "sounds": [{ "name": "sounds/beacon/ambient", "volume": 0.5, "pitch": 1.3 }]
+    },
+    "veil.ember.throw": {
+      "category": "hostile",
+      "max_distance": 32.0,
+      "sounds": [{ "name": "sounds/mob/ghast/fireball4", "volume": 0.8, "pitch": 1.3 }]
+    },
+    "veil.mark": {
+      "category": "player",
+      "max_distance": 16.0,
+      "sounds": [{ "name": "sounds/random/orb", "volume": 0.8, "pitch": 1.0 }]
+    },
+    "veil.wisp.ambient": {
+      "category": "hostile",
+      "max_distance": 24.0,
+      "sounds": [{ "name": "sounds/mob/ghast/moan1", "volume": 0.7, "pitch": 1.6 }]
+    },
+    "veil.roadster.start": {
+      "category": "neutral",
+      "max_distance": 24.0,
+      "sounds": [{ "name": "sounds/beacon/activate", "volume": 1.0, "pitch": 0.8 }]
+    },
+    "veil.roadster.engine": {
+      "category": "neutral",
+      "max_distance": 24.0,
+      "sounds": [{ "name": "sounds/beacon/ambient", "volume": 0.8, "pitch": 0.7 }]
+    },
+    "veil.roadster.brake": {
+      "category": "neutral",
+      "max_distance": 16.0,
+      "sounds": [{ "name": "sounds/random/fizz", "volume": 0.7, "pitch": 1.2 }]
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "veil:hollow_roadster",
+      "materials": { "default": "entity_emissive_alpha" },
+      "textures": { "default": "textures/entity/hollow_roadster" },
+      "geometry": { "default": "geometry.veil_hollow_roadster" },
+      "animations": {
+        "wheels": "animation.veil.roadster.wheels",
+        "idle": "animation.veil.roadster.idle",
+        "general": "controller.animation.veil.roadster.general"
+      },
+      "scripts": {
+        "animate": ["general"]
+      },
+      "render_controllers": ["controller.render.default"],
+      "spawn_egg": {
+        "base_color": "#0B0D12",
+        "overlay_color": "#E89A3C"
+      }
+    }
+  }
+}

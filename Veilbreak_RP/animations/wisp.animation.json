@@ -1,0 +1,21 @@
+{
+  "format_version": "1.10.0",
+  "animations": {
+    "animation.veil.wisp.idle": {
+      "loop": true,
+      "animation_length": 2.0,
+      "bones": {
+        "body": {
+          "position": { "0.0": [0, 0, 0], "1.0": [0, 1.5, 0], "2.0": [0, 0, 0] },
+          "rotation": { "0.0": [0, 0, 0], "2.0": [0, 360, 0] }
+        },
+        "tendril_a": {
+          "rotation": { "0.0": [10, 0, 0], "1.0": [-10, 0, 0], "2.0": [10, 0, 0] }
+        },
+        "tendril_b": {
+          "rotation": { "0.0": [-10, 0, 0], "1.0": [10, 0, 0], "2.0": [-10, 0, 0] }
+        }
+      }
+    }
+  }
+}

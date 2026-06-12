@@ -1,0 +1,19 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "veil:hollow_lantern",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.tool"
+      }
+    },
+    "components": {
+      "minecraft:icon": { "textures": { "default": "veil_hollow_lantern" } },
+      "minecraft:display_name": { "value": "item.veil:hollow_lantern" },
+      "minecraft:hand_equipped": true,
+      "minecraft:max_stack_size": 1,
+      "minecraft:glint": true
+    }
+  }
+}

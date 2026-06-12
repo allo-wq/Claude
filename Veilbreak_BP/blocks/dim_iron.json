@@ -1,0 +1,24 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "veil:dim_iron",
+      "menu_category": {
+        "category": "construction"
+      }
+    },
+    "components": {
+      "minecraft:geometry": "geometry.veil_dim_iron",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "veil_dim_iron",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:destructible_by_mining": { "seconds_to_destroy": 1.5 },
+      "minecraft:destructible_by_explosion": { "explosion_resistance": 12 },
+      "minecraft:map_color": "#11131A",
+      "minecraft:light_dampening": 15
+    }
+  }
+}
