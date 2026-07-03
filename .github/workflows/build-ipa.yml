@@ -7,6 +7,9 @@ on:
       - claude/ios-minecraft-java-launcher-hcydmu
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build unsigned IPA
@@ -50,3 +53,18 @@ jobs:
           name: MojoLauncher-unsigned-ipa
           path: MojoLauncher-unsigned.ipa
           if-no-files-found: error
+
+      # Also commit the IPA to dist/ on the same branch so it is fetchable
+      # over plain git (Actions artifact downloads live on an Azure CDN that
+      # some networks can't reach). [skip ci] prevents a retrigger loop.
+      - name: Publish IPA to dist/ on this branch
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p dist
+          cp MojoLauncher-unsigned.ipa dist/
+          git add dist/MojoLauncher-unsigned.ipa
+          git commit -m "ci: publish unsigned IPA for $(git rev-parse --short HEAD~0) [skip ci]" || exit 0
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
