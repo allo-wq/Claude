@@ -215,11 +215,10 @@ final class MicrosoftAuthService: NSObject {
 }
 
 extension MicrosoftAuthService: ASWebAuthenticationPresentationContextProviding {
+    // Called by the system on the main thread; never dispatch-sync here.
     nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        DispatchQueue.main.sync {
-            UIApplication.shared.connectedScenes
-                .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                .first ?? ASPresentationAnchor()
-        }
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first ?? ASPresentationAnchor()
     }
 }

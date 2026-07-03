@@ -31,7 +31,7 @@ struct AssetDownloader {
                                            sha1: ref.sha1, size: ref.size)])
         let index = try JSONDecoder().decode(AssetIndex.self, from: Data(contentsOf: indexFile))
 
-        let tasks = index.objects.map { _, object -> DownloadTask in
+        let tasks = index.objects.map { (_, object) -> DownloadTask in
             let prefix = String(object.hash.prefix(2))
             return DownloadTask(
                 url: LauncherPaths.assetBaseURL.appendingPathComponent("\(prefix)/\(object.hash)"),

@@ -1,0 +1,50 @@
+name: Build IPA
+
+on:
+  push:
+    branches:
+      - main
+      - claude/ios-minecraft-java-launcher-hcydmu
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build (Release, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project MojoLauncher.xcodeproj \
+            -scheme MojoLauncher \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/MojoLauncher.app Payload/
+          zip -qry MojoLauncher-unsigned.ipa Payload
+          ls -la MojoLauncher-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MojoLauncher-unsigned-ipa
+          path: MojoLauncher-unsigned.ipa
+          if-no-files-found: error

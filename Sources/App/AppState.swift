@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import SwiftUI
 
@@ -22,11 +23,18 @@ final class AppState: ObservableObject {
         case failed(String)
     }
 
+    private var cancellables: Set<AnyCancellable> = []
+
     init() {
         instanceStore = InstanceStore(paths: paths)
         manifestService = ManifestService(paths: paths)
         authService = MicrosoftAuthService()
         jreManager = JREManager(paths: paths)
+        // Views observe AppState; forward nested-store changes so the
+        // instance list refreshes on CRUD.
+        instanceStore.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     func bootstrap() async {

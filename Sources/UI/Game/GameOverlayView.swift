@@ -18,7 +18,7 @@ struct GameContainerView: View {
                 }
             }
         }
-        .statusBarHidden()
+        .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)   // minimize the home indicator
         .onAppear(perform: loadLayout)
     }
