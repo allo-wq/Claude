@@ -6,5 +6,6 @@
 
 #include "jvm_bridge.h"
 #include "input_bridge.h"
+#include "surface_bridge.h"
 
 #endif

@@ -1,0 +1,16 @@
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "name": "default",
+  "buttons": [
+    { "id": "00000000-0000-0000-0000-000000000101", "label": "W",     "x": 0.12, "y": 0.60, "size": 56, "opacity": 0.55, "keycodes": [87],  "isToggle": false },
+    { "id": "00000000-0000-0000-0000-000000000102", "label": "A",     "x": 0.05, "y": 0.72, "size": 56, "opacity": 0.55, "keycodes": [65],  "isToggle": false },
+    { "id": "00000000-0000-0000-0000-000000000103", "label": "S",     "x": 0.12, "y": 0.84, "size": 56, "opacity": 0.55, "keycodes": [83],  "isToggle": false },
+    { "id": "00000000-0000-0000-0000-000000000104", "label": "D",     "x": 0.19, "y": 0.72, "size": 56, "opacity": 0.55, "keycodes": [68],  "isToggle": false },
+    { "id": "00000000-0000-0000-0000-000000000105", "label": "Jump",  "x": 0.88, "y": 0.78, "size": 62, "opacity": 0.55, "keycodes": [32],  "isToggle": false },
+    { "id": "00000000-0000-0000-0000-000000000106", "label": "Sneak", "x": 0.88, "y": 0.62, "size": 56, "opacity": 0.55, "keycodes": [340], "isToggle": true },
+    { "id": "00000000-0000-0000-0000-000000000107", "label": "Inv",   "x": 0.94, "y": 0.10, "size": 48, "opacity": 0.55, "keycodes": [69],  "isToggle": false },
+    { "id": "00000000-0000-0000-0000-000000000108", "label": "Esc",   "x": 0.04, "y": 0.08, "size": 48, "opacity": 0.55, "keycodes": [256], "isToggle": false },
+    { "id": "00000000-0000-0000-0000-000000000109", "label": "F3",    "x": 0.12, "y": 0.08, "size": 48, "opacity": 0.55, "keycodes": [292], "isToggle": false },
+    { "id": "00000000-0000-0000-0000-00000000010a", "label": "⌨",     "x": 0.20, "y": 0.08, "size": 48, "opacity": 0.55, "keycodes": [],    "isToggle": false, "special": "toggleKeyboard" }
+  ]
+}
