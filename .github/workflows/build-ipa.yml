@@ -10,7 +10,9 @@ on:
 jobs:
   build:
     name: Build unsigned IPA
-    runs-on: macos-14
+    # macos-15 ships Xcode 16.x — required because current XcodeGen emits
+    # the objectVersion-77 project format that Xcode 15 cannot open.
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
