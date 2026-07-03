@@ -1,0 +1,48 @@
+# XcodeGen spec — run `xcodegen generate` to produce MojoLauncher.xcodeproj
+name: MojoLauncher
+options:
+  bundleIdPrefix: dev.mojolauncher
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+    ENABLE_BITCODE: false
+    CLANG_ENABLE_MODULES: true
+
+targets:
+  MojoLauncher:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/App
+      - path: Sources/Core
+      - path: Sources/UI
+      - path: Sources/Native
+      - path: Resources
+        optional: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.mojolauncher.ios
+        PRODUCT_NAME: MojoLauncher
+        INFOPLIST_FILE: Sources/App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/App/MojoLauncher.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Native/include/MojoBridging.h
+        HEADER_SEARCH_PATHS:
+          - $(SRCROOT)/Sources/Native/include
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: false
+        # The JVM runtime is loaded with dlopen() from Documents/, outside the
+        # app bundle; nothing here needs special linker flags beyond ObjC.
+        OTHER_LDFLAGS: ["-ObjC"]
+      configs:
+        Debug:
+          # get-task-allow comes with Debug signing; harmless for the
+          # interpreter, keeps a future JIT path testable from Xcode.
+          GCC_PREPROCESSOR_DEFINITIONS: ["DEBUG=1", "$(inherited)"]
+    scheme:
+      testTargets: []
+      gatherCoverageData: false
