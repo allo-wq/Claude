@@ -28,11 +28,14 @@ enum TarXZExtractor {
     // MARK: XZ (LZMA)
 
     private static func decompressXZ(_ input: Data) throws -> Data {
-        var stream = compression_stream()
-        guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_LZMA) == COMPRESSION_STATUS_OK else {
+        // compression_stream has no zero-arg initializer; allocate raw and
+        // let compression_stream_init fill it in.
+        let stream = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
+        defer { stream.deallocate() }
+        guard compression_stream_init(stream, COMPRESSION_STREAM_DECODE, COMPRESSION_LZMA) == COMPRESSION_STATUS_OK else {
             throw ExtractError.decompressInit
         }
-        defer { compression_stream_destroy(&stream) }
+        defer { compression_stream_destroy(stream) }
 
         let bufferSize = 1 << 20
         let outBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
@@ -40,15 +43,15 @@ enum TarXZExtractor {
 
         var output = Data()
         try input.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
-            stream.src_ptr = raw.bindMemory(to: UInt8.self).baseAddress!
-            stream.src_size = input.count
+            stream.pointee.src_ptr = raw.bindMemory(to: UInt8.self).baseAddress!
+            stream.pointee.src_size = input.count
             while true {
-                stream.dst_ptr = outBuffer
-                stream.dst_size = bufferSize
-                let status = compression_stream_process(&stream, Int32(COMPRESSION_STREAM_FINALIZE.rawValue))
+                stream.pointee.dst_ptr = outBuffer
+                stream.pointee.dst_size = bufferSize
+                let status = compression_stream_process(stream, Int32(COMPRESSION_STREAM_FINALIZE.rawValue))
                 switch status {
                 case COMPRESSION_STATUS_OK, COMPRESSION_STATUS_END:
-                    output.append(outBuffer, count: bufferSize - stream.dst_size)
+                    output.append(outBuffer, count: bufferSize - stream.pointee.dst_size)
                     if status == COMPRESSION_STATUS_END { return }
                 default:
                     throw ExtractError.decompressFailed
