@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "hooked",
+  "version": "${version}",
+  "name": "Hooked!",
+  "description": "Grappling hooks for Minecraft: latch onto distant blocks and fling yourself across the world, or upgrade to the Ender Hook and simply teleport there.",
+  "authors": [
+    "allo-wq"
+  ],
+  "license": "MIT",
+  "icon": "assets/hooked/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.hooked.Hooked"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

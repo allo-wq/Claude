@@ -1,0 +1,7 @@
+{
+  "item.hooked.grappling_hook": "Grappling Hook",
+  "item.hooked.ender_hook": "Ender Hook",
+  "tooltip.hooked.grappling_hook": "Latch onto a distant block and fling yourself toward it.",
+  "tooltip.hooked.ender_hook": "Folds space. You don't travel — you arrive.",
+  "tooltip.hooked.range": "Range: %s blocks"
+}
