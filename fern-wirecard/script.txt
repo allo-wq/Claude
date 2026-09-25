@@ -1,0 +1,231 @@
+It's the evening of June 19th, 2020. A small airfield in Bad Vöslau, a quiet spa town south of Vienna. A private jet is waiting on the runway. A man in his late thirties walks toward it. He's calm, well dressed, and carrying almost nothing. He climbs the steps, the door closes, and the plane takes off. Its destination is Minsk, Belarus.
+
+Just 24 hours earlier, this man was one of the most powerful executives in Germany. His name is Jan Marsalek. He's the chief operating officer of Wirecard, a payment company once worth more than Deutsche Bank. A company celebrated as Germany's answer to Silicon Valley.
+
+But the day before this flight, the company admitted something almost impossible. 1.9 billion euros were missing from its accounts. And soon, it'll become clear the money probably never existed at all.
+
+Within a week, Wirecard will collapse. It'll be the first company in the history of Germany's top stock index to go bankrupt. Investors will lose more than 20 billion euros. And Jan Marsalek will become one of the most wanted men in Europe.
+
+But as investigators start digging, they'll find something even stranger than the fraud. Marsalek doesn't just seem to have been running a company. He seems to have been running a second life. One that reportedly involved militias, secret documents, intelligence officers, and, eventually, a spy ring operating in the heart of Britain.
+
+Tonight, he's not just escaping a collapsing company. He may be flying home.
+
+Few financial scandals are as tangled as Wirecard, and few people are as hard to pin down as Jan Marsalek. Using court testimony, official investigations, and the work of the journalists who broke the story, we were able to piece together how an ambitious kid from Vienna ended up at the center of Europe's biggest corporate fraud and, allegedly, a Russian intelligence operation.
+
+Chapter 1. Vienna.
+
+Jan Marsalek is born in Vienna in 1980. His family has roots in Czechoslovakia, and his grandfather is rumored to have ties to Soviet intelligence. It's a detail that'll take on a very different meaning decades later.
+
+As a teenager, Marsalek is obsessed with computers. He's smart, restless, and bored by school. According to several reports, he never finishes his final exams. Instead, he teaches himself how to code. By 19, he's running his own small internet company.
+
+It's the late '90s. The dot-com boom is in full swing. Everyone wants to get rich online, and the question on everyone's mind is how to actually get paid over the internet. Credit card payments online are still messy, slow, and risky. Banks don't trust internet businesses, and many internet businesses don't want banks looking too closely at what they sell.
+
+That gap is where Wirecard is born.
+
+To understand what comes next, you need to understand how a payment processor makes money. Every time you pay online with a card, a company sits between the shop, the card network, and the bank. It checks the card, moves the money, and takes a tiny cut. Usually, it's a fraction of a percent. On its own, that's nothing. But multiply it by millions of transactions a day, and it becomes a fortune. The riskier the business, the bigger the cut.
+
+The company starts out in 1999 near Munich. It's small, scrappy, and not very glamorous. Its early customers reportedly include online gambling sites and adult websites. Industries that mainstream banks tend to avoid. For a payment processor, they're lucrative. They pay high fees and don't ask many questions.
+
+Around the year 2000, a 20-year-old Marsalek joins Wirecard. He's hired to work on the company's technology. He's young, fluent in several languages, and he seems to have a talent for making things happen that others can't.
+
+Soon, another Austrian arrives. Markus Braun. He's a trained computer scientist and a former management consultant. In 2002, he becomes Wirecard's CEO. Braun is the opposite of Marsalek. Stiff, formal, always in a black turtleneck. He talks about digital transformation and the future of money. He wants to be seen as a visionary.
+
+Marsalek is the one who works in the shadows. He doesn't give speeches. He doesn't pose for photos. Former colleagues describe him as charming, generous, and impossible to read. He remembers everyone's name. He always seems to know someone who can solve a problem. And he never seems to sleep.
+
+Inside the company, a saying reportedly makes the rounds. If you need something done and don't want to know how, ask Jan.
+
+And the two men will build something extraordinary together.
+
+Chapter 2. Aschheim.
+
+It's the mid-2000s. Wirecard is based in Aschheim, an unremarkable suburb outside Munich. From the outside, the company looks like a boring tech firm. On the inside, it's growing at breakneck speed.
+
+In 2005, Wirecard gets listed on the Frankfurt Stock Exchange through a merger with an existing company. A year later, it buys a small bank, which gives it a full banking license. That's rare for a tech company. Now Wirecard can process payments and hold customer money under the same roof.
+
+Over the next decade, Wirecard's rise looks unstoppable. Its method seems simple. Buy small payment companies around the world, plug them into the Wirecard system, and grow.
+
+Marsalek becomes the man in charge of that expansion. He travels almost constantly. Dubai, Singapore, Manila, Mumbai. He rarely stays anywhere for long. Colleagues say he's always on the phone, often with more than one at a time. In 2010, at the age of 30, he joins the management board as chief operating officer.
+
+Wirecard's growth relies on a few key strategies.
+
+Strategy one. Acquisitions. Wirecard buys up payment businesses across Asia and beyond, often for surprisingly high prices. Some of these deals are later questioned. In one case, Wirecard reportedly pays hundreds of millions of euros for an Indian company whose value seems to jump dramatically in a matter of months before the purchase. Where exactly that money ends up remains a subject of investigation.
+
+Strategy two. Third-party partners. In many countries, Wirecard doesn't have its own license to process card payments. So it works with so-called third-party acquirers, partner companies that process payments on its behalf and share the profits. There are three main ones. One in Dubai, one in Singapore, and one in the Philippines. By the late 2010s, these partners will account for roughly half of Wirecard's reported revenue and nearly all of its profit.
+
+Strategy three. Confidence. Braun is a master of the big stage. He promises investors endless growth, and Wirecard delivers numbers that always seem to hit the target. Analysts love it. Retail investors pour in. The company becomes a symbol of hope in a country that's worried it's falling behind in the digital race.
+
+And for a while, almost nobody asks where the money actually comes from.
+
+Braun unveils ever more ambitious targets. Billions in revenue. Hundreds of millions of new customers. A future in which Wirecard is behind every digital payment on the planet. Each year, the company meets its forecasts almost to the decimal point. For most investors, that's proof of genius. For a small group of skeptics, it's exactly the problem. Real businesses are messy. Wirecard's numbers never are.
+
+In September 2018, Wirecard joins the DAX, Germany's premier stock index. It replaces Commerzbank, one of the country's oldest banks. For a moment, it's worth around 24 billion euros, more than Deutsche Bank. The payments company from a Munich suburb is now more valuable than Germany's biggest bank.
+
+But not everyone is convinced.
+
+Chapter 3. London.
+
+At the Financial Times in London, a reporter named Dan McCrum has been looking at Wirecard for years. Something about the company doesn't add up. The numbers are too smooth. The acquisitions are too strange. The partners are too hard to find.
+
+In 2015, he publishes a series called House of Wirecard. It raises questions about the company's accounts. Wirecard dismisses it. The stock barely moves.
+
+In 2016, an anonymous group of short sellers publishes the Zatarra Report, accusing Wirecard of fraud and money laundering. Short sellers bet on a company's stock going down, so their accusations are easy to dismiss as self-interested. German authorities don't investigate Wirecard. They investigate the short sellers.
+
+And McCrum isn't just being ignored. He's being watched. He'll later report that he noticed people following him in London. Wirecard allegedly hires private investigators to dig into its critics. Hackers reportedly target journalists and short sellers with phishing emails. Some critics say they receive threats.
+
+Then, in early 2019, McCrum gets his hands on something new. A whistleblower from Wirecard's Singapore office has come forward with internal documents. His name is Pav Gill. He's a lawyer in the company's legal department in Asia. In 2018, a colleague tells him about suspicious transactions. Gill starts asking questions internally. Soon after, he's pushed out of the company. But before he leaves, he makes sure the evidence doesn't disappear. The files suggest that staff in Singapore have been faking contracts and moving money in circles, a practice known as round-tripping. Money leaves Wirecard, passes through outside companies, and returns looking like fresh revenue.
+
+On January 30th, 2019, the Financial Times publishes the story. Wirecard's shares crash. Singapore police later raid the company's local office.
+
+Now surely the German authorities will act. And they do. Just not in the way anyone expects.
+
+In February 2019, BaFin, Germany's financial regulator, bans investors from betting against Wirecard's stock for two months. It's the first time the regulator has ever done this for a single company. It also files a criminal complaint against McCrum and one of his colleagues, suspecting them of market manipulation.
+
+To many investors, the message is clear. Germany is standing behind its tech champion. The critics are the problem.
+
+Wirecard's stock recovers. In 2019, the Japanese conglomerate SoftBank invests close to a billion euros in the company. Everything seems to be back on track.
+
+Behind the scenes, though, Marsalek seems to be living a very different life.
+
+Chapter 4. Munich.
+
+In Munich, Marsalek reportedly works out of a villa on Prinzregentenstraße, one of the city's most elegant streets. It sits almost directly across from the Russian consulate. Guests describe dinners, fine wine, and a host who loves to impress. He talks about geopolitics as easily as about payments.
+
+He's reported to hold several passports. He moves money through networks of companies that are hard to trace. And the more investigators later learn about him, the less he looks like an ordinary executive.
+
+Side project one. Libya.
+
+According to reports, Marsalek becomes deeply interested in Libya, a country torn apart by civil war after the fall of Muammar Gaddafi. He's said to be involved in a plan to build a militia of up to 15,000 fighters in southern Libya. Officially, its purpose is to stop migrants from reaching Europe. Several former Austrian officials are reportedly part of the discussions. The plan never gets off the ground.
+
+Side project two. Syria.
+
+In 2017, Marsalek reportedly tells associates that he's just returned from Palmyra, the ancient Syrian city that had recently been recaptured from ISIS by Syrian and Russian forces. He claims he traveled there with the Russian military. For a payments executive, it's an unusual weekend trip.
+
+Side project three. Secrets.
+
+In 2018, Marsalek is in London, meeting with traders. According to the Financial Times, he shows them a set of highly confidential documents from the Organisation for the Prohibition of Chemical Weapons. Among them is reportedly the formula for Novichok, the nerve agent used in the poisoning of former Russian spy Sergei Skripal in Salisbury just months earlier.
+
+Why would the COO of a German payments company carry documents like that? Nobody seems to ask. Or if they do, nobody gets an answer.
+
+Marsalek collects contacts the way others collect business cards. Politicians, businesspeople, and former intelligence officers, especially in Austria. Some of them will later come under investigation themselves.
+
+But in 2019, all of that remains hidden. The world only sees Wirecard's rising numbers. And the pressure is finally about to catch up with them.
+
+Chapter 5. Manila.
+
+It's late 2019. The Financial Times publishes internal documents suggesting that much of the revenue from Wirecard's third-party partners may be fictitious.
+
+Reporters go looking for the customers those partners supposedly serve. The results are bizarre. Some of the companies on the lists have closed years earlier. Some have never heard of Wirecard. One address turns out to be a family home. Another belongs to a business that says it never processed a single card payment.
+
+And the partners themselves? The one in Dubai is reportedly a small operation with a handful of staff. Yet on paper, it handles hundreds of millions of euros in transactions for Wirecard every year. The pressure on Wirecard's longtime auditor, EY, is growing.
+
+Wirecard tries to clear its name. It hires another accounting firm, KPMG, to carry out a special audit. It's supposed to settle the matter once and for all.
+
+It does. Just not in Wirecard's favor.
+
+On April 28th, 2020, KPMG presents its report. The auditors couldn't verify that the profits from the third-party partners were real. Not for 2016, not for 2017, and not for 2018. Wirecard hasn't provided the documents. Some of the partners haven't cooperated at all.
+
+The company spins the report as a success. It says there's no evidence of wrongdoing. But investors aren't buying it anymore.
+
+And there's another problem. Where is the cash?
+
+Wirecard claims that 1.9 billion euros from its partner business are sitting in special trust accounts. The money has moved before. First it was supposedly held in Singapore. Then it was moved to two banks in the Philippines. The accounts are managed by a trustee, a lawyer in Manila.
+
+A trust account is supposed to be one of the safest places to keep money. A neutral third party holds it on your behalf, and nobody can touch it without permission. In theory, that makes it easy to check. In practice, for years, the auditors had largely relied on documents passed along by the trustee and by Wirecard itself.
+
+EY now wants proof. Not just statements. Direct confirmation from the banks.
+
+In June 2020, the answer arrives. Both Philippine banks say the documents are fake. The accounts don't exist. The balances are forgeries.
+
+On June 18th, Wirecard announces that EY refuses to sign off on its annual accounts. The 1.9 billion euros can't be found. The stock loses more than 60% of its value in a single day.
+
+That same day, Marsalek is suspended. He tells people he's going to the Philippines to track down the money. He'll fix this, he says. It's all a misunderstanding.
+
+Philippine immigration records will later show him arriving in Manila on June 23rd. But those records turn out to be fake too. Philippine officials will say the entries were falsified.
+
+Because by then, Jan Marsalek is long gone.
+
+On the evening of June 19th, he's driven to the airfield in Bad Vöslau. According to Austrian investigators, the flight is arranged with the help of a former senior officer of Austria's domestic intelligence service. A former Austrian politician is reportedly also involved. Marsalek pays for the private jet and flies to Minsk. From there, it's a short trip to Moscow.
+
+Back in Germany, the empire falls apart at breathtaking speed.
+
+On June 19th, Markus Braun resigns. On June 22nd, Wirecard admits the 1.9 billion euros most likely don't exist. That evening, Braun turns himself in to Munich prosecutors. On June 25th, Wirecard files for insolvency.
+
+It's the first time a member of the DAX has ever gone bankrupt. Within about a week, one of Germany's most admired companies is worth almost nothing.
+
+In Manila, the head of the Philippine central bank makes a statement that sums it all up. The missing billions, he says, never even entered the country's financial system. There's nothing to find, because there was never anything there.
+
+Thousands of Wirecard employees learn about the collapse from the news. Pensioners who'd put their savings into the German tech miracle watch it evaporate. SoftBank, the banks that had lent Wirecard money, and countless small investors are left with worthless paper.
+
+Chapter 6. Berlin.
+
+The fallout is enormous. Germany is shocked, not just by the fraud, but by how long it went unnoticed.
+
+The German parliament sets up a special committee to investigate what went wrong. The findings are damning. BaFin had spent more time investigating journalists than the company. EY had signed off on Wirecard's accounts for years without checking whether the cash actually existed. The head of BaFin is forced to step down. The criminal complaint against the Financial Times journalists is eventually dropped.
+
+Dan McCrum, the man who had been dismissed, attacked, and investigated, is proven right.
+
+Prosecutors start untangling what actually happened inside Wirecard. And one man becomes their key witness. His name is Oliver Bellenhaus. He ran a Wirecard subsidiary in Dubai that worked closely with the company's partners. After the collapse, he turns himself in.
+
+Bellenhaus tells investigators that the partner business was largely an illusion. The revenue was invented. The cash didn't exist. And the whole thing was designed to make Wirecard look far more successful than it really was.
+
+In December 2022, Markus Braun goes on trial in Munich, along with Bellenhaus and another former executive. Braun denies everything. His defense argues that he was the victim, not the mastermind. That the money was real, and that it was stolen by a criminal network. A network that, in his lawyers' telling, was led by Jan Marsalek.
+
+The trial drags on for years. But the man at the center of the story never shows up.
+
+Germany issues an international arrest warrant for Marsalek. He's placed on Europe's most wanted list. Investigators find traces of him everywhere. Letters. Contacts. Companies. But not the man himself.
+
+His villa in Munich is searched. His associates are questioned. In Austria, the former intelligence officer who allegedly helped organize his escape comes under investigation. Rumors spread. Some say Marsalek is hiding in Dubai. Others claim he's dead. A few insist he's been spotted in Belarus or in Russian-held territory.
+
+Every lead goes cold. It's as if he's vanished into thin air. Which, for a man with his connections, may not have been very difficult.
+
+And slowly, a different picture begins to emerge.
+
+Chapter 7. Great Yarmouth.
+
+It's February 2023. Great Yarmouth is a seaside town on England's east coast. It's known for its piers, its arcades, and its fading guesthouses. It's not the kind of place you'd expect to find a spy ring.
+
+But in one of those guesthouses, British counterterrorism police make a series of arrests. The man at the center of it is Orlin Roussev, a Bulgarian national who has been living in the UK for years. Inside his property, investigators reportedly find a stash of surveillance equipment. Hidden cameras, fake identity documents, devices designed to intercept phones.
+
+Together with several other Bulgarians, Roussev is accused of spying for Russia. Their targets include investigative journalists who've exposed Russian intelligence operations. Among them is Christo Grozev, a researcher known for tracking down Russian agents. The group allegedly also monitors a Kazakh dissident and discusses surveilling a US military base in Germany, where Ukrainian soldiers are being trained.
+
+At one point, the group allegedly discusses kidnapping or even killing some of their targets.
+
+But who was giving the orders? According to British prosecutors, the answer was sitting in Moscow. It was Jan Marsalek.
+
+Investigators recover thousands of messages between Roussev and Marsalek. In them, Marsalek appears to direct the operation, pass on tasks, and relay instructions from Russian intelligence. Prosecutors describe him as the middleman between the spy ring and the Russian state.
+
+The messages are chilling, and at times strangely casual. The two men reportedly trade jokes and complain about money. They discuss spy gadgets as if they were ordering office supplies. Roussev appears eager to impress. Marsalek appears to be the one with the budget and the orders. In one exchange, they reportedly compare themselves to characters from spy movies.
+
+For the targets, it's no joke. Some of them learn only from the police that they'd been followed for months. Their homes watched. Their flights tracked. Their movements logged.
+
+In 2025, the members of the group are convicted and handed long prison sentences. It's one of the biggest Russian espionage cases ever uncovered in Britain.
+
+And in Austria, the story takes another turn. In 2024, authorities arrest a former intelligence officer named Egisto Ott. He's suspected of passing sensitive information to Marsalek and, through him, to Russia. According to investigators, that allegedly includes data from the phones of senior Austrian officials.
+
+Journalists from several countries start comparing notes. In 2024, a joint investigation reports that Marsalek is living in Moscow under a new identity. He's allegedly using the name Konstantin Bayazov. And he's reportedly working closely with the FSB, Russia's domestic security service.
+
+If the reports are true, the COO of a DAX company had been connected to Russian intelligence for years. Possibly while he was still flying between Munich, Dubai, and Manila, running one of Europe's most celebrated tech companies.
+
+Chapter 8. Moscow.
+
+So who is Jan Marsalek?
+
+Some believe he was a con man who, as the lies at Wirecard grew bigger, needed powerful friends to protect him. Russia would have been the perfect partner. It offered money, protection, and a place to disappear, and Marsalek could offer access, contacts, and a financial network with reach across the world.
+
+Others believe it might have been the other way around. That Marsalek may have been cultivated by Russian intelligence long before Wirecard collapsed. That the company's global payment network, its bank, and its access to sensitive financial data made it the ideal tool. In this version of the story, the fraud wasn't the point. It was the cover.
+
+The truth may lie somewhere in between. And it may never be fully known.
+
+Because the one person who could answer these questions has every reason not to. Marsalek has reportedly sent written statements to the court in Munich through his lawyers. In them, he's said to claim that the partner business was real and that others are lying. But he hasn't returned to defend those claims in person. And as long as he stays in Russia, he almost certainly never will.
+
+What we do know is this. For more than a decade, a company based in a Munich suburb convinced investors, auditors, regulators, and politicians that it was one of the world's great success stories. The warnings were there. Journalists raised them. Short sellers raised them. Whistleblowers raised them. And again and again, the people whose job it was to listen chose to look the other way.
+
+Wirecard's collapse wiped out billions in savings. It shattered trust in Germany's financial oversight. It forced a country to ask how its brightest tech star could turn out to be one of its darkest scandals.
+
+Markus Braun still insists he's innocent. Oliver Bellenhaus says he was part of the fraud. The court in Munich is still trying to decide who knew what, and when.
+
+And Jan Marsalek? He's still at large. He's still on Europe's most wanted list. Somewhere in Russia, he's reportedly living under another name, far out of reach of the investigators who've spent years trying to find him.
+
+He once promised he'd go to Manila to find the missing money.
+
+He never did. And neither did anyone else.
