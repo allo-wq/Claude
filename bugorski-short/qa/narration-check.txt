@@ -1,0 +1,93 @@
+  0.16s  In 1978, a Soviet scientist
+         zipformer: in nineteen seventy eight a soviet scientist
+         whisper:   In 1978, a Soviet scientist
+  2.78s  stuck his head into a particle accelerator...
+         zipformer: stuck his head into a particle accelerator what
+         whisper:   stuck his head into a particle accelerator.
+  5.30s  while it was running.
+         zipformer: while it was running up
+         whisper:   while it was running.
+  6.72s  Anatoli Bugorski.
+         zipformer: anatole bogorski a few
+         whisper:   Anatoli Bugorski.
+  8.27s  A physicist in Russia.
+         zipformer: a physicist in russia the book
+         whisper:   a physicist in Russia.
+  9.75s  The machine was glitching,
+         zipformer: the machine was glitching and thought
+         whisper:   The machine was glitching, and
+ 11.02s  and the safety system failed.
+         zipformer: and the safety system failed he thought
+         whisper:   and the safety system failed.
+ 12.77s  He leaned in to check it.
+         zipformer: he leaned in to chuck it jim
+         whisper:   He leaned into check it.
+ 14.16s  Just a quick look.
+         zipformer: just a quick look appear
+         whisper:   Just a quick look.
+ 15.62s  A beam of protons,
+         zipformer: a beam of protanse drew
+         whisper:   A beam of protons.
+ 16.84s  traveling near the speed of light,
+         zipformer: travelling near the speed of light shot
+         whisper:   Traveling near the speed of light.
+ 18.44s  shot through the back of his skull
+         zipformer: shot through the back of his skull
+         whisper:   shot through the back of his skull.
+ 19.70s  and out his face.
+         zipformer: and out his face he said
+         whisper:   and out his face.
+ 20.99s  He saw a flash brighter than a thousand suns.
+         zipformer: he saw a flash brighter than a thousand sons and
+         whisper:   He saw a flash brighter than a thousand suns.
+ 23.28s  And felt nothing.
+         zipformer: and felt nothing no
+         whisper:   and felt nothing.
+ 24.43s  No pain.
+         zipformer: no pain no
+         whisper:   No pain.
+ 25.44s  No sound.
+         zipformer: no sound then
+         whisper:   No sound
+ 26.70s  Then his face swelled up.
+         zipformer: then his face swelled up still
+         whisper:   then his face weld up.
+ 28.14s  Skin peeled away along the path of the beam.
+         zipformer: skin peeled away along the path of the beam the prince
+         whisper:   Skin peeled away along the path of the beam.
+ 30.49s  The radiation dose should have killed him many times over.
+         zipformer: the radiation dose should have killed him many times over doct
+         whisper:   The radiation dose should have killed him many times over.
+ 33.62s  Doctors gave him days.
+         zipformer: doctors gave him days he
+         whisper:   Doctors gave him days.
+ 35.33s  He didn't die.
+         zipformer: he didn't die had
+         whisper:   He didn't die.
+ 36.51s  Half his face froze.
+         zipformer: half his face froze he looked
+         whisper:   Half his face froze.
+ 38.05s  He lost hearing in one ear.
+         zipformer: he lost hearing in one ear said
+         whisper:   He lost hearing in one ear.
+ 39.60s  Seizures came.
+         zipformer: seizures came but
+         whisper:   seizures cam.
+ 40.76s  But his mind?
+         zipformer: but his mind come on
+         whisper:   but his mind.
+ 41.99s  Completely intact.
+         zipformer: completely intact he felt
+         whisper:   completely intact.
+ 43.55s  He finished his PhD.
+         zipformer: he finished his piazzti it
+         whisper:   he finished his PhD.
+ 45.08s  And went right back to work...
+         zipformer: and went right back to work a ready
+         whisper:   and went right back to work.
+ 46.72s  around particle accelerators.
+         zipformer: around particle accelerators
+         whisper:   around particle accelerators.
+
+Words missed by BOTH recognisers: 0/143
+Largest onset difference vs src/narrationTiming.js: 120 ms (only meaningful on the dry voice track; music raises the floor in a mix)

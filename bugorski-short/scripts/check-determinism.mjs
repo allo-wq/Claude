@@ -6,9 +6,10 @@
 // Usage: node scripts/check-determinism.mjs [frame ...]
 import fs from 'node:fs';
 import { openRenderer } from './browser.mjs';
+import { FRAMES } from '../src/timeline.js';
 
 const args = process.argv.slice(2).map(Number);
-const frames = args.length ? args : [0, 100, 280, 420, 530, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1439];
+const frames = args.length ? args : [0, 100, 280, 420, 530, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, FRAMES - 1];
 const r = await openRenderer({ scale: 1 });
 let bad = 0;
 for (const f of [...frames].sort((a, b) => b - a)) {

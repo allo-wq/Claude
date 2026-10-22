@@ -17,6 +17,8 @@ const MIME = {
   '.woff2': 'font/woff2',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.wav': 'audio/wav',
+  '.flac': 'audio/flac',
 };
 
 export function startServer(port = 0) {

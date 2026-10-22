@@ -1,0 +1,6 @@
+# Python deps for the voiceover + sound design (install into .venv):
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements-audio.txt
+kokoro-onnx==0.6.1   # Kokoro-82M TTS (Apache-2.0), runs locally via ONNX Runtime
+sherpa-onnx==1.13.8  # offline speech recognition for QA + aligning your own recording
+soundfile
+numpy

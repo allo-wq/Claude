@@ -8,17 +8,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { openRenderer } from './browser.mjs';
+import { FPS, FRAMES, DURATION } from '../src/timeline.js';
 
 const arg = (name, def) => { const i = process.argv.indexOf('--' + name); return i > 0 ? process.argv[i + 1] : def; };
 const has = (name) => process.argv.includes('--' + name);
-const FPS = 30, FRAMES = 1440;
 const workers = Number(arg('workers', 3));
 const scale = Number(arg('scale', 1));
 const out = arg('out', 'final-animation.mp4');
 const framesDir = arg('frames', scale === 1 ? 'out/frames' : `out/frames_${scale}`);
 const from = Number(arg('from', 0)), to = Number(arg('to', FRAMES - 1));
+// Audio: --audio file, else the mixed soundtrack, else the bare voiceover, else a user recording.
 let audio = arg('audio', null);
-if (!audio) for (const ext of ['wav', 'mp3', 'm4a', 'aac', 'flac']) if (fs.existsSync(`audio/narration.${ext}`)) audio = `audio/narration.${ext}`;
+if (has('silent')) audio = null;
+else if (!audio) for (const f of ['audio/soundtrack.flac', 'audio/narration_voice.flac', 'audio/narration.wav', 'audio/narration.mp3', 'audio/narration.m4a'])
+  if (!audio && fs.existsSync(f)) audio = f;
 
 if (has('fresh')) fs.rmSync(framesDir, { recursive: true, force: true });
 fs.mkdirSync(framesDir, { recursive: true });
@@ -58,10 +61,10 @@ if (missing.length) {
 const ff = ['-y', '-framerate', String(FPS), '-i', path.join(framesDir, 'f_%05d.png')];
 if (audio) ff.push('-i', audio);
 ff.push('-map', '0:v:0');
-if (audio) ff.push('-map', '1:a:0', '-c:a', 'aac', '-b:a', '192k', '-af', 'apad', '-t', String(FRAMES / FPS));
+if (audio) ff.push('-map', '1:a:0', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-ac', '2', '-af', 'apad', '-t', String(FRAMES / FPS));
 ff.push('-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-profile:v', 'high', '-level', '4.2', '-pix_fmt', 'yuv420p',
   '-r', String(FPS), '-g', String(FPS * 2), '-movflags', '+faststart', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', out);
 console.log('ffmpeg ' + ff.join(' '));
 const res = spawnSync('ffmpeg', ff, { stdio: ['ignore', 'inherit', 'pipe'] });
 if (res.status !== 0) { console.error(res.stderr.toString().slice(-3000)); process.exit(1); }
-console.log(`Wrote ${out}${audio ? ' (with narration ' + audio + ')' : ' (silent — see NARRATION_GUIDE.md)'} in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
+console.log(`Wrote ${out} (${FRAMES} frames, ${DURATION}s)${audio ? ' with audio ' + audio : ' (silent)'} in ${((Date.now() - t0) / 1000).toFixed(0)}s`);

@@ -1,3 +1,8 @@
 node_modules/
 out/
 *.tmp
+.venv/
+audio/models/
+audio/_*
+*.part
+__pycache__/

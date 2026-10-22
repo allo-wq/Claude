@@ -1,54 +1,104 @@
-# Narration guide: "The Scientist Who Put His Head in a Particle Beam"
+# Narration and audio: "The Scientist Who Put His Head in a Particle Beam"
 
-No voiceover file was supplied, so `final-animation.mp4` is a **silent** 48.0 s render (1080×1920, 30 fps). The narration timestamps below are estimates. They come from the script's own section markers, at a natural Shorts pace of about 2.5 words per second. Every shot, caption and transition is cut to these times, so record to them and the picture will line up.
+`final-animation.mp4` has a full soundtrack:
 
-## Recording tips
-- Total length is **48.0 s**. Each section's line must finish before the next section starts.
-- Pause where the table shows a gap or a long line ("...", "But his mind?").
-- Hit the **bold cue words** on time. A visual event happens on each of those words.
-- Record mono or stereo WAV at 48 kHz, with about 0.2 s of room tone before the first word. Trim it so "In" starts at 0.00 s.
+- **Voiceover:** generated locally with Kokoro-82M (open-source Apache-2.0 TTS, runs offline via ONNX; no paid service or API key). Voice `af_heart`, pace 1.15× (about 188 words/min).
+- **Score and sound design:** synthesized procedurally in NumPy from fixed seeds, so it's deterministic and uses no samples or licensed assets.
+- **Delivery:** AAC 256 kb/s, 48 kHz stereo, loudness-normalized to −14 LUFS integrated, −1.7 dBTP true peak.
 
-## Timestamped script
+The video is **49.57 s** (1487 frames). The script's section markers implied 48 s, but the hook alone ("In 1978… while it was running", 17 spoken words) needs about 5 s at a natural pace, not 4.
 
-| # | Start | End | Line (cue words in bold) | What is on screen at that moment |
+## How the picture stays in sync with the voice
+The animation is authored on a 48 s *design* clock that follows the script's section markers. `scripts/narrate.py` measures when every line is actually spoken. Three sources feed the start times:
+
+- clip onsets
+- speech-recognizer word timestamps, for the two lines that start mid-sentence
+- the clip lead-in silence
+
+`src/timeline.js` then time-warps the design clock onto those measurements with a monotone cubic curve, so every cut, reveal, caption and sound effect lands on its words without speed jumps.
+
+Measured line starts in the final video (seconds):
+
+| # | Spoken | Ends | Line | Design cue |
 |---|---|---|---|---|
-| 1 | 0.00 | 1.40 | In **1978**, a Soviet scientist | Aerial of the synchrotron ring at dusk, beam racing around it. "1978 · SOVIET UNION" |
-| 2 | 1.40 | 2.90 | stuck his **head** into a particle accelerator... | Wide shot of the hall: a scientist leaning with his head in the open gap of the beam line |
-| 3 | 2.90 | 4.00 | while it was **running**. | Low close-up: beam streaming through the gap, red "BEAM ON" beacon spinning |
-| 4 | 4.00 | 5.40 | **Anatoli Bugorski**. | Portrait push-in, name card |
-| 5 | 5.40 | 6.80 | A **physicist** in Russia. | Writing equations on a chalkboard. "PHYSICIST · PROTVINO, RUSSIA" |
-| 6 | 6.80 | 8.30 | The machine was **glitching**, | Console: gauge needle jitters, then the oscilloscope shows ERROR |
-| 7 | 8.30 | 10.00 | and the safety system **failed**. | Interlock lamps die one by one, then a red ✕ (≈ 9.45 s) |
-| 8 | 10.00 | 11.90 | He **leaned in** to check it. | He bends over and puts his head into the gap |
-| 9 | 11.90 | 14.00 | Just a **quick look**. | Profile close-up, then a top-down view as a beam pulse races toward the back of his head. White flash at 13.9 s |
-| 10 | 14.00 | 15.10 | A beam of **protons**, | Inside the beam pipe, riding with the proton bunches. "PROTONS" |
-| 11 | 15.10 | 16.60 | traveling near the **speed of light**, | Camera swings low as the protons streak. "99.99% THE SPEED OF LIGHT" |
-| 12 | 16.60 | 18.00 | shot through the **back of his skull** | X-ray scan sweeps the head; the beam enters the back of the skull (≈ 17.1 s) |
-| 13 | 18.00 | 19.00 | and **out his face**. | Beam exits beside the left nostril (≈ 17.9 s); camera arcs to the front |
-| 14 | 19.00 | 21.40 | He saw a **flash** brighter than a thousand suns. | The flash blooms in his eye (≈ 19.4 s), white-out, then 1,000 suns ignite. "“BRIGHTER THAN A THOUSAND SUNS”" |
-| 15 | 21.40 | 22.40 | And felt **nothing**. | White fades to a calm, blinking face |
-| 16 | 22.40 | 23.20 | No **pain**. | Lightning-bolt icon appears and is crossed out. "NO PAIN" |
-| 17 | 23.20 | 24.00 | No **sound**. | Speaker icon appears and is crossed out. "NO SOUND" |
-| 18 | 24.00 | 25.60 | Then his face **swelled** up. | The left side of his face swells; camera orbits to show it |
-| 19 | 25.60 | 28.20 | Skin **peeled** away along the path of the beam. | Wounds redden and skin flakes lift off; a dashed line shows the beam's track |
-| 20 | 28.20 | 31.40 | The radiation dose should have **killed him many times over**. | One trefoil block = "LETHAL DOSE ≈ 5 Gy", then a wall of 400 blocks = "HIS DOSE ≈ 2,000 Gy" |
-| 21 | 31.40 | 34.00 | **Doctors** gave him days. | Hospital: doctor shakes his head, calendar at 13 July 1978. "DOCTORS EXPECTED HIM TO DIE" |
-| 22 | 34.00 | 35.40 | He **didn't die**. | Calendar flips through weeks, ECG keeps beating, he sits up |
-| 23 | 35.40 | 37.00 | Half his face **froze**. | He smiles but only the right side moves; the left half is tinted frozen. "LEFT SIDE PARALYZED" |
-| 24 | 37.00 | 38.80 | He lost hearing in **one ear**. | Sound ripples reach the right ear but die before the left one. "DEAF IN LEFT EAR" |
-| 25 | 38.80 | 40.20 | **Seizures** came. | X-ray brain with flickering electrical arcs. "SEIZURES" |
-| 26 | 40.20 | 41.40 | But his **mind**? | Arcs stop; slow push-in on the calm brain |
-| 27 | 41.40 | 43.00 | Completely **intact**. | Brain glows teal, equations orbit his head. "MIND INTACT" |
-| 28 | 43.00 | 44.60 | He finished his **PhD**. | Dissertation lands on the desk; a "PhD ✓" stamp comes down (≈ 44.0 s) |
-| 29 | 44.60 | 46.20 | And went right **back to work**... | He walks back along the running beam line |
-| 30 | 46.20 | 48.00 | around **particle accelerators**. | Crane up to reveal the accelerator hall |
+| 1 | 0.16 | 2.78 | In 1978, a Soviet scientist | 0.0 |
+| 2 | 2.78 | 4.94 | stuck his head into a particle accelerator... | 1.4 |
+| 3 | 5.30 | 6.29 | while it was running. | 2.9 |
+| 4 | 6.72 | 8.01 | Anatoli Bugorski. | 4.0 |
+| 5 | 8.27 | 9.49 | A physicist in Russia. | 5.4 |
+| 6 | 9.75 | 10.90 | The machine was glitching, | 6.8 |
+| 7 | 11.02 | 12.46 | and the safety system failed. | 8.3 |
+| 8 | 12.77 | 13.91 | He leaned in to check it. | 10.0 |
+| 9 | 14.16 | 15.18 | Just a quick look. | 11.9 |
+| 10 | 15.62 | 16.73 | A beam of protons, | 14.0 |
+| 11 | 16.84 | 18.32 | traveling near the speed of light, | 15.1 |
+| 12 | 18.44 | 19.70 | shot through the back of his skull | 16.6 |
+| 13 | 19.70 | 20.71 | and out his face. | 18.0 |
+| 14 | 20.99 | 23.02 | He saw a flash brighter than a thousand suns. | 19.0 |
+| 15 | 23.28 | 24.18 | And felt nothing. | 21.4 |
+| 16 | 24.43 | 25.19 | No pain. | 22.4 |
+| 17 | 25.44 | 26.26 | No sound. | 23.2 |
+| 18 | 26.70 | 27.88 | Then his face swelled up. | 24.0 |
+| 19 | 28.14 | 30.25 | Skin peeled away along the path of the beam. | 25.6 |
+| 20 | 30.49 | 33.37 | The radiation dose should have killed him many times over. | 28.2 |
+| 21 | 33.62 | 34.89 | Doctors gave him days. | 31.4 |
+| 22 | 35.33 | 36.23 | He didn't die. | 34.0 |
+| 23 | 36.51 | 37.75 | Half his face froze. | 35.4 |
+| 24 | 38.05 | 39.34 | He lost hearing in one ear. | 37.0 |
+| 25 | 39.60 | 40.50 | Seizures came. | 38.8 |
+| 26 | 40.76 | 41.61 | But his mind? | 40.2 |
+| 27 | 41.99 | 43.08 | Completely intact. | 41.4 |
+| 28 | 43.55 | 44.81 | He finished his PhD. | 43.0 |
+| 29 | 45.08 | 46.39 | And went right back to work... | 44.6 |
+| 30 | 46.72 | 48.29 | around particle accelerators. | 46.2 |
 
-## Adding the recorded narration
-1. Save the recording as `audio/narration.wav` (`.mp3`, `.m4a`, `.aac` and `.flac` also work).
-2. Run `npm run render`. Frames that already exist in `out/frames/` are reused, so this only re-encodes. The narration is muxed as AAC 192 kbps and the video length stays at 48.0 s.
-3. Alternatively, mux it into the existing file without re-encoding the video:
-   ```
-   ffmpeg -i final-animation.mp4 -i audio/narration.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -af apad -t 48 final-animation-voiced.mp4
-   ```
+`qa/sync-sheet.jpg` shows the frame 0.4 s into each of these lines.
 
-If your read runs noticeably faster or slower, edit the `start`/`end` values in `src/timeline.js` (`NARRATION` and `SHOTS`) to match the recording, then re-render with `npm run render -- --fresh`.
+## Sound design (each effect sits on the frame of its visual)
+- **Pad:** follows the story. Dark D minor at the hook, B♭ when the safety fails, a tense ♭9 before the strike, bright A major for the "thousand suns", then near-silence on "No sound".
+- **Score after the accident:** G minor and E♭ for the aftermath and hospital, F major when he survives, a diminished chord for the seizures, and F add9 / B♭maj9 for "mind intact" and the return to work.
+- **Machines and impacts:**
+  - an accelerator hum and air in the hall
+  - electrical sputter while the machine glitches
+  - three relay clunks as the interlock lamps die, then an error buzzer on the ✕
+  - a riser into the white-flash strike
+  - wind through the beam pipe, with whooshes as the rings pass
+- **Close-ups:**
+  - sub-plus-sizzle zaps as the beam enters the skull and exits beside the nose
+  - a shimmering "suns" chord
+  - soft ticks for the crossed-out icons
+- **Story beats:**
+  - blocks clattering into the 400-block wall
+  - ECG beeps locked to the R-peaks drawn on the monitor
+  - calendar pages fluttering
+  - ripples for the ear diagram
+  - crackle while the seizure arcs flicker
+  - a chime on "intact"
+  - the book landing and the stamp slam
+  - footsteps on his walk-cycle heel strikes
+
+The score and ambience duck about 6 dB under the voice. The effects keep their sub and sizzle but are ducked in the 250 Hz–8 kHz speech band while the narrator talks, so words are never masked.
+
+## Quality checks performed
+- **Pronunciation:**
+  - every line was transcribed by two independent offline speech recognizers (Zipformer and Whisper tiny.en)
+  - Whisper transcribes the delivered MP4's audio word for word, apart from spelling the name "Anatoly Bugorsky"
+  - pronunciation fixes were each verified this way: "1978" → "nineteen seventy-eight", Anatoli → "ah-nah-TOH-lee", Bugorski → "boo-GOR-skee", and a tiny break in "face, froze"
+- **Sync:**
+  - measured voice onsets match the timing file within 10 ms
+  - the MP4's audio track is sample-aligned with the master (0 ms lag)
+- **Reproducibility:** rerunning the audio pipeline reproduces the timing, voice and mix bit for bit.
+
+## Regenerating, changing the voice, or using your own recording
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements-audio.txt   # one-time
+npm run audio            # narrate.py (TTS + timing) → soundtrack.py (score, effects, mix)
+npm run check-audio      # transcribe the mix and compare with the script
+npm run render -- --fresh  # re-render frames (timing changes move every frame), mux audio
+```
+- **Different voice:** `.venv/bin/python scripts/narrate.py --voice am_michael`. Kokoro has 28 English voices, e.g. `am_onyx`, `bm_george`, `af_bella`. Use `--target 48` to aim for another length.
+- **Your own recording:**
+  1. `.venv/bin/python scripts/align_recording.py my_voiceover.wav`. This transcribes it with word timestamps, matches it to the script, and rewrites `src/narrationTiming.js`. Validated against the TTS track's known timings: median 5 ms, max 20 ms per line.
+  2. Run `.venv/bin/python scripts/soundtrack.py` and `npm run render -- --fresh`.
+- **Silent picture only:** `npm run render -- --silent --out silent.mp4`.
+- The first run downloads models (Kokoro and the two QA recognizers, about 0.9 GB) from GitHub releases into `audio/models/`. That folder is git-ignored.

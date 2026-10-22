@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { Stage } from './core/stage.js';
 import { FONT, FONT_BOLD } from './core/textures.js';
-import { FPS, FRAMES, DURATION, WIDTH, HEIGHT, shotAt, NARRATION } from './timeline.js';
+import { FPS, FRAMES, DURATION, WIDTH, HEIGHT, shotAt, NARRATION, designTime } from './timeline.js';
 import { IMPL, captions, transitions } from './shots.js';
 import { HallSet } from './sets/hallSet.js';
 import { StudioSet } from './sets/studioSet.js';
@@ -46,9 +46,10 @@ function project(p) {
   return { x: (tmp.x + 1) / 2 * WIDTH, y: (1 - tmp.y) / 2 * HEIGHT };
 }
 
-/** Render the exact frame for master-timeline time t (seconds). */
-function renderAt(t) {
-  const frame = Math.round(t * FPS);
+/** Render the exact frame for real (video/voiceover) time tReal in seconds. */
+function renderAt(tReal) {
+  const frame = Math.round(tReal * FPS);
+  const t = designTime(tReal); // everything below is authored on the design clock
   const shot = shotAt(t);
   stage.hud.begin();
   const extra = {};
@@ -88,8 +89,13 @@ if (renderMode) {
   document.body.appendChild(ui);
   const scrub = ui.querySelector('#scrub'), timeEl = ui.querySelector('#time'), capEl = ui.querySelector('#cap'), pp = ui.querySelector('#pp');
   let playing = true, t0 = performance.now(), offset = 0;
-  pp.onclick = () => { playing = !playing; pp.textContent = playing ? 'Pause' : 'Play'; t0 = performance.now(); offset = Number(scrub.value) / FPS; };
-  scrub.oninput = () => { offset = Number(scrub.value) / FPS; t0 = performance.now(); if (!playing) draw(offset); };
+  // voiceover/soundtrack playback in the preview (browsers may require a click first)
+  const audio = new Audio('audio/soundtrack.flac');
+  audio.onerror = () => { audio.src = 'audio/narration_voice.flac'; };
+  const syncAudio = () => { try { audio.currentTime = offset; if (playing) audio.play().catch(() => {}); else audio.pause(); } catch (e) { /* no audio */ } };
+  document.addEventListener('click', syncAudio, { once: true });
+  pp.onclick = () => { playing = !playing; pp.textContent = playing ? 'Pause' : 'Play'; t0 = performance.now(); offset = Number(scrub.value) / FPS; syncAudio(); };
+  scrub.oninput = () => { offset = Number(scrub.value) / FPS; t0 = performance.now(); syncAudio(); if (!playing) draw(offset); };
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') pp.onclick();
     if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') { playing = false; pp.textContent = 'Play'; scrub.value = Number(scrub.value) + (e.code === 'ArrowRight' ? 1 : -1); scrub.oninput(); }
@@ -98,7 +104,8 @@ if (renderMode) {
     const s = renderAt(t);
     scrub.value = Math.round(t * FPS);
     timeEl.textContent = `${t.toFixed(2)}s  f${Math.round(t * FPS)}  [${s.id}]`;
-    const line = NARRATION.find((n) => t >= n.start && t < n.end);
+    const td = designTime(t);
+    const line = NARRATION.find((n) => td >= n.start && td < n.end);
     capEl.textContent = line ? line.text : '';
   }
   function loop() {

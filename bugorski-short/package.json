@@ -11,7 +11,9 @@
     "stills": "node scripts/stills.mjs",
     "contact-sheet": "node scripts/contact-sheet.mjs",
     "verify": "node scripts/verify.mjs",
-    "check-determinism": "node scripts/check-determinism.mjs"
+    "check-determinism": "node scripts/check-determinism.mjs",
+    "audio": ".venv/bin/python scripts/narrate.py && .venv/bin/python scripts/soundtrack.py",
+    "check-audio": ".venv/bin/python scripts/check_narration.py final-animation.mp4"
   },
   "dependencies": {
     "three": "0.186.1"

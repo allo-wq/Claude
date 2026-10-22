@@ -1,13 +1,14 @@
 // MASTER TIMELINE — single source of truth for timing.
-// No voiceover file was supplied, so narration timestamps are estimated from the
-// script at a natural Shorts pace (~2.5 words/s) inside the section markers the
-// script itself gives ([0:00-0:04], [0:04-0:14], ...). If a real voiceover is
-// recorded later, adjust the `start`/`end` values here; every shot, caption and
-// transition is keyed off these numbers.
+// Shots, captions and transitions are authored on a 48 s DESIGN clock whose line
+// times follow the script's own section markers ([0:00-0:04], [0:04-0:14], ...).
+// The real voiceover (scripts/narrate.py) records when each line is actually
+// spoken (src/narrationTiming.js); designTime() warps the real clock onto the
+// design clock through those points, so every cue lands on its spoken words.
+
+import { NARRATION_TIMING } from './narrationTiming.js';
 
 export const FPS = 30;
-export const DURATION = 48;            // seconds
-export const FRAMES = FPS * DURATION;  // 1440
+export const DESIGN_DURATION = 48;     // the animation is authored on this 48 s "design" clock
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
 
@@ -90,3 +91,44 @@ export function shotAt(t) {
   for (const s of SHOTS) if (t >= s.start && t < s.end) return s;
   return SHOTS[SHOTS.length - 1];
 }
+
+// ───────────── VOICEOVER TIME WARP ─────────────
+// Knots: design line start → measured spoken start. Monotone cubic (Fritsch–Carlson)
+// interpolation hits every knot exactly while keeping animation speed continuous.
+const KNOTS = (() => {
+  if (!NARRATION_TIMING) return [[0, 0], [DESIGN_DURATION, DESIGN_DURATION]];
+  const k = [[0, 0]];
+  for (const l of NARRATION_TIMING.lines) if (l.designStart > 0) k.push([l.start, l.designStart]);
+  k.push([NARRATION_TIMING.duration, DESIGN_DURATION]);
+  return k; // [real, design]
+})();
+
+function monotone(xs, ys) {
+  const n = xs.length, h = [], d = [], m = new Array(n);
+  for (let i = 0; i < n - 1; i++) { h.push(xs[i + 1] - xs[i]); d.push((ys[i + 1] - ys[i]) / h[i]); }
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  // Fritsch–Butland weighted harmonic mean: guarantees a monotone interpolant
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (3 * (h[i - 1] + h[i])) / ((2 * h[i] + h[i - 1]) / d[i - 1] + (h[i] + 2 * h[i - 1]) / d[i]);
+  return (x) => {
+    if (x <= xs[0]) return ys[0] + (x - xs[0]) * d[0];
+    if (x >= xs[n - 1]) return ys[n - 1] + (x - xs[n - 1]) * d[n - 2];
+    let i = 0;
+    while (x > xs[i + 1]) i++;
+    const s = (x - xs[i]) / h[i];
+    const h00 = 2 * s ** 3 - 3 * s ** 2 + 1, h10 = s ** 3 - 2 * s ** 2 + s, h01 = -2 * s ** 3 + 3 * s ** 2, h11 = s ** 3 - s ** 2;
+    return h00 * ys[i] + h10 * h[i] * m[i] + h01 * ys[i + 1] + h11 * h[i] * m[i + 1];
+  };
+}
+
+/** Real (video/audio) seconds → design seconds used by every shot, caption and transition. */
+export const designTime = monotone(KNOTS.map((k) => k[0]), KNOTS.map((k) => k[1]));
+/** Exact inverse of designTime (bisection): design seconds → real seconds. Used by the
+ *  contact sheet and by the sound design to place effects on the real clock. */
+export function realTime(td) {
+  let lo = -1, hi = KNOTS[KNOTS.length - 1][0] + 1;
+  for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (designTime(mid) < td) lo = mid; else hi = mid; }
+  return (lo + hi) / 2;
+}
+
+export const DURATION = NARRATION_TIMING ? NARRATION_TIMING.duration : DESIGN_DURATION; // real seconds
+export const FRAMES = Math.round(DURATION * FPS);
