@@ -1,0 +1,22 @@
+{
+  "name": "bugorski-short",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "3D animated YouTube Short: The Scientist Who Put His Head in a Particle Beam (Three.js, deterministic frame render)",
+  "scripts": {
+    "preview": "node scripts/serve.mjs",
+    "render": "node scripts/render.mjs",
+    "render:fast": "node scripts/render.mjs --scale 0.5 --out out/preview-540p.mp4",
+    "stills": "node scripts/stills.mjs",
+    "contact-sheet": "node scripts/contact-sheet.mjs",
+    "verify": "node scripts/verify.mjs",
+    "check-determinism": "node scripts/check-determinism.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
