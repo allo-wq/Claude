@@ -5,6 +5,9 @@ piece whips in from the left, slams into the center, gets scanned **green**, and
 price counts up from **$1** to the real value with a ka-ching. Then the next piece
 does the same. The outro assembles the full set and counts up the total.
 
+**Finished video:** [`final/military_armor_price_short.mp4`](final/military_armor_price_short.mp4)
+(28.5 s, 1080×1920, 30 fps, H.264 + AAC, loudness-normalized to −14 LUFS for YouTube).
+
 Everything is procedural and generated from code. There's no stock footage or audio:
 
 | Part | File | What it does |
