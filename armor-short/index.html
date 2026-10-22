@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Armor Price Short</title>
+<style>
+  @font-face { font-family: 'BlackOps'; src: url(fonts/blackops.woff2) format('woff2'); }
+  @font-face { font-family: 'Anton'; src: url(fonts/anton.woff2) format('woff2'); }
+  @font-face { font-family: 'Oswald'; font-weight: 500; src: url(fonts/oswald-500.woff2) format('woff2'); }
+  @font-face { font-family: 'Oswald'; font-weight: 700; src: url(fonts/oswald-700.woff2) format('woff2'); }
+  :root { --green: #3dff72; --green-deep: #06401c; --amber: #ffb547; }
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; transform-origin: 0 0; background: #000; }
+  #gl { position: absolute; inset: 0; width: 1080px; height: 1920px; }
+  #hud { position: absolute; inset: 0; pointer-events: none; color: #fff; }
+  .abs { position: absolute; left: 0; right: 0; text-align: center; white-space: nowrap; transform-origin: 50% 50%; }
+  .rgb { text-shadow: -6px 0 rgba(255, 0, 60, .8), 6px 0 rgba(0, 220, 255, .8) !important; }
+
+  /* Hook */
+  #hook .band { position: absolute; left: 0; right: 0; top: 520px; height: 640px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,.55) 25%, rgba(0,0,0,.55) 75%, transparent); }
+  #h1 { top: 590px; font: 700 84px 'Oswald'; letter-spacing: 6px; text-shadow: 0 6px 20px #000; }
+  #h2 { top: 700px; font: 96px 'BlackOps'; letter-spacing: 2px;
+    background: linear-gradient(180deg, #ffe08a, #ff8a1f 60%, #ff4d12); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 8px 0 #3a1200) drop-shadow(0 0 24px rgba(255,120,20,.6)); }
+  #h3 { top: 830px; font: 175px 'Anton'; color: var(--green);
+    text-shadow: 0 0 30px rgba(61,255,114,.6), 0 10px 0 var(--green-deep), 0 16px 30px #000; }
+
+  /* Top bar */
+  #topbar { position: absolute; top: 120px; left: 56px; right: 56px; height: 76px; display: flex; align-items: center; justify-content: space-between; font: 700 38px 'Oswald'; letter-spacing: 3px; }
+  #itemTag, #totalTag { background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.25); border-radius: 12px; padding: 6px 22px; transform-origin: 100% 50%; }
+  #itemTag b { color: var(--amber); }
+  #totalTag b { color: var(--green); }
+  #totalTag.hot { border-color: var(--green); box-shadow: 0 0 30px rgba(61,255,114,.6); }
+  #pips { display: flex; gap: 10px; }
+  #pips i { width: 34px; height: 12px; border-radius: 3px; background: rgba(255,255,255,.22); }
+  #pips i.cur { background: #fff; }
+  #pips i.done { background: var(--green); box-shadow: 0 0 14px var(--green); }
+
+  /* Piece texts */
+  #name { top: 285px; font: 112px 'BlackOps'; letter-spacing: 3px; text-shadow: 0 0 3px #000, 0 8px 0 rgba(0,0,0,.6), 0 10px 30px rgba(0,0,0,.9); }
+  #sub { top: 420px; font: 700 46px 'Oswald'; letter-spacing: 10px; color: var(--amber); text-shadow: 0 4px 16px #000; }
+  #priceWrap { top: 1255px; }
+  #priceLabel { font: 700 40px 'Oswald'; letter-spacing: 16px; color: #c8ffd8; text-shadow: 0 3px 12px #000; margin-bottom: -18px; }
+  .money { font-family: 'Anton'; color: var(--green); line-height: 1.05;
+    text-shadow: 0 0 26px rgba(61,255,114,.55), 0 10px 0 var(--green-deep), 0 18px 34px rgba(0,0,0,.85); }
+  .money .d { display: inline-block; width: .52em; text-align: center; }
+  .money .c { display: inline-block; width: .22em; }
+  .money .cur { display: inline-block; font-size: .7em; vertical-align: .28em; margin-right: .04em; }
+  .money.landed { color: #8dffad; text-shadow: 0 0 40px rgba(61,255,114,.9), 0 0 90px rgba(61,255,114,.5), 0 10px 0 var(--green-deep), 0 18px 34px rgba(0,0,0,.85); }
+  #price { font-size: 250px; }
+
+  /* Lock-on brackets */
+  #brackets { position: absolute; left: 130px; top: 560px; width: 820px; height: 680px; --gap: 0px; }
+  #brackets i { position: absolute; width: 96px; height: 96px; border: 0 solid var(--green); filter: drop-shadow(0 0 10px var(--green)); }
+  #brackets i:nth-child(1) { left: calc(-1 * var(--gap)); top: calc(-1 * var(--gap)); border-width: 10px 0 0 10px; }
+  #brackets i:nth-child(2) { right: calc(-1 * var(--gap)); top: calc(-1 * var(--gap)); border-width: 10px 10px 0 0; }
+  #brackets i:nth-child(3) { left: calc(-1 * var(--gap)); bottom: calc(-1 * var(--gap)); border-width: 0 0 10px 10px; }
+  #brackets i:nth-child(4) { right: calc(-1 * var(--gap)); bottom: calc(-1 * var(--gap)); border-width: 0 10px 10px 0; }
+  #lockText { position: absolute; left: 0; right: 0; top: -58px; text-align: center; font: 700 30px 'Oswald'; letter-spacing: 8px; color: var(--green); text-shadow: 0 0 12px rgba(61,255,114,.8), 0 2px 6px #000; }
+
+  /* Outro */
+  #oTitle { top: 165px; font: 108px 'BlackOps'; letter-spacing: 3px; text-shadow: 0 0 3px #000, 0 8px 0 rgba(0,0,0,.6), 0 10px 30px rgba(0,0,0,.9); }
+  #oTotalLabel { top: 1135px; font: 700 44px 'Oswald'; letter-spacing: 18px; color: #c8ffd8; text-shadow: 0 3px 12px #000; }
+  #oTotal { top: 1180px; font-size: 270px; }
+  #cta { left: 50%; right: auto; top: 1500px; width: 640px; margin-left: -320px; font: 104px 'BlackOps'; color: #ff3b2f; border: 10px solid #ff3b2f; border-radius: 18px;
+    padding: 8px 0 14px; background: rgba(0,0,0,.45); text-shadow: 0 0 20px rgba(255,59,47,.6); box-shadow: 0 0 40px rgba(255,59,47,.45), inset 0 0 30px rgba(255,59,47,.25); }
+
+  #flash { position: absolute; inset: 0; opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./node_modules/three/build/three.module.js", "three/addons/": "./node_modules/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl" width="1080" height="1920"></canvas>
+  <div id="hud">
+    <div id="hook"><div class="band"></div><div id="h1" class="abs"></div><div id="h2" class="abs"></div><div id="h3" class="abs"></div></div>
+    <div id="topbar">
+      <div id="itemTag">ITEM <b id="itemNum">01</b></div>
+      <div id="pips"></div>
+      <div id="totalTag">TOTAL <b id="totalNum" class="money" style="font-family:Oswald;text-shadow:none"></b></div>
+    </div>
+    <div id="brackets"><i></i><i></i><i></i><i></i><div id="lockText"></div></div>
+    <div id="name" class="abs"></div>
+    <div id="sub" class="abs"></div>
+    <div id="priceWrap" class="abs"><div id="priceLabel">PRICE</div><div id="price" class="money"></div></div>
+    <div id="outro">
+      <div id="oTitle" class="abs"></div>
+      <div id="oTotalLabel" class="abs">TOTAL COST</div>
+      <div id="oTotal" class="abs money"></div>
+      <div id="cta" class="abs"></div>
+    </div>
+    <div id="flash"></div>
+  </div>
+</div>
+<script type="module" src="web/main.js"></script>
+</body>
+</html>
