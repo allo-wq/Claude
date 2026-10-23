@@ -33,7 +33,7 @@ npm run check-audio         # two offline speech recognisers transcribe the MP4'
 
 `render` options: `--workers 3` (parallel headless Chromium pages), `--scale 0.5`, `--from/--to` (frame range), `--fresh` (discard cached frames), `--audio file` and `--silent`. By default `audio/soundtrack.flac` is muxed. Frames are cached, so an interrupted render resumes where it stopped, and re-muxing audio only re-encodes.
 
-Requirements: Node 18+, FFmpeg/ffprobe on `PATH`, and a Chromium for Playwright. Rendering uses SwiftShader software WebGL, so no GPU is needed. A full render takes about 31 minutes on 4 CPU cores (3 workers).
+Requirements: Node 18+, FFmpeg/ffprobe on `PATH`, and a Chromium for Playwright. Rendering uses SwiftShader software WebGL, so no GPU is needed. A full render takes about 47 minutes on 4 CPU cores (3 workers).
 
 ## How it works
 

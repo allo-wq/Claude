@@ -9,4 +9,4 @@ PASS  audio length = video     49.566000 s
 PASS  loudness ≈ -14 LUFS      -14 LUFS integrated
 PASS  true peak ≤ -1 dBTP      -1.7 dBTP
 PASS  no black frames          none
-INFO  file size                34.9 MB, bitrate 5.6 Mb/s
+INFO  file size                40.6 MB, bitrate 6.5 Mb/s
