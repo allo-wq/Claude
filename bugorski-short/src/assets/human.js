@@ -705,6 +705,8 @@ const DEFAULT_STATE = {
   brainGlow: 0, arcs: 0, arcSeed: 0,
 };
 
+const COLLAR_Y = -1.3; // head units: the x-ray reveals skin above this line (hidden inside the coat)
+
 class HeadRig {
   constructor(human) {
     this.human = human;
@@ -859,18 +861,21 @@ class HeadRig {
     this.ghostLayer.push(this.arcMesh);
   }
 
-  /** Clip planes for the x-ray sweep (world space; updated in set()). */
+  /** Clip planes for the x-ray sweep (world space; updated in set()). The sweep only cuts
+   *  away skin above the collar line (clipIntersection), so the body under the clothes stays. */
   setClipping(on) {
     this.planeSkin = new THREE.Plane(new THREE.Vector3(0, 0, 1), 100);
     this.planeX = new THREE.Plane(new THREE.Vector3(0, 0, -1), -100);
+    this.planeHigh = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
+    this.planeLow = new THREE.Plane(new THREE.Vector3(0, 1, 0), 100);
     const mats = new Set();
     this.skinLayer.forEach((m) => mats.add(m.material));
     mats.add(this.flakeMesh.material);
     if (this.glasses) this.glasses.traverse((m) => m.isMesh && mats.add(m.material));
-    for (const m of mats) m.clippingPlanes = on ? [this.planeSkin] : null;
+    for (const m of mats) { m.clippingPlanes = on ? [this.planeSkin, this.planeHigh] : null; m.clipIntersection = true; }
     const gm = new Set();
     (this.ghostLayer || []).forEach((m) => gm.add(m.material));
-    for (const m of gm) m.clippingPlanes = on ? [this.planeX] : null;
+    for (const m of gm) { m.clippingPlanes = on ? [this.planeX, this.planeLow] : null; m.clipIntersection = false; }
   }
 
   /** Apply a full state (missing keys fall back to defaults → frames are independent). */
@@ -948,6 +953,10 @@ class HeadRig {
       const n = new THREE.Vector3(0, 0, 1).transformDirection(wm);
       this.planeSkin.setFromNormalAndCoplanarPoint(n, pt);
       this.planeX.setFromNormalAndCoplanarPoint(n.clone().negate(), pt);
+      const up = new THREE.Vector3(0, 1, 0).transformDirection(wm);
+      const collar = new THREE.Vector3(0, COLLAR_Y, 0).applyMatrix4(wm);
+      this.planeHigh.setFromNormalAndCoplanarPoint(up.clone().negate(), collar);
+      this.planeLow.setFromNormalAndCoplanarPoint(up, collar);
       const anyX = s.xray > 0.001;
       for (const m of this.ghostLayer) m.visible = anyX;
       this.brainMat.emissive.setRGB(0.25 - 0.2 * s.brainGlow, 0.05 + 0.6 * s.brainGlow, 0.08 + 0.62 * s.brainGlow);
