@@ -6,3 +6,4 @@ audio/models/
 audio/_*
 *.part
 __pycache__/
+vendor/

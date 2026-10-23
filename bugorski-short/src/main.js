@@ -15,6 +15,7 @@ import { SunsSet } from './sets/sunsSet.js';
 import { DoseSet } from './sets/doseSet.js';
 import { HospitalSet } from './sets/hospitalSet.js';
 import { DeskSet } from './sets/deskSet.js';
+import { loadHumanAssets } from './assets/human.js';
 
 const params = new URLSearchParams(location.search);
 const renderMode = params.has('render');
@@ -24,6 +25,7 @@ const noBloom = params.has('nobloom'); // debug: inspect geometry without glow
 await document.fonts.load(`900 100px ${FONT}`);
 await document.fonts.load(`700 100px ${FONT_BOLD}`);
 await document.fonts.ready;
+await loadHumanAssets(['bugorski', 'doctor']);
 
 const stage = new Stage(document.getElementById('stage'), WIDTH, HEIGHT, scale);
 const pmrem = new THREE.PMREMGenerator(stage.renderer);

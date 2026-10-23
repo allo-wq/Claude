@@ -6,7 +6,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { materials } from '../core/materials.js';
 import { canvas } from '../core/textures.js';
-import { Person } from '../assets/person.js';
+import { Human } from '../assets/human.js';
 import { Calendar, Monitor } from '../assets/displays.js';
 import { clamp, smooth } from '../core/util.js';
 
@@ -74,7 +74,7 @@ export class HospitalSet {
     pillow.position.set(0, MATTRESS_TOP + 0.05, -1.68);
     pillow.castShadow = pillow.receiveShadow = true;
     bedGroup.add(pillow);
-    const blanket = new THREE.Mesh(new RoundedBoxGeometry(1.08, 0.26, 1.3, 4, 0.1), new THREE.MeshStandardMaterial({ color: 0x8aa0b8, roughness: 0.95 }));
+    const blanket = new THREE.Mesh(new RoundedBoxGeometry(1.08, 0.3, 1.3, 4, 0.1), new THREE.MeshStandardMaterial({ color: 0x8aa0b8, roughness: 0.95 }));
     blanket.position.set(0, MATTRESS_TOP + 0.08, -0.12);
     blanket.castShadow = blanket.receiveShadow = true;
     bedGroup.add(blanket);
@@ -83,12 +83,11 @@ export class HospitalSet {
     bedGroup.add(fold);
 
     // patient (hospital pyjamas)
-    const pj = new THREE.MeshStandardMaterial({ color: 0xb9cbe0, roughness: 0.9 });
-    this.patient = new Person({ coat: pj, trousers: pj, shirt: pj, tie: false });
+    this.patient = new Human({ asset: 'bugorski', outfit: 'pyjamas', hair: 'brown' });
     s.add(this.patient.root);
 
     // doctor
-    this.doctor = new Person({ hair: M.grayHair, glasses: true, clipboard: true, skin: 0xd9a585 });
+    this.doctor = new Human({ asset: 'doctor', outfit: 'doctor', hair: 'gray', glasses: true, clipboard: true, skin: 0xd8a487, stubble: 0.25 });
     this.doctor.root.position.set(0.82, 0, -0.6);
     this.doctor.root.rotation.y = -Math.PI / 2 - 0.25;
     s.add(this.doctor.root);
@@ -139,14 +138,14 @@ export class HospitalSet {
     const p = this.patient;
     const e = smooth(clamp(sit));
     p.root.rotation.set(-Math.PI / 2, 0, 0);
-    p.root.position.set(0, MATTRESS_TOP + 0.11, 0.22);
+    p.root.position.set(0, MATTRESS_TOP + 0.11, 0.1);
     p.pose({
       spine: [1.05 * e, 0, 0],
       neck: [0.38 * (1 - e) + 0.05 * e, 0, 0],
       hipL: [0, 0, 0.04], hipR: [0, 0, -0.04],
       shoulderL: [0.0 - 0.5 * e, 0, 0.16], shoulderR: [-0.5 * e, 0, -0.16],
       elbowL: [-0.15 - 0.6 * e, 0, 0], elbowR: [-0.15 - 0.6 * e, 0, 0],
-      ankleL: [0.5, 0, 0], ankleR: [0.5, 0, 0],
+      ankleL: [0.95, 0, 0.1], ankleR: [0.95, 0, -0.1],
     });
     p.head.set({ swell: 0.85, burn: 0.75, lidL: 1, lidR: 1 - eyesOpen, redness: 0.5 });
 

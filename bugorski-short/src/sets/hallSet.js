@@ -7,11 +7,11 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { materials } from '../core/materials.js';
 import { tex, chalkboardTexture, labelTexture } from '../core/textures.js';
-import { Person } from '../assets/person.js';
+import { Human } from '../assets/human.js';
 import { Beam } from '../assets/beam.js';
 import { dipole, quadrupole, apparatus, beacon, interlockPanel, operatorConsole, box, cylX } from '../assets/machines.js';
 import { Scope, gaugeTexture } from '../assets/displays.js';
-import { clamp, smooth, lerp, mulberry32, quatFromFrames } from '../core/util.js';
+import { clamp, smooth, lerp, mulberry32 } from '../core/util.js';
 
 export const GAP_X = 0;
 const GAP_HALF = 0.46;       // half-width of the open gap
@@ -29,7 +29,7 @@ export class HallSet {
     s.environmentIntensity = 0.35;
 
     // --- character & derived beam height
-    this.person = new Person();
+    this.person = new Human({ asset: 'bugorski', outfit: 'labcoat', hair: 'brown' });
     s.add(this.person.root);
     this._solveLean();
 
@@ -202,16 +202,7 @@ export class HallSet {
       shoulderL: [0, 0, 0.08], shoulderR: [0, 0, -0.08],
     });
     // head: blend from natural to beam-aligned (local beam dir → world -X)
-    const hp = p.j.headPivot;
-    const target = new THREE.Quaternion();
-    {
-      hp.parent.updateWorldMatrix(true, false);
-      const qWorld = quatFromFrames(p.head.beamDir, new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1, 0, 0), HEAD_UP);
-      const pq = new THREE.Quaternion(); hp.parent.getWorldQuaternion(pq);
-      target.copy(pq.invert().multiply(qWorld));
-    }
-    hp.quaternion.identity().slerp(target, e);
-    p.root.updateMatrixWorld(true);
+    p.aimHead(new THREE.Vector3(-1, 0, 0), HEAD_UP, p.head.beamDir, e);
     // hands brace on the apparatus edges once leaning
     if (e > 0) {
       const Y = this.BEAM_Y ?? 1.4;

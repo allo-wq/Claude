@@ -268,7 +268,7 @@ export const IMPL = {
     const st = sets.studio;
     const sm = ramp(lt, 0.25, 0.75, ease.out);
     st.update(t, {
-      head: { swell: 0.12, burn: 0.35, smile: sm, smileLeft: 0, frozen: ramp(lt, 0.6, 1.1), browRaise: sm * 0.6, lidR: blink(t, 2.4, 1) },
+      head: { swell: 0.12, burn: 0.2, smile: sm, smileLeft: 0, frozen: ramp(lt, 0.6, 1.1), browRaise: sm * 0.6, lidR: blink(t, 2.4, 1) },
       bg: ['#14243a', '#04060a', '#2a4466'],
     });
     const k = smooth(clamp(lt / 1.6));
@@ -282,7 +282,7 @@ export const IMPL = {
     look(cam, v3(lerp(-0.3, 0.3, k), 1.1, lerp(7.6, 7.0, k)), v3(0, -0.1, 0), 55);
     st.camera = cam;
     st.update(t, {
-      head: { swell: 0.1, burn: 0.3 },
+      head: { swell: 0.1, burn: 0.2 },
       bg: ['#101c2c', '#03050a', '#22344e'],
       waves: ramp(lt, 0.05, 0.4),
     });

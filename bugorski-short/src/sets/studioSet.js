@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { materials, glowMaterial } from '../core/materials.js';
-import { Head } from '../assets/head.js';
+import { Human, HEAD_UNIT } from '../assets/human.js';
 import { Beam } from '../assets/beam.js';
 import { FONT_BOLD, radialTexture } from '../core/textures.js';
 import { clamp, smooth, mulberry32 } from '../core/util.js';
@@ -56,38 +56,14 @@ export class StudioSet {
     fill.position.set(-4, -1, 4);
     s.add(fill);
 
-    // bust
+    // bust: the full realistic character at head-unit scale, head centred on the origin
     this.bust = new THREE.Group();
     s.add(this.bust);
-    this.head = new Head({ xray: true });
-    this.bust.add(this.head.group);
-    const skin = new THREE.MeshStandardMaterial({ color: 0xe0ab88, roughness: 0.62 });
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.5, 1.3, 24), skin);
-    neck.position.set(0, -1.2, -0.12);
-    this.bust.add(neck);
-    this.neckMesh = neck;
-    const shoulders = new THREE.Mesh(new THREE.CapsuleGeometry(0.95, 2.4, 8, 24).rotateZ(Math.PI / 2), M.labCoat);
-    shoulders.scale.set(1, 1, 0.62);
-    shoulders.position.set(0, -2.5, -0.15);
-    this.bust.add(shoulders);
-    const chest = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.55, 2.4, 32, 1), M.labCoat);
-    chest.scale.z = 0.58; chest.position.set(0, -3.65, -0.15);
-    this.bust.add(chest);
-    const shirt = new THREE.Mesh(new THREE.CylinderGeometry(0.0, 0.62, 1.4, 3), M.shirt);
-    shirt.rotation.x = Math.PI; shirt.scale.z = 0.3; shirt.position.set(0, -2.35, 0.72);
-    this.bust.add(shirt);
-    const tie = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.5, 0.08), M.tie);
-    tie.position.set(0, -2.8, 0.8); tie.rotation.x = -0.12;
-    this.bust.add(tie);
-    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.17, 10, 28), M.labCoat);
-    collar.rotation.x = Math.PI / 2 - 0.25; collar.position.set(0, -1.8, -0.05); collar.scale.set(1.05, 1, 0.9);
-    this.bust.add(collar);
-    this.bustParts = [neck, shoulders, chest, shirt, tie, collar];
-    skin.clippingPlanes = [this.head.planeSkin];
-    const ghostNeck = new THREE.Mesh(neck.geometry, this.head.ghostSkinMat);
-    ghostNeck.position.copy(neck.position);
-    this.bust.add(ghostNeck);
-    this.head.ghostLayer.push(ghostNeck);
+    this.human = new Human({ asset: 'bugorski', outfit: 'labcoat', hair: 'brown', xray: true });
+    this.human.root.scale.setScalar(1 / HEAD_UNIT);
+    this.bust.add(this.human.root);
+    this.head = this.human.head;
+    this._centre(0);
 
     // beam through the head (local +X aligned to the head's beam direction)
     this.beam = new Beam({ radius: 0.03, glow: 2.6, bunches: 24, bunchLen: 0.5, bunchRadius: 0.06 });
@@ -176,6 +152,20 @@ export class StudioSet {
     });
   }
 
+  /** Neutral sitter's pose with slow breathing; keeps the head centre on the origin. */
+  _centre(t) {
+    const h = this.human;
+    h.root.position.set(0, 0, 0);
+    const br = Math.sin(t * 1.9) * 0.008;
+    h.pose({ spine: [-0.02 + br, 0, 0], neck: [0.03 - br, 0, 0], shoulderL: [0, 0, 0.06], shoulderR: [0, 0, -0.06] });
+    this.bust.updateMatrixWorld(true);
+    const c = new THREE.Vector3();
+    h.headGroup.getWorldPosition(c);
+    this.bust.worldToLocal(c);
+    h.root.position.sub(c);
+    h.root.updateMatrixWorld(true);
+  }
+
   /** Reset per-frame optional elements; shots then enable what they need. */
   update(t, o = {}) {
     const {
@@ -186,13 +176,11 @@ export class StudioSet {
       this.bust.position.set(Math.sin(t * 61) * 0.03 * shakeAmt, Math.sin(t * 47) * 0.02 * shakeAmt, 0);
       this.bust.rotation.z += Math.sin(t * 53) * 0.02 * shakeAmt;
     } else this.bust.position.set(0, 0, 0);
+    this._centre(t);
     this.head.set(head);
     if (bg) {
       this.bgUniforms.top.value.set(bg[0]); this.bgUniforms.bottom.value.set(bg[1]); this.bgUniforms.glow.value.set(bg[2]);
     }
-    // bust also fades for x-ray (only the head is x-rayed; shoulders get darker)
-    const x = head.xray || 0;
-    this.bustParts.forEach((p) => (p.visible = true));
 
     // beam (local coords along beamDir from the entry point)
     if (beam) {
