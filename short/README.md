@@ -8,14 +8,21 @@ throat, stomach, intestines and bloodstream to the outcome. A rewind replays it
 with real food: green scans, benefits, a zoom on the price tags and a cart-total
 comparison, the same trip through the body and the healthy outcome.
 
-All motion, transitions, overlays and audio come from `render.py`; the shots
-are 18 AI stills (Higgsfield: Z Image for scenes, Seedream 5 Flash with the
-hero shot as a reference so the main character stays the same).
+There are two versions with the same edit, overlays and soundtrack:
+
+- **Animated (`animate.py` + `art.py`)**: every frame is drawn in code as
+  flat vector art with cairo (character with walk/run cycles, cart, aisles,
+  the 20 foods, the oily bag interior, x-ray, throat tunnel, stomach,
+  intestines, artery, heart and liver, couch, park). No AI imagery.
+- **AI stills (`render.py`)**: 18 AI stills (Higgsfield: Z Image for scenes,
+  Seedream 5 Flash with the hero shot as a reference so the main character
+  stays the same), animated with camera moves.
 
 ## Render
 
 ```
-pip install numpy pillow     # plus ffmpeg on PATH
+pip install numpy pillow cairocffi   # plus ffmpeg and the cairo library
+python3 animate.py --out your_cart_vs_your_body_animated.mp4   # drawn version
 python3 render.py --timeline                    # scene list and timings
 python3 render.py --preview 5,18.7,40 --scale .4 # review frames into preview/
 python3 render.py --out your_cart_vs_your_body.mp4

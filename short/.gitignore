@@ -1,5 +1,7 @@
 __pycache__/
 assets/
 build/
+build_anim/
 preview/
+qc/
 *.mp4
