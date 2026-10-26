@@ -1,0 +1,5 @@
+__pycache__/
+assets/
+build/
+preview/
+*.mp4
