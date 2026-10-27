@@ -4,6 +4,8 @@
 
     Features
       Player   : Speed, High Jump, Infinite Jump, Noclip, Fly (works with the mobile thumbstick)
+      Moves    : Character combos (presets + your own), on-screen combo button,
+                 Face Nearest Enemy, Auto M1, Auto Block, character auto-detect
       Visual   : Player ESP (health-coloured highlight + name / HP / distance), Fullbright
       Teleport : Teleport to any player, save / return to a position
       Misc     : Anti-AFK, Rejoin, Unload
@@ -22,6 +24,7 @@ local StarterGui = game:GetService("StarterGui")
 local TeleportService = game:GetService("TeleportService")
 local CoreGui = game:GetService("CoreGui")
 local VirtualUser = game:GetService("VirtualUser")
+local _, VirtualInputManager = pcall(game.GetService, game, "VirtualInputManager")
 
 local LP = Players.LocalPlayer
 local GAME_ID = 3508322461 -- universe ID, shared by every Jujutsu Shenanigans server and place
@@ -44,6 +47,16 @@ local Settings = {
 	ESP = false,
 	Fullbright = false,
 	AntiAFK = true,
+	Character = 1,
+	ComboIndex = 1,
+	CustomCombo = "M1 M1 M1 M1 3 W0.4 3",
+	M1Gap = 0.35,
+	SkillGap = 0.6,
+	ComboPad = false,
+	FaceTarget = false,
+	AutoM1 = false,
+	AutoBlock = false,
+	TargetRange = 15,
 }
 
 local Defaults = { WalkSpeed = 16, JumpPower = 50, UseJumpPower = true }
@@ -432,11 +445,16 @@ end
 -- Unload
 ---------------------------------------------------------------------------
 
+local releaseCombat -- defined with the combat helpers below
+
 local function unload()
 	if not running then
 		return
 	end
 	running = false
+	if releaseCombat then
+		releaseCombat()
+	end
 	for _, conn in ipairs(connections) do
 		conn:Disconnect()
 	end
@@ -636,6 +654,339 @@ local function setFly(on)
 end
 
 ---------------------------------------------------------------------------
+-- Characters: combos and combat assist
+---------------------------------------------------------------------------
+
+-- Every character uses M1 plus keys 1-4 for moves, R special, Q dash, F block
+-- and G awakening. Combos are space-separated steps:
+--   M1       basic attack          1 2 3 4   moves
+--   R Q F G  special / dash / block / awakening
+--   R+4      hold R while pressing 4 (variant moves)
+--   W0.4     wait 0.4 seconds instead of the usual gap after the previous step
+local CHARACTERS = {
+	{ name = "Any", moves = {}, combos = {} },
+	{
+		name = "Vessel",
+		moves = { "Cursed Strikes", "Crushing Blow", "Divergent Fist", "Manji Kick" },
+		combos = {
+			{ "Black Flash", "3 W0.4 3" },
+			{ "Cursed Chain", "1 M1 M1 M1 2" },
+			{ "Crushing Finisher", "M1 M1 M1 M1 2 1" },
+		},
+	},
+	{
+		name = "Honored One",
+		moves = { "Lapse Blue", "Reversal Red", "Rapid Punches", "Twofold Kick" },
+		combos = {
+			{ "Rapid Kicks", "M1 M1 M1 M1 3 4 M1 M1 M1 Q 2" },
+			{ "Red Opener", "2 M1 M1 M1 M1 M1 1" },
+			{ "Blue Route", "M1 M1 M1 1 R+4 M1 M1 M1 2" },
+		},
+	},
+	{
+		name = "Restless Gambler",
+		moves = { "Reserve Balls", "Shutter Doors", "Rough Energy", "Fever Breaker" },
+		combos = {},
+	},
+	{ name = "Ten Shadows", moves = { "Rabbit Escape", "Nue", "Toad", "Divine Dog" }, combos = {} },
+	{ name = "Perfection", moves = { "Stockpile", "Soul Fire", "Focus Strike", "Body Repel" }, combos = {} },
+	{
+		name = "Blood Manipulator",
+		moves = { "Piercing Blood", "Flowing Red Scale", "Supernova", "Blood Edge" },
+		combos = {},
+	},
+}
+
+-- Shared by every character, listed after the character's own combos.
+local UNIVERSAL_COMBOS = {
+	{ "Basic", "M1 M1 M1 M1 1" },
+	{ "Double Skill", "M1 M1 M1 M1 3 4" },
+	{ "Dash Extend", "M1 M1 M1 M1 Q M1 M1 M1 2" },
+}
+
+local KEYS = {
+	["1"] = Enum.KeyCode.One,
+	["2"] = Enum.KeyCode.Two,
+	["3"] = Enum.KeyCode.Three,
+	["4"] = Enum.KeyCode.Four,
+	R = Enum.KeyCode.R,
+	Q = Enum.KeyCode.Q,
+	F = Enum.KeyCode.F,
+	G = Enum.KeyCode.G,
+}
+
+local function keyDown(code)
+	pcall(function()
+		VirtualInputManager:SendKeyEvent(true, code, false, game)
+	end)
+end
+
+local function keyUp(code)
+	pcall(function()
+		VirtualInputManager:SendKeyEvent(false, code, false, game)
+	end)
+end
+
+local function tapKey(code)
+	keyDown(code)
+	task.wait(0.05)
+	keyUp(code)
+end
+
+-- PC clicks where the mouse is; touch screens click the middle of the view,
+-- which is why the menu hides itself before a combo runs.
+local function clickM1()
+	local point
+	if UserInputService.MouseEnabled and not UserInputService.TouchEnabled then
+		point = UserInputService:GetMouseLocation()
+	else
+		local viewport = workspace.CurrentCamera.ViewportSize
+		point = Vector2.new(viewport.X / 2, viewport.Y * 0.45)
+	end
+	pcall(function()
+		VirtualInputManager:SendMouseButtonEvent(point.X, point.Y, 0, true, game, 1)
+		task.wait(0.03)
+		VirtualInputManager:SendMouseButtonEvent(point.X, point.Y, 0, false, game, 1)
+	end)
+end
+
+local function nearestEnemy(range)
+	local root = getRoot()
+	if not root then
+		return nil
+	end
+	local best, bestDistance
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local char = plr ~= LP and plr.Character
+		local theirRoot = char and char:FindFirstChild("HumanoidRootPart")
+		local theirHum = char and char:FindFirstChildOfClass("Humanoid")
+		if theirRoot and theirHum and theirHum.Health > 0 then
+			local distance = (theirRoot.Position - root.Position).Magnitude
+			if distance <= range and (not bestDistance or distance < bestDistance) then
+				best, bestDistance = theirRoot, distance
+			end
+		end
+	end
+	return best
+end
+
+-- Attacks play at Action priority or higher; idle / walk / run play below it.
+local ATTACK_PRIORITIES = {
+	[Enum.AnimationPriority.Action] = true,
+	[Enum.AnimationPriority.Action2] = true,
+	[Enum.AnimationPriority.Action3] = true,
+	[Enum.AnimationPriority.Action4] = true,
+}
+
+local function isAttacking(char)
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local animator = hum and hum:FindFirstChildOfClass("Animator")
+	if not animator then
+		return false
+	end
+	for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+		if ATTACK_PRIORITIES[track.Priority] then
+			return true
+		end
+	end
+	return false
+end
+
+local function threatNearby(range)
+	local root = getRoot()
+	if not root then
+		return false
+	end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local char = plr ~= LP and plr.Character
+		local theirRoot = char and char:FindFirstChild("HumanoidRootPart")
+		if theirRoot and (theirRoot.Position - root.Position).Magnitude <= range and isAttacking(char) then
+			return true
+		end
+	end
+	return false
+end
+
+local autoRotateOff = false
+local function restoreAutoRotate()
+	if autoRotateOff then
+		local hum = getHum()
+		if hum then
+			hum.AutoRotate = true
+		end
+		autoRotateOff = false
+	end
+end
+
+local blocking = false
+local function releaseBlock()
+	if blocking then
+		keyUp(KEYS.F)
+		blocking = false
+	end
+end
+
+local comboRunning = false
+local comboRun = 0 -- bumped on every start / stop so an old combo thread knows to quit
+local comboStateChanged
+
+local function setComboRunning(value)
+	comboRunning = value
+	if comboStateChanged then
+		comboStateChanged()
+	end
+end
+
+-- Starts a combo, or stops the one that is running.
+local function runCombo(sequence)
+	comboRun += 1
+	if comboRunning then
+		setComboRunning(false)
+		return
+	end
+	local myRun = comboRun
+	setComboRunning(true)
+	local steps = {}
+	for step in string.gmatch(string.upper(sequence), "%S+") do
+		table.insert(steps, step)
+	end
+	task.spawn(function()
+		for i, step in ipairs(steps) do
+			if not running or comboRun ~= myRun then
+				return
+			end
+			local pause = string.match(step, "^W([%d%.]+)$")
+			local gap = 0
+			if pause then
+				task.wait(tonumber(pause) or 0)
+			elseif step == "M1" then
+				clickM1()
+				gap = Settings.M1Gap
+			elseif string.find(step, "+", 1, true) then
+				local held = {}
+				for part in string.gmatch(step, "[^+]+") do
+					if KEYS[part] then
+						table.insert(held, KEYS[part])
+					end
+				end
+				for _, code in ipairs(held) do
+					keyDown(code)
+					task.wait(0.03)
+				end
+				task.wait(0.05)
+				for j = #held, 1, -1 do
+					keyUp(held[j])
+				end
+				gap = Settings.SkillGap
+			elseif KEYS[step] then
+				tapKey(KEYS[step])
+				gap = Settings.SkillGap
+			end
+			-- an explicit W step right after replaces the default gap (e.g. Black Flash timing)
+			local nextStep = steps[i + 1]
+			if gap > 0 and not (nextStep and string.match(nextStep, "^W[%d%.]+$")) then
+				task.wait(gap)
+			end
+		end
+		if comboRun == myRun then
+			setComboRunning(false)
+		end
+	end)
+end
+
+releaseCombat = function()
+	comboRun += 1
+	comboRunning = false
+	releaseBlock()
+	restoreAutoRotate()
+end
+
+local function currentCombos()
+	local combos = {}
+	for _, combo in ipairs(CHARACTERS[Settings.Character].combos) do
+		table.insert(combos, combo)
+	end
+	for _, combo in ipairs(UNIVERSAL_COMBOS) do
+		table.insert(combos, combo)
+	end
+	table.insert(combos, { "Custom" })
+	return combos
+end
+
+local function comboSequence(combo)
+	return combo[2] or Settings.CustomCombo
+end
+
+local function selectedCombo()
+	local combos = currentCombos()
+	Settings.ComboIndex = math.clamp(Settings.ComboIndex, 1, #combos)
+	return combos[Settings.ComboIndex]
+end
+
+-- Combo pad: fires the selected combo without opening the menu.
+local comboPad = new("Frame", {
+	Size = UDim2.fromOffset(130, 96),
+	Position = UDim2.new(1, -224, 0.25, 0),
+	BackgroundColor3 = Theme.Bg,
+	BackgroundTransparency = 0.2,
+	Visible = false,
+	Parent = gui,
+}, { round(0, 10), new("UIStroke", { Color = Theme.Stroke }) })
+
+local comboPadLabel = new("TextLabel", {
+	Font = Enum.Font.GothamBold,
+	TextSize = 12,
+	TextColor3 = Theme.Sub,
+	TextTruncate = Enum.TextTruncate.AtEnd,
+	BackgroundTransparency = 1,
+	Position = UDim2.fromOffset(4, 0),
+	Size = UDim2.new(1, -8, 0, 20),
+	Parent = comboPad,
+})
+makeDraggable(comboPadLabel, comboPad)
+
+local comboGo = new("TextButton", {
+	Font = Enum.Font.GothamBold,
+	TextSize = 15,
+	TextColor3 = Color3.new(1, 1, 1),
+	BackgroundColor3 = Theme.Accent,
+	Size = UDim2.new(1, -12, 0, 40),
+	Position = UDim2.fromOffset(6, 22),
+	Parent = comboPad,
+}, { round(0, 8) })
+
+local function refreshComboPad()
+	comboPadLabel.Text = selectedCombo()[1]
+	comboGo.Text = comboRunning and "STOP" or "COMBO"
+	comboGo.BackgroundColor3 = comboRunning and Theme.Danger or Theme.Accent
+end
+comboStateChanged = refreshComboPad
+
+comboGo.Activated:Connect(function()
+	runCombo(comboSequence(selectedCombo()))
+end)
+
+local function comboPadArrow(text, position, delta)
+	local button = new("TextButton", {
+		Text = text,
+		Font = Enum.Font.GothamBold,
+		TextSize = 14,
+		TextColor3 = Theme.Text,
+		BackgroundColor3 = Theme.Item,
+		Size = UDim2.new(0.5, -9, 0, 26),
+		Position = position,
+		Parent = comboPad,
+	}, { round(0, 6) })
+	button.Activated:Connect(function()
+		local count = #currentCombos()
+		Settings.ComboIndex = (Settings.ComboIndex - 1 + delta) % count + 1
+		refreshComboPad()
+	end)
+end
+comboPadArrow("<", UDim2.new(0, 6, 0, 66), -1)
+comboPadArrow(">", UDim2.new(0.5, 3, 0, 66), 1)
+
+---------------------------------------------------------------------------
 -- Tabs and controls
 ---------------------------------------------------------------------------
 
@@ -655,11 +1006,13 @@ local function selectTab(name)
 	end
 end
 
+local TAB_COUNT = 5
+
 local function createTab(name)
 	local button = new("TextButton", {
 		Text = name,
 		LayoutOrder = nextOrder(),
-		Size = UDim2.new(0.25, -3, 1, 0),
+		Size = UDim2.new(1 / TAB_COUNT, -4 * (TAB_COUNT - 1) / TAB_COUNT, 1, 0),
 		Font = Enum.Font.GothamBold,
 		TextScaled = true,
 		BackgroundColor3 = Theme.Item,
@@ -790,7 +1143,8 @@ local function addStepper(page, text, key, step, min, max)
 			Parent = row,
 		}, { round(0, 6) })
 		button.Activated:Connect(function()
-			Settings[key] = math.clamp(Settings[key] + delta, min, max)
+			-- round to 2 decimals so 0.05 steps don't drift into 0.35000000001
+			Settings[key] = math.round(math.clamp(Settings[key] + delta, min, max) * 100) / 100
 			render()
 		end)
 	end
@@ -814,6 +1168,28 @@ local function addButton(page, text, callback)
 	return button
 end
 
+local function addTextBox(page, placeholder, key)
+	local box = new("TextBox", {
+		Text = Settings[key],
+		PlaceholderText = placeholder,
+		ClearTextOnFocus = false,
+		Font = Enum.Font.Code,
+		TextSize = 14,
+		TextColor3 = Theme.Text,
+		PlaceholderColor3 = Theme.Sub,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		BackgroundColor3 = Theme.Item,
+		Size = UDim2.new(1, 0, 0, 38),
+		LayoutOrder = nextOrder(),
+		Parent = page,
+	}, { round(0, 8), new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
+	box.FocusLost:Connect(function()
+		Settings[key] = box.Text
+	end)
+	return box
+end
+
 -- Player ------------------------------------------------------------------
 
 local playerPage = createTab("Player")
@@ -835,6 +1211,154 @@ addToggle(playerPage, "Noclip", "Noclip", setNoclip)
 addSection(playerPage, "Fly")
 addToggle(playerPage, "Fly (use UP / DOWN pad)", "Fly", setFly)
 addStepper(playerPage, "Fly Speed", "FlySpeed", 10, 10, 300)
+
+-- Moves -------------------------------------------------------------------
+
+local movesPage = createTab("Moves")
+local setCharacter
+
+-- The hotbar shows the equipped character's move names, so match them
+-- against each character's moveset (two or more hits to count).
+local function detectCharacter()
+	local playerGui = LP:FindFirstChildOfClass("PlayerGui")
+	if not playerGui then
+		return nil
+	end
+	local texts = {}
+	for _, obj in ipairs(playerGui:GetDescendants()) do
+		if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" and not obj:IsDescendantOf(gui) then
+			table.insert(texts, string.lower(obj.Text))
+		end
+	end
+	local bestIndex, bestScore = nil, 1
+	for index, info in ipairs(CHARACTERS) do
+		local score = 0
+		for _, move in ipairs(info.moves) do
+			local needle = string.lower(move)
+			for _, text in ipairs(texts) do
+				if string.find(text, needle, 1, true) then
+					score += 1
+					break
+				end
+			end
+		end
+		if score > bestScore then
+			bestIndex, bestScore = index, score
+		end
+	end
+	return bestIndex
+end
+
+local function autoDetect(quiet)
+	local index = detectCharacter()
+	if index then
+		local changed = index ~= Settings.Character
+		if changed then
+			setCharacter(index)
+		end
+		if changed or not quiet then
+			notify("Detected " .. CHARACTERS[index].name .. ".")
+		end
+	elseif not quiet then
+		notify("Couldn't detect your character. Tap the Character button to pick it.")
+	end
+end
+
+addSection(movesPage, "Character")
+local characterButton = addButton(movesPage, "", function()
+	setCharacter(Settings.Character % #CHARACTERS + 1)
+end)
+addButton(movesPage, "Auto-Detect Character", function()
+	autoDetect(false)
+end)
+local moveLegend = new("TextLabel", {
+	Font = Enum.Font.Gotham,
+	TextSize = 12,
+	TextColor3 = Theme.Sub,
+	TextWrapped = true,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 0, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	LayoutOrder = nextOrder(),
+	Parent = movesPage,
+}, { new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4) }) })
+
+addSection(movesPage, "Combos (tap to run, tap again to stop)")
+local comboList = new("Frame", {
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 0, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	LayoutOrder = nextOrder(),
+	Parent = movesPage,
+}, { new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+
+addSection(movesPage, "Custom combo")
+addTextBox(movesPage, "e.g. M1 M1 M1 M1 3 W0.4 3", "CustomCombo")
+addStepper(movesPage, "M1 Gap (s)", "M1Gap", 0.05, 0.1, 1)
+addStepper(movesPage, "Skill Gap (s)", "SkillGap", 0.1, 0.2, 2)
+addToggle(movesPage, "Combo Pad (on-screen button)", "ComboPad", function(on)
+	comboPad.Visible = on
+end)
+
+addSection(movesPage, "Assist")
+addToggle(movesPage, "Face Nearest Enemy", "FaceTarget", function(on)
+	if not on then
+		restoreAutoRotate()
+	end
+end)
+addToggle(movesPage, "Auto M1 (enemy in range)", "AutoM1")
+addToggle(movesPage, "Auto Block (experimental)", "AutoBlock", function(on)
+	if not on then
+		releaseBlock()
+	end
+end)
+addStepper(movesPage, "Target Range", "TargetRange", 5, 5, 60)
+
+local function refreshMovesTab()
+	local info = CHARACTERS[Settings.Character]
+	characterButton.Text = "Character: " .. info.name .. "  (tap to change)"
+
+	local legend = {}
+	for i, move in ipairs(info.moves) do
+		table.insert(legend, i .. " " .. move)
+	end
+	moveLegend.Text = #legend > 0 and table.concat(legend, "    ")
+		or "Keys: 1-4 moves, R special, Q dash, F block, G awakening"
+
+	for _, child in ipairs(comboList:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+	for index, combo in ipairs(currentCombos()) do
+		local button = new("TextButton", {
+			Text = combo[1] .. "    " .. (combo[2] or "(your custom combo)"),
+			Font = Enum.Font.Gotham,
+			TextSize = 13,
+			TextColor3 = Theme.Text,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			BackgroundColor3 = Theme.Item,
+			Size = UDim2.new(1, 0, 0, 36),
+			LayoutOrder = index,
+			Parent = comboList,
+		}, { round(0, 8), new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
+		button.Activated:Connect(function()
+			Settings.ComboIndex = index
+			refreshComboPad()
+			main.Visible = false -- keep the menu out of the way of the M1 clicks
+			runCombo(comboSequence(combo))
+		end)
+	end
+end
+
+setCharacter = function(index)
+	Settings.Character = index
+	Settings.ComboIndex = 1
+	refreshMovesTab()
+	refreshComboPad()
+end
 
 -- Visual ------------------------------------------------------------------
 
@@ -964,6 +1488,21 @@ track(RunService.Heartbeat:Connect(function()
 	if Settings.Fly then
 		updateFly()
 	end
+
+	-- Face the nearest enemy (always during combos so the hits land).
+	local root = getRoot()
+	local target = (Settings.FaceTarget or comboRunning) and not Settings.Fly and nearestEnemy(Settings.TargetRange)
+	if target and hum and root then
+		hum.AutoRotate = false
+		autoRotateOff = true
+		local position = root.Position
+		local aim = Vector3.new(target.Position.X, position.Y, target.Position.Z)
+		if (aim - position).Magnitude > 0.5 then
+			root.CFrame = CFrame.lookAt(position, aim)
+		end
+	else
+		restoreAutoRotate()
+	end
 end))
 
 track(RunService.Stepped:Connect(function()
@@ -1015,6 +1554,12 @@ track(LP.CharacterAdded:Connect(function(char)
 	if hum then
 		captureDefaults(hum)
 	end
+	-- give the hotbar time to load the new moveset
+	task.delay(3, function()
+		if running then
+			autoDetect(true)
+		end
+	end)
 end))
 
 track(LP.Idled:Connect(function()
@@ -1047,12 +1592,52 @@ task.spawn(function()
 	end
 end)
 
+task.spawn(function()
+	while running do
+		if Settings.AutoM1 and not comboRunning and not blocking and nearestEnemy(Settings.TargetRange) then
+			clickM1()
+			task.wait(Settings.M1Gap)
+		else
+			task.wait(0.1)
+		end
+	end
+end)
+
+-- Hold block while a nearby enemy plays an attack animation, and keep it
+-- up briefly afterwards so multi-hit moves don't slip through.
+task.spawn(function()
+	local lastThreat = 0
+	while running do
+		if Settings.AutoBlock and not comboRunning then
+			if threatNearby(Settings.TargetRange) then
+				lastThreat = os.clock()
+				if not blocking then
+					keyDown(KEYS.F)
+					blocking = true
+				end
+			elseif blocking and os.clock() - lastThreat > 0.3 then
+				releaseBlock()
+			end
+		else
+			releaseBlock()
+		end
+		task.wait(0.05)
+	end
+end)
+
 local hum = getHum()
 if hum then
 	captureDefaults(hum)
 end
 refreshPlayerList()
+refreshMovesTab()
+refreshComboPad()
 selectTab("Player")
+task.delay(1, function()
+	if running then
+		autoDetect(true)
+	end
+end)
 
 if game.GameId ~= GAME_ID then
 	notify("This isn't Jujutsu Shenanigans, but the universal features still work.")
