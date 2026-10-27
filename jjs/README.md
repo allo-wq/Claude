@@ -28,7 +28,7 @@ If the file hasn't been merged into `main` yet, use the branch name in place of 
 | Moves | Character + Auto-Detect | Reads your hotbar's move names to work out which character you're using. Tap **Character** to pick one yourself |
 | Moves | Combos | Tap one to run it, tap again to stop. The menu hides itself so the M1 clicks reach the game |
 | Moves | Black Flash | **Do Black Flash** presses the move and times the second press to the white flash. **Auto Black Flash** finishes it whenever you use the move yourself. See below |
-| Moves | Dash Behind | Slides you behind the nearest enemy within **Dash Range**, facing their back. Use **Dash Behind Now**, the combo pad's **DASH BEHIND** button, a `BEHIND` step in a combo, or the toggle that does it automatically before every combo and Black Flash |
+| Moves | Dash Behind | Gets you behind the nearest enemy within **Dash Range** using the game's own dash. See below. Use **Dash Behind Now**, the combo pad's **DASH BEHIND** button, a `BEHIND` step in a combo, or the toggle that does it automatically before every combo and Black Flash |
 | Moves | Star Rage black hole | **Auto Black Hole on death**: when Yuki dies it presses G to latch on, then holds R. **Black Hole Now** does it on demand |
 | Moves | Custom combo + M1 Gap / Skill Gap | Write your own (syntax below) and tune the timing |
 | Moves | Combo Pad | A floating **COMBO** button with **< >** to switch combos mid-fight, plus **BLACK FLASH** and **DASH BEHIND** buttons |
@@ -79,6 +79,22 @@ How it works:
 
 If it lands too early or too late, adjust **Flash Timing** in 0.02 s steps. Selecting a character loads its default key and timing.
 
+## Dash Behind
+
+JJS dashes with **Q** toward whichever movement key you hold, and movement keys follow the camera. Dash Behind uses that:
+
+1. It picks a spot **Distance Behind** studs behind the nearest enemy, offset to the side you're already on so you don't run into them.
+2. It swings your camera to look along that path, holds **W** and taps **Q**. That's the game's real dash, with its normal animation.
+3. It waits **Dash Wait** seconds (default 0.35 s) for the dash to finish, then turns the camera back onto the enemy.
+
+**Dash Style** (tap to cycle):
+
+| Style | What happens |
+| --- | --- |
+| Game Dash (Q) | Only the real dash. If they're farther away than one dash covers, you land short |
+| Game Dash + Snap | Real dash, then a 0.1 s slide into the exact spot behind them. Most reliable |
+| Slide | No dash. Just the 0.1 s slide (the old behaviour) |
+
 ## Star Rage black hole
 
 Star Rage's ultimate only works after she dies. You press G to latch onto someone, then hold R to summon the black hole. With **Auto Black Hole on death** on and Character set to **Star Rage**, the script does this 0.5 s after you die. It waits 1 s after G, then holds R for **Hold R for** seconds (2 s by default).
@@ -114,6 +130,6 @@ The Vessel and Honored One combos come from community guides (Pro Game Guides an
 ## Notes
 
 - Using an executor breaks Roblox's Terms of Use. Players report **bans for flying** in JJS, so keep flights short, use an alt account and keep values moderate.
-- **Dash Behind** moves your character directly, like a short teleport. Long dashes are the easiest thing for anti-cheat to spot, so keep **Dash Range** modest. The default is 25 studs.
+- **Game Dash (Q)** only presses keys, so it's as safe as dashing yourself. **Game Dash + Snap** and **Slide** also move your character directly, like a short teleport. Long ones are the easiest thing for anti-cheat to spot, so keep **Dash Range** modest. The default is 25 studs.
 - The combo system and auto features press keys and click for you through `VirtualInputManager`, the same way a player would. They don't touch the game's internals, so they can't remove cooldowns, give infinite awakening or skip stuns. The server checks all of those.
 - On mobile this depends on the game still reading keyboard and mouse input through its touch buttons. If combos do nothing on your phone, tell me. A fallback can tap the game's own on-screen buttons instead.

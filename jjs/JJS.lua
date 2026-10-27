@@ -66,6 +66,8 @@ local Settings = {
 	AutoBlackHole = false,
 	BlackHoleHold = 2,
 	DashBehind = false,
+	DashStyle = 1,
+	DashTime = 0.35,
 	DashRange = 25,
 	BehindDistance = 3,
 }
@@ -874,8 +876,35 @@ end
 
 -- Dash behind ---------------------------------------------------------------
 
--- Slides you behind the nearest enemy within Dash Range, facing their back.
--- A 0.1s tween instead of an instant teleport reads like a dash.
+local DASH_STYLES = { "Game Dash (Q)", "Game Dash + Snap", "Slide" }
+local dashing = false -- pauses Face Nearest Enemy so the dash can turn the character
+
+local function slideTo(root, goal)
+	local tween = TweenService:Create(root, TweenInfo.new(0.1, Enum.EasingStyle.Quad), { CFrame = goal })
+	tween:Play()
+	tween.Completed:Wait()
+	root.AssemblyLinearVelocity = Vector3.zero
+end
+
+-- Swings the camera around the character so it looks along `direction`,
+-- keeping its current distance and height.
+local function pointCameraAlong(direction)
+	local cam = workspace.CurrentCamera
+	local root = getRoot()
+	local flat = Vector3.new(direction.X, 0, direction.Z)
+	if not root or flat.Magnitude < 0.01 then
+		return
+	end
+	local focus = root.Position + Vector3.new(0, 1.5, 0)
+	local offset = cam.CFrame.Position - focus
+	local horizontal = math.sqrt(math.max(offset.Magnitude ^ 2 - offset.Y ^ 2, 0))
+	cam.CFrame = CFrame.lookAt(focus - flat.Unit * horizontal + Vector3.new(0, offset.Y, 0), focus)
+end
+
+-- Gets you behind the nearest enemy within Dash Range, facing their back.
+-- The game dashes with Q toward the held movement key, and movement keys are
+-- camera-relative, so the Game Dash styles point the camera along the path,
+-- hold W, tap Q, then turn the camera back onto the target.
 local function dashBehind()
 	local root = getRoot()
 	local target = nearestEnemy(Settings.DashRange)
@@ -884,11 +913,38 @@ local function dashBehind()
 	end
 	-- +Z in the target's own space is directly behind them
 	local spot = (target.CFrame * CFrame.new(0, 0, Settings.BehindDistance)).Position
-	local goal = CFrame.lookAt(spot, Vector3.new(target.Position.X, spot.Y, target.Position.Z))
-	local tween = TweenService:Create(root, TweenInfo.new(0.1, Enum.EasingStyle.Quad), { CFrame = goal })
-	tween:Play()
-	tween.Completed:Wait()
-	root.AssemblyLinearVelocity = Vector3.zero
+	local function facingTarget(position)
+		return CFrame.lookAt(position, Vector3.new(target.Position.X, position.Y, target.Position.Z))
+	end
+	local style = DASH_STYLES[Settings.DashStyle]
+	if style == "Slide" then
+		slideTo(root, facingTarget(spot))
+		return true
+	end
+
+	-- Aim past whichever side of them we're already on so the dash doesn't run into them.
+	local right = target.CFrame.RightVector
+	local side = (root.Position - target.Position):Dot(right) >= 0 and 1 or -1
+	local path = (spot + right * side * 2.5) - root.Position
+	if Vector3.new(path.X, 0, path.Z).Magnitude < 1 then
+		return true
+	end
+
+	dashing = true
+	restoreAutoRotate()
+	pointCameraAlong(path)
+	keyDown(Enum.KeyCode.W)
+	task.wait(0.05)
+	tapKey(KEYS.Q)
+	task.wait(0.05)
+	keyUp(Enum.KeyCode.W)
+	task.wait(Settings.DashTime)
+	dashing = false
+
+	if style == "Game Dash + Snap" then
+		slideTo(root, facingTarget(spot))
+	end
+	pointCameraAlong(target.Position - root.Position)
 	return true
 end
 
@@ -1567,6 +1623,16 @@ addButton(movesPage, "Dash Behind Now", function()
 	end)
 end)
 addToggle(movesPage, "Dash Behind Before Combos & Black Flash", "DashBehind")
+local dashStyleButton
+local function renderDashStyle()
+	dashStyleButton.Text = "Dash Style: " .. DASH_STYLES[Settings.DashStyle] .. "  (tap to change)"
+end
+dashStyleButton = addButton(movesPage, "", function()
+	Settings.DashStyle = Settings.DashStyle % #DASH_STYLES + 1
+	renderDashStyle()
+end)
+renderDashStyle()
+addStepper(movesPage, "Dash Wait (s)", "DashTime", 0.05, 0.1, 1)
 addStepper(movesPage, "Dash Range", "DashRange", 5, 5, 80)
 addStepper(movesPage, "Distance Behind", "BehindDistance", 1, 2, 8)
 
@@ -1785,7 +1851,7 @@ track(RunService.Heartbeat:Connect(function()
 
 	-- Face the nearest enemy (always during combos and Black Flashes so the hits land).
 	local root = getRoot()
-	local wantsFacing = Settings.FaceTarget or comboRunning or bfBusy
+	local wantsFacing = (Settings.FaceTarget or comboRunning or bfBusy) and not dashing
 	local target = wantsFacing and not Settings.Fly and nearestEnemy(Settings.TargetRange)
 	if target and hum and root then
 		hum.AutoRotate = false
