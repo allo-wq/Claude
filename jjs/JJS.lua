@@ -5,7 +5,7 @@
     Features
       Player   : Speed, High Jump, Infinite Jump, Noclip, Fly (works with the mobile thumbstick)
       Moves    : Character combos (presets + your own), on-screen combo button,
-                 timed / Auto Black Flash, Star Rage auto black hole,
+                 timed / Auto Black Flash, Dash Behind, Star Rage auto black hole,
                  Face Nearest Enemy, Auto M1, Auto Block, character auto-detect
       Visual   : Player ESP (health-coloured highlight + name / HP / distance), Fullbright
       Teleport : Teleport to any player, save / return to a position
@@ -25,6 +25,7 @@ local StarterGui = game:GetService("StarterGui")
 local TeleportService = game:GetService("TeleportService")
 local CoreGui = game:GetService("CoreGui")
 local VirtualUser = game:GetService("VirtualUser")
+local TweenService = game:GetService("TweenService")
 local _, VirtualInputManager = pcall(game.GetService, game, "VirtualInputManager")
 
 local LP = Players.LocalPlayer
@@ -64,6 +65,9 @@ local Settings = {
 	FlashDetect = false,
 	AutoBlackHole = false,
 	BlackHoleHold = 2,
+	DashBehind = false,
+	DashRange = 25,
+	BehindDistance = 3,
 }
 
 local Defaults = { WalkSpeed = 16, JumpPower = 50, UseJumpPower = true }
@@ -671,6 +675,7 @@ end
 --   R+4      hold R while pressing 4 (variant moves)
 --   W0.4     wait 0.4 seconds instead of the usual gap after the previous step
 --   BF       timed Black Flash (see blackFlash below)
+--   BEHIND   dash behind the nearest enemy
 -- `blackFlash` is the move that is pressed twice, with the second press on the
 -- white flash `delay` seconds after the move's animation starts.
 local CHARACTERS = {
@@ -867,6 +872,26 @@ local function releaseBlock()
 	end
 end
 
+-- Dash behind ---------------------------------------------------------------
+
+-- Slides you behind the nearest enemy within Dash Range, facing their back.
+-- A 0.1s tween instead of an instant teleport reads like a dash.
+local function dashBehind()
+	local root = getRoot()
+	local target = nearestEnemy(Settings.DashRange)
+	if not root or not target then
+		return false
+	end
+	-- +Z in the target's own space is directly behind them
+	local spot = (target.CFrame * CFrame.new(0, 0, Settings.BehindDistance)).Position
+	local goal = CFrame.lookAt(spot, Vector3.new(target.Position.X, spot.Y, target.Position.Z))
+	local tween = TweenService:Create(root, TweenInfo.new(0.1, Enum.EasingStyle.Quad), { CFrame = goal })
+	tween:Play()
+	tween.Completed:Wait()
+	root.AssemblyLinearVelocity = Vector3.zero
+	return true
+end
+
 -- Black Flash ---------------------------------------------------------------
 
 local bfBusy = false
@@ -934,6 +959,9 @@ local function blackFlash()
 		return
 	end
 	bfBusy = true
+	if Settings.DashBehind then
+		dashBehind()
+	end
 	local pressedAt = os.clock()
 	tapKey(code)
 	local track, startedAt = waitForOwnAttack(0.6)
@@ -1026,6 +1054,10 @@ local function runCombo(sequence)
 		table.insert(steps, step)
 	end
 	task.spawn(function()
+		-- open from behind, unless the first step positions itself (BEHIND, or BF which dashes too)
+		if Settings.DashBehind and steps[1] ~= "BEHIND" and steps[1] ~= "BF" then
+			dashBehind()
+		end
 		for i, step in ipairs(steps) do
 			if not running or comboRun ~= myRun then
 				return
@@ -1037,6 +1069,9 @@ local function runCombo(sequence)
 			elseif step == "M1" then
 				clickM1()
 				gap = Settings.M1Gap
+			elseif step == "BEHIND" then
+				dashBehind()
+				gap = 0.05
 			elseif step == "BF" then
 				blackFlash()
 				gap = Settings.SkillGap
@@ -1108,7 +1143,7 @@ end
 
 -- Combo pad: fires the selected combo without opening the menu.
 local comboPad = new("Frame", {
-	Size = UDim2.fromOffset(130, 130),
+	Size = UDim2.fromOffset(130, 164),
 	Position = UDim2.new(1, -224, 0.25, 0),
 	BackgroundColor3 = Theme.Bg,
 	BackgroundTransparency = 0.2,
@@ -1181,6 +1216,20 @@ local comboPadFlash = new("TextButton", {
 }, { round(0, 8), new("UIStroke", { Color = Theme.Danger, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }) })
 comboPadFlash.Activated:Connect(function()
 	task.spawn(blackFlash)
+end)
+
+local comboPadBehind = new("TextButton", {
+	Text = "DASH BEHIND",
+	Font = Enum.Font.GothamBold,
+	TextSize = 13,
+	TextColor3 = Theme.Text,
+	BackgroundColor3 = Theme.Item,
+	Size = UDim2.new(1, -12, 0, 30),
+	Position = UDim2.fromOffset(6, 130),
+	Parent = comboPad,
+}, { round(0, 8) })
+comboPadBehind.Activated:Connect(function()
+	task.spawn(dashBehind)
 end)
 
 ---------------------------------------------------------------------------
@@ -1508,6 +1557,18 @@ addToggle(movesPage, "Auto Black Flash (when you use the move)", "AutoBlackFlash
 	end
 end)
 addToggle(movesPage, "Detect White Flash (beta)", "FlashDetect")
+
+addSection(movesPage, "Dash Behind")
+addButton(movesPage, "Dash Behind Now", function()
+	task.spawn(function()
+		if not dashBehind() then
+			notify("No enemy within Dash Range.")
+		end
+	end)
+end)
+addToggle(movesPage, "Dash Behind Before Combos & Black Flash", "DashBehind")
+addStepper(movesPage, "Dash Range", "DashRange", 5, 5, 80)
+addStepper(movesPage, "Distance Behind", "BehindDistance", 1, 2, 8)
 
 addSection(movesPage, "Star Rage (Yuki)")
 addToggle(movesPage, "Auto Black Hole on death", "AutoBlackHole", function(on)

@@ -28,9 +28,10 @@ If the file hasn't been merged into `main` yet, use the branch name in place of 
 | Moves | Character + Auto-Detect | Reads your hotbar's move names to work out which character you're using. Tap **Character** to pick one yourself |
 | Moves | Combos | Tap one to run it, tap again to stop. The menu hides itself so the M1 clicks reach the game |
 | Moves | Black Flash | **Do Black Flash** presses the move and times the second press to the white flash. **Auto Black Flash** finishes it whenever you use the move yourself. See below |
+| Moves | Dash Behind | Slides you behind the nearest enemy within **Dash Range**, facing their back. Use **Dash Behind Now**, the combo pad's **DASH BEHIND** button, a `BEHIND` step in a combo, or the toggle that does it automatically before every combo and Black Flash |
 | Moves | Star Rage black hole | **Auto Black Hole on death**: when Yuki dies it presses G to latch on, then holds R. **Black Hole Now** does it on demand |
 | Moves | Custom combo + M1 Gap / Skill Gap | Write your own (syntax below) and tune the timing |
-| Moves | Combo Pad | A floating **COMBO** button with **< >** to switch combos mid-fight, plus a **BLACK FLASH** button |
+| Moves | Combo Pad | A floating **COMBO** button with **< >** to switch combos mid-fight, plus **BLACK FLASH** and **DASH BEHIND** buttons |
 | Moves | Face Nearest Enemy | Turns you toward the closest player in range. Always on while a combo runs, so hits land |
 | Moves | Auto M1 | Attacks whenever an enemy is within **Target Range** |
 | Moves | Auto Block (experimental) | Holds F while a nearby enemy plays an attack animation |
@@ -55,8 +56,11 @@ Combos are steps separated by spaces:
 | `R+4` | Hold R while pressing 4 (variant moves) |
 | `W0.4` | Wait 0.4 s. This replaces the normal gap after the step before it |
 | `BF` | A timed Black Flash using the Black Flash settings |
+| `BEHIND` | Dash behind the nearest enemy |
 
-Example: `M1 M1 M1 M1 BF` is four hits into a Black Flash.
+Examples:
+- `M1 M1 M1 M1 BF` is four hits into a Black Flash.
+- `BEHIND M1 M1 M1 M1 BEHIND BF` opens from behind, then gets behind them again before the Black Flash, since knockback moves them.
 
 ## Black Flash
 
@@ -110,5 +114,6 @@ The Vessel and Honored One combos come from community guides (Pro Game Guides an
 ## Notes
 
 - Using an executor breaks Roblox's Terms of Use. Players report **bans for flying** in JJS, so keep flights short, use an alt account and keep values moderate.
+- **Dash Behind** moves your character directly, like a short teleport. Long dashes are the easiest thing for anti-cheat to spot, so keep **Dash Range** modest. The default is 25 studs.
 - The combo system and auto features press keys and click for you through `VirtualInputManager`, the same way a player would. They don't touch the game's internals, so they can't remove cooldowns, give infinite awakening or skip stuns. The server checks all of those.
 - On mobile this depends on the game still reading keyboard and mouse input through its touch buttons. If combos do nothing on your phone, tell me. A fallback can tap the game's own on-screen buttons instead.
