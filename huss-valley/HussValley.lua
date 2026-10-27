@@ -4,7 +4,7 @@
 
     Features
       Player   : Speed, High Jump, Infinite Jump, Noclip, Fly (works with the mobile thumbstick)
-      Visual   : Player ESP (team-coloured highlight + name / team / distance), Fullbright
+      Visual   : Player ESP (knife holders in red + name / role / distance), Fullbright
       Teleport : Teleport to any player, save / return to a position
       Misc     : Anti-AFK, Rejoin, Unload
 
@@ -59,6 +59,7 @@ local Theme = {
 	Text = Color3.fromRGB(235, 235, 240),
 	Sub = Color3.fromRGB(150, 150, 165),
 	Esp = Color3.fromRGB(255, 200, 60),
+	Armed = Color3.fromRGB(255, 70, 70),
 }
 
 local running = true
@@ -129,7 +130,7 @@ local function setNoclip(on)
 end
 
 local flyVelocity, flyGyro
-local flyVertical = 0 -- 1 = up, -1 = down, set by the fly pad (or E / Q on keyboard)
+local flyVertical = 0 -- 1 = up, -1 = down, set by the fly pad (or Space / LeftControl on keyboard)
 
 local function stopFly()
 	if flyVelocity then
@@ -352,12 +353,16 @@ local function clearEsp()
 	end
 end
 
--- Runners / Catchers are told apart by team colour when the game uses Teams.
-local function espColor(plr)
+-- Use Teams when the game sets them; otherwise flag anyone holding a tool,
+-- which in Huss Valley is usually the Chaser's knife.
+local function espRole(plr, char)
 	if plr.Team and not plr.Neutral then
-		return plr.TeamColor.Color
+		return plr.TeamColor.Color, plr.Team.Name
 	end
-	return Theme.Esp
+	if char:FindFirstChildOfClass("Tool") then
+		return Theme.Armed, "Knife"
+	end
+	return Theme.Esp, nil
 end
 
 local function updateEsp()
@@ -405,14 +410,14 @@ local function updateEsp()
 					esp.billboard.Adornee = head
 				end
 
-				local color = espColor(plr)
+				local color, role = espRole(plr, char)
 				esp.highlight.FillColor = color
 				esp.highlight.OutlineColor = color
 				esp.label.TextColor3 = color
 
 				local text = plr.DisplayName
-				if plr.Team then
-					text ..= " [" .. plr.Team.Name .. "]"
+				if role then
+					text ..= " [" .. role .. "]"
 				end
 				local theirRoot = char:FindFirstChild("HumanoidRootPart")
 				if myRoot and theirRoot then
@@ -987,19 +992,19 @@ track(UserInputService.JumpRequest:Connect(function()
 	end
 end))
 
--- Keyboard fly controls for anyone running this on PC.
+-- Keyboard fly controls for anyone running this on PC (Q is the game's ability key).
 track(UserInputService.InputBegan:Connect(function(input, processed)
-	if processed then
+	if processed or not Settings.Fly then
 		return
 	end
-	if input.KeyCode == Enum.KeyCode.E then
+	if input.KeyCode == Enum.KeyCode.Space then
 		flyVertical = 1
-	elseif input.KeyCode == Enum.KeyCode.Q then
+	elseif input.KeyCode == Enum.KeyCode.LeftControl then
 		flyVertical = -1
 	end
 end))
 track(UserInputService.InputEnded:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.E or input.KeyCode == Enum.KeyCode.Q then
+	if input.KeyCode == Enum.KeyCode.Space or input.KeyCode == Enum.KeyCode.LeftControl then
 		flyVertical = 0
 	end
 end))
