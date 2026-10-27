@@ -27,8 +27,10 @@ If the file hasn't been merged into `main` yet, use the branch name in place of 
 | Player | Fly + Fly Speed (10-300) | Steer with the thumbstick and camera. Use the **UP / DOWN** pad to climb or drop (Space / LeftControl on keyboard). Q, F and G are left alone for dash, block and awakening |
 | Moves | Character + Auto-Detect | Reads your hotbar's move names to work out which character you're using. Tap **Character** to pick one yourself |
 | Moves | Combos | Tap one to run it, tap again to stop. The menu hides itself so the M1 clicks reach the game |
+| Moves | Black Flash | **Do Black Flash** presses the move and times the second press to the white flash. **Auto Black Flash** finishes it whenever you use the move yourself. See below |
+| Moves | Star Rage black hole | **Auto Black Hole on death**: when Yuki dies it presses G to latch on, then holds R. **Black Hole Now** does it on demand |
 | Moves | Custom combo + M1 Gap / Skill Gap | Write your own (syntax below) and tune the timing |
-| Moves | Combo Pad | A floating **COMBO** button with **< >** to switch combos mid-fight |
+| Moves | Combo Pad | A floating **COMBO** button with **< >** to switch combos mid-fight, plus a **BLACK FLASH** button |
 | Moves | Face Nearest Enemy | Turns you toward the closest player in range. Always on while a combo runs, so hits land |
 | Moves | Auto M1 | Attacks whenever an enemy is within **Target Range** |
 | Moves | Auto Block (experimental) | Holds F while a nearby enemy plays an attack animation |
@@ -52,18 +54,44 @@ Combos are steps separated by spaces:
 | `R` `Q` `F` `G` | Special, dash, block, awakening |
 | `R+4` | Hold R while pressing 4 (variant moves) |
 | `W0.4` | Wait 0.4 s. This replaces the normal gap after the step before it |
+| `BF` | A timed Black Flash using the Black Flash settings |
 
-Example: `M1 M1 M1 M1 3 W0.4 3` is four hits, then Divergent Fist pressed twice for a Black Flash.
+Example: `M1 M1 M1 M1 BF` is four hits into a Black Flash.
+
+## Black Flash
+
+| Character | Black Flash move | Default timing |
+| --- | --- | --- |
+| Vessel (Yuji) | Divergent Fist (**3**), pressed again on the white flash | 0.40 s |
+| Switcher (Todo) | Brute Force (**2**), pressed again on the flash | 0.40 s, a guess. Tune it |
+| Perfection | Awakened only: **G** while awakened (preset combo) | n/a |
+| Honored One, Cursed Partners, Salaryman, Strongest of History | Also Black Flash users, but I couldn't find reliable inputs | Set **Black Flash Key** and **Flash Timing** yourself |
+
+How it works:
+
+1. **Do Black Flash** presses the move, waits for your attack animation to start, then presses again **Flash Timing** seconds after that. Timing from the animation start, not from the button press, keeps ping from throwing it off.
+2. The first run also **learns** the move's animation. After that, with **Auto Black Flash** on, whenever you use that move yourself (keyboard or on-screen button), the script does the second press for you.
+3. **Detect White Flash (beta)** presses as soon as a highlight appears on your character, if that happens before the timing runs out. It can only make the press earlier, never later.
+
+If it lands too early or too late, adjust **Flash Timing** in 0.02 s steps. Selecting a character loads its default key and timing.
+
+## Star Rage black hole
+
+Star Rage's ultimate only works after she dies. You press G to latch onto someone, then hold R to summon the black hole. With **Auto Black Hole on death** on and Character set to **Star Rage**, the script does this 0.5 s after you die. It waits 1 s after G, then holds R for **Hold R for** seconds (2 s by default).
 
 Built-in presets:
 
 | Character | Presets | Moves (keys 1-4) |
 | --- | --- | --- |
-| Vessel | Black Flash `3 W0.4 3`, Cursed Chain `1 M1 M1 M1 2`, Crushing Finisher `M1 M1 M1 M1 2 1` | Cursed Strikes, Crushing Blow, Divergent Fist, Manji Kick |
+| Vessel | Black Flash `BF`, M1s into Black Flash `M1 M1 M1 M1 BF`, Cursed Chain `1 M1 M1 M1 2`, Crushing Finisher `M1 M1 M1 M1 2 1` | Cursed Strikes, Crushing Blow, Divergent Fist, Manji Kick |
+| Switcher | Brute Force Black Flash `BF` | Swift Kick, Brute Force, Pebble Throw, Elbow Drop |
+| Star Rage | universal only | Garuda Rebound, Rising Rage, Mass Breaker, Garuda Stab |
+| Salaryman | universal only | Cleaving Whirlwind, Severance Kick, Blunt Cut, Stabilize |
+| Cursed Partners | universal only | Severing Path, Resolute Slash, Outburst, Second Wind |
 | Honored One | Rapid Kicks `M1 M1 M1 M1 3 4 M1 M1 M1 Q 2`, Red Opener `2 M1 M1 M1 M1 M1 1`, Blue Route `M1 M1 M1 1 R+4 M1 M1 M1 2` | Lapse Blue, Reversal Red, Rapid Punches, Twofold Kick |
 | Restless Gambler | universal only | Reserve Balls, Shutter Doors, Rough Energy, Fever Breaker |
 | Ten Shadows | universal only | Rabbit Escape, Nue, Toad, Divine Dog |
-| Perfection | universal only | Stockpile, Soul Fire, Focus Strike, Body Repel |
+| Perfection | Awakened Black Flash `G` | Stockpile, Soul Fire, Focus Strike, Body Repel |
 | Blood Manipulator | universal only | Piercing Blood, Flowing Red Scale, Supernova, Blood Edge |
 | Every character | Basic `M1 M1 M1 M1 1`, Double Skill `M1 M1 M1 M1 3 4`, Dash Extend `M1 M1 M1 M1 Q M1 M1 M1 2` | |
 
@@ -72,7 +100,7 @@ The Vessel and Honored One combos come from community guides (Pro Game Guides an
 ### Tuning tips
 
 - If hits drop mid-combo, raise **M1 Gap** (default 0.35 s). If moves come out too slowly, lower **Skill Gap** (default 0.6 s).
-- Black Flash timing depends on your ping. Try values from `W0.3` to `W0.5`.
+- For Black Flash, tune **Flash Timing** rather than adding `W` steps. `BF` handles the timing itself.
 
 ## About the game
 

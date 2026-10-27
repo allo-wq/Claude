@@ -5,6 +5,7 @@
     Features
       Player   : Speed, High Jump, Infinite Jump, Noclip, Fly (works with the mobile thumbstick)
       Moves    : Character combos (presets + your own), on-screen combo button,
+                 timed / Auto Black Flash, Star Rage auto black hole,
                  Face Nearest Enemy, Auto M1, Auto Block, character auto-detect
       Visual   : Player ESP (health-coloured highlight + name / HP / distance), Fullbright
       Teleport : Teleport to any player, save / return to a position
@@ -57,6 +58,12 @@ local Settings = {
 	AutoM1 = false,
 	AutoBlock = false,
 	TargetRange = 15,
+	BFKey = "3",
+	BFDelay = 0.4,
+	AutoBlackFlash = false,
+	FlashDetect = false,
+	AutoBlackHole = false,
+	BlackHoleHold = 2,
 }
 
 local Defaults = { WalkSpeed = 16, JumpPower = 50, UseJumpPower = true }
@@ -663,16 +670,44 @@ end
 --   R Q F G  special / dash / block / awakening
 --   R+4      hold R while pressing 4 (variant moves)
 --   W0.4     wait 0.4 seconds instead of the usual gap after the previous step
+--   BF       timed Black Flash (see blackFlash below)
+-- `blackFlash` is the move that is pressed twice, with the second press on the
+-- white flash `delay` seconds after the move's animation starts.
 local CHARACTERS = {
 	{ name = "Any", moves = {}, combos = {} },
 	{
 		name = "Vessel",
 		moves = { "Cursed Strikes", "Crushing Blow", "Divergent Fist", "Manji Kick" },
+		blackFlash = { key = "3", delay = 0.4 },
 		combos = {
-			{ "Black Flash", "3 W0.4 3" },
+			{ "Black Flash", "BF" },
+			{ "M1s into Black Flash", "M1 M1 M1 M1 BF" },
 			{ "Cursed Chain", "1 M1 M1 M1 2" },
 			{ "Crushing Finisher", "M1 M1 M1 M1 2 1" },
 		},
+	},
+	{
+		name = "Switcher",
+		moves = { "Swift Kick", "Brute Force", "Pebble Throw", "Elbow Drop" },
+		blackFlash = { key = "2", delay = 0.4 },
+		combos = {
+			{ "Brute Force Black Flash", "BF" },
+		},
+	},
+	{
+		name = "Star Rage",
+		moves = { "Garuda Rebound", "Rising Rage", "Mass Breaker", "Garuda Stab" },
+		combos = {},
+	},
+	{
+		name = "Salaryman",
+		moves = { "Cleaving Whirlwind", "Severance Kick", "Blunt Cut", "Stabilize" },
+		combos = {},
+	},
+	{
+		name = "Cursed Partners",
+		moves = { "Severing Path", "Resolute Slash", "Outburst", "Second Wind" },
+		combos = {},
 	},
 	{
 		name = "Honored One",
@@ -689,7 +724,13 @@ local CHARACTERS = {
 		combos = {},
 	},
 	{ name = "Ten Shadows", moves = { "Rabbit Escape", "Nue", "Toad", "Divine Dog" }, combos = {} },
-	{ name = "Perfection", moves = { "Stockpile", "Soul Fire", "Focus Strike", "Body Repel" }, combos = {} },
+	{
+		name = "Perfection",
+		moves = { "Stockpile", "Soul Fire", "Focus Strike", "Body Repel" },
+		combos = {
+			{ "Awakened Black Flash (while awakened)", "G" },
+		},
+	},
 	{
 		name = "Blood Manipulator",
 		moves = { "Piercing Blood", "Flowing Red Scale", "Supernova", "Blood Edge" },
@@ -826,6 +867,140 @@ local function releaseBlock()
 	end
 end
 
+-- Black Flash ---------------------------------------------------------------
+
+local bfBusy = false
+local bfCooldownUntil = 0 -- stops our own second press from re-triggering Auto Black Flash
+local learnedFlashAnim = {} -- [character name] = AnimationId of that character's Black Flash move
+
+-- Waits for our character to start an attack animation. Returns the track and
+-- the os.clock() time it started, or nil after `timeout`.
+local function waitForOwnAttack(timeout)
+	local hum = getHum()
+	local animator = hum and hum:FindFirstChildOfClass("Animator")
+	if not animator then
+		return nil
+	end
+	local found, startedAt
+	local conn = animator.AnimationPlayed:Connect(function(track)
+		if not found and ATTACK_PRIORITIES[track.Priority] then
+			found, startedAt = track, os.clock()
+		end
+	end)
+	local deadline = os.clock() + timeout
+	while not found and os.clock() < deadline do
+		task.wait()
+	end
+	conn:Disconnect()
+	return found, startedAt
+end
+
+-- Returns early if a Highlight (the white flash) appears on our character
+-- before `deadline`; otherwise returns at the deadline.
+local function waitForFlash(char, deadline)
+	local flashed = false
+	local conn = char.DescendantAdded:Connect(function(obj)
+		if obj:IsA("Highlight") then
+			flashed = true
+		end
+	end)
+	while not flashed and os.clock() < deadline do
+		task.wait()
+	end
+	conn:Disconnect()
+end
+
+local function secondPress(code, startedAt)
+	local deadline = startedAt + Settings.BFDelay
+	local char = LP.Character
+	if Settings.FlashDetect and char then
+		waitForFlash(char, deadline)
+	else
+		local remaining = deadline - os.clock()
+		if remaining > 0 then
+			task.wait(remaining)
+		end
+	end
+	tapKey(code)
+	bfCooldownUntil = os.clock() + 1.5
+end
+
+-- Presses the Black Flash move, learns its animation, then lands the second press
+-- on the flash. Timing is measured from when the animation starts, not from
+-- the key press, so ping doesn't throw it off.
+local function blackFlash()
+	local code = KEYS[Settings.BFKey]
+	if bfBusy or not code then
+		return
+	end
+	bfBusy = true
+	local pressedAt = os.clock()
+	tapKey(code)
+	local track, startedAt = waitForOwnAttack(0.6)
+	if track and track.Animation then
+		learnedFlashAnim[CHARACTERS[Settings.Character].name] = track.Animation.AnimationId
+	end
+	secondPress(code, startedAt or pressedAt)
+	bfBusy = false
+end
+
+-- Auto Black Flash: when you start the learned move yourself, finish it for you.
+local function onOwnAnimation(track)
+	if not Settings.AutoBlackFlash or bfBusy or os.clock() < bfCooldownUntil then
+		return
+	end
+	local learned = learnedFlashAnim[CHARACTERS[Settings.Character].name]
+	local code = KEYS[Settings.BFKey]
+	if learned and code and track.Animation and track.Animation.AnimationId == learned then
+		bfBusy = true
+		local startedAt = os.clock()
+		task.spawn(function()
+			secondPress(code, startedAt)
+			bfBusy = false
+		end)
+	end
+end
+
+-- Star Rage black hole ------------------------------------------------------
+
+-- Star Rage's ultimate only works after she dies: G latches onto an enemy,
+-- then holding R summons the black hole.
+local function blackHole()
+	tapKey(KEYS.G)
+	task.wait(1)
+	keyDown(KEYS.R)
+	task.wait(Settings.BlackHoleHold)
+	keyUp(KEYS.R)
+end
+
+local characterConns = {}
+local function hookCharacter(char)
+	for _, conn in ipairs(characterConns) do
+		conn:Disconnect()
+	end
+	table.clear(characterConns)
+	local hum = char and char:WaitForChild("Humanoid", 10)
+	local animator = hum and hum:WaitForChild("Animator", 5)
+	if not running or not hum then
+		return
+	end
+	if animator then
+		table.insert(characterConns, animator.AnimationPlayed:Connect(onOwnAnimation))
+	end
+	table.insert(
+		characterConns,
+		hum.Died:Connect(function()
+			if Settings.AutoBlackHole and CHARACTERS[Settings.Character].name == "Star Rage" then
+				task.delay(0.5, function()
+					if running then
+						blackHole()
+					end
+				end)
+			end
+		end)
+	)
+end
+
 local comboRunning = false
 local comboRun = 0 -- bumped on every start / stop so an old combo thread knows to quit
 local comboStateChanged
@@ -862,6 +1037,9 @@ local function runCombo(sequence)
 			elseif step == "M1" then
 				clickM1()
 				gap = Settings.M1Gap
+			elseif step == "BF" then
+				blackFlash()
+				gap = Settings.SkillGap
 			elseif string.find(step, "+", 1, true) then
 				local held = {}
 				for part in string.gmatch(step, "[^+]+") do
@@ -898,7 +1076,12 @@ releaseCombat = function()
 	comboRun += 1
 	comboRunning = false
 	releaseBlock()
+	keyUp(KEYS.R)
 	restoreAutoRotate()
+	for _, conn in ipairs(characterConns) do
+		conn:Disconnect()
+	end
+	table.clear(characterConns)
 end
 
 local function currentCombos()
@@ -925,7 +1108,7 @@ end
 
 -- Combo pad: fires the selected combo without opening the menu.
 local comboPad = new("Frame", {
-	Size = UDim2.fromOffset(130, 96),
+	Size = UDim2.fromOffset(130, 130),
 	Position = UDim2.new(1, -224, 0.25, 0),
 	BackgroundColor3 = Theme.Bg,
 	BackgroundTransparency = 0.2,
@@ -985,6 +1168,20 @@ local function comboPadArrow(text, position, delta)
 end
 comboPadArrow("<", UDim2.new(0, 6, 0, 66), -1)
 comboPadArrow(">", UDim2.new(0.5, 3, 0, 66), 1)
+
+local comboPadFlash = new("TextButton", {
+	Text = "BLACK FLASH",
+	Font = Enum.Font.GothamBold,
+	TextSize = 13,
+	TextColor3 = Color3.new(1, 1, 1),
+	BackgroundColor3 = Color3.fromRGB(25, 25, 25),
+	Size = UDim2.new(1, -12, 0, 30),
+	Position = UDim2.fromOffset(6, 96),
+	Parent = comboPad,
+}, { round(0, 8), new("UIStroke", { Color = Theme.Danger, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }) })
+comboPadFlash.Activated:Connect(function()
+	task.spawn(blackFlash)
+end)
 
 ---------------------------------------------------------------------------
 -- Tabs and controls
@@ -1151,6 +1348,7 @@ local function addStepper(page, text, key, step, min, max)
 	stepButton("-", -86, -step)
 	stepButton("+", -44, step)
 	render()
+	return render
 end
 
 local function addButton(page, text, callback)
@@ -1293,6 +1491,35 @@ local comboList = new("Frame", {
 	Parent = movesPage,
 }, { new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
 
+addSection(movesPage, "Black Flash")
+local bfKeyButton
+bfKeyButton = addButton(movesPage, "", function()
+	local keys = { "1", "2", "3", "4" }
+	Settings.BFKey = keys[(table.find(keys, Settings.BFKey) or 0) % #keys + 1]
+	bfKeyButton.Text = "Black Flash Key: " .. Settings.BFKey .. "  (tap to change)"
+end)
+local renderBFDelay = addStepper(movesPage, "Flash Timing (s)", "BFDelay", 0.02, 0.1, 1)
+addButton(movesPage, "Do Black Flash", function()
+	task.spawn(blackFlash)
+end)
+addToggle(movesPage, "Auto Black Flash (when you use the move)", "AutoBlackFlash", function(on)
+	if on and not learnedFlashAnim[CHARACTERS[Settings.Character].name] then
+		notify("Tap Do Black Flash once first so it can learn your move's animation.")
+	end
+end)
+addToggle(movesPage, "Detect White Flash (beta)", "FlashDetect")
+
+addSection(movesPage, "Star Rage (Yuki)")
+addToggle(movesPage, "Auto Black Hole on death", "AutoBlackHole", function(on)
+	if on and CHARACTERS[Settings.Character].name ~= "Star Rage" then
+		notify("Only runs while Character is set to Star Rage.")
+	end
+end)
+addStepper(movesPage, "Hold R for (s)", "BlackHoleHold", 0.5, 0.5, 5)
+addButton(movesPage, "Black Hole Now", function()
+	task.spawn(blackHole)
+end)
+
 addSection(movesPage, "Custom combo")
 addTextBox(movesPage, "e.g. M1 M1 M1 M1 3 W0.4 3", "CustomCombo")
 addStepper(movesPage, "M1 Gap (s)", "M1Gap", 0.05, 0.1, 1)
@@ -1318,6 +1545,8 @@ addStepper(movesPage, "Target Range", "TargetRange", 5, 5, 60)
 local function refreshMovesTab()
 	local info = CHARACTERS[Settings.Character]
 	characterButton.Text = "Character: " .. info.name .. "  (tap to change)"
+	bfKeyButton.Text = "Black Flash Key: " .. Settings.BFKey .. "  (tap to change)"
+	renderBFDelay()
 
 	local legend = {}
 	for i, move in ipairs(info.moves) do
@@ -1356,6 +1585,10 @@ end
 setCharacter = function(index)
 	Settings.Character = index
 	Settings.ComboIndex = 1
+	local bf = CHARACTERS[index].blackFlash
+	if bf then
+		Settings.BFKey, Settings.BFDelay = bf.key, bf.delay
+	end
 	refreshMovesTab()
 	refreshComboPad()
 end
@@ -1489,9 +1722,10 @@ track(RunService.Heartbeat:Connect(function()
 		updateFly()
 	end
 
-	-- Face the nearest enemy (always during combos so the hits land).
+	-- Face the nearest enemy (always during combos and Black Flashes so the hits land).
 	local root = getRoot()
-	local target = (Settings.FaceTarget or comboRunning) and not Settings.Fly and nearestEnemy(Settings.TargetRange)
+	local wantsFacing = Settings.FaceTarget or comboRunning or bfBusy
+	local target = wantsFacing and not Settings.Fly and nearestEnemy(Settings.TargetRange)
 	if target and hum and root then
 		hum.AutoRotate = false
 		autoRotateOff = true
@@ -1554,6 +1788,7 @@ track(LP.CharacterAdded:Connect(function(char)
 	if hum then
 		captureDefaults(hum)
 	end
+	task.spawn(hookCharacter, char)
 	-- give the hotbar time to load the new moveset
 	task.delay(3, function()
 		if running then
@@ -1633,6 +1868,9 @@ refreshPlayerList()
 refreshMovesTab()
 refreshComboPad()
 selectTab("Player")
+if LP.Character then
+	task.spawn(hookCharacter, LP.Character)
+end
 task.delay(1, function()
 	if running then
 		autoDetect(true)
