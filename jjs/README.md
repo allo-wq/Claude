@@ -31,6 +31,7 @@ If the file hasn't been merged into `main` yet, use the branch name in place of 
 | Moves | Dash Behind | Gets you behind the nearest enemy within **Dash Range** using the game's own dash. See below. Use **Dash Behind Now**, the combo pad's **DASH BEHIND** button, a `BEHIND` step in a combo, or the toggle that does it automatically before every combo and Black Flash |
 | Moves | Star Rage black hole | **Auto Black Hole on death**: when Yuki dies it presses G to latch on, then holds R. **Black Hole Now** does it on demand |
 | Moves | Custom combo + M1 Gap / Skill Gap | Write your own (syntax below) and tune the timing |
+| Moves | Ability Buttons + Button Size | A draggable on-screen pad with big buttons. See below |
 | Moves | Combo Pad | A floating **COMBO** button with **< >** to switch combos mid-fight, plus **BLACK FLASH** and **DASH BEHIND** buttons |
 | Moves | Face Nearest Enemy | Turns you toward the closest player in range. Always on while a combo runs, so hits land |
 | Moves | Auto M1 | Attacks whenever an enemy is within **Target Range** |
@@ -43,6 +44,18 @@ If the file hasn't been merged into `main` yet, use the branch name in place of 
 | Misc | Rejoin Server / Unload Script | **X** in the title bar also unloads everything |
 
 Running the script again unloads the previous copy first, so menus never stack. It runs alongside the Huss Valley hub without clashing.
+
+## Ability Buttons
+
+Turn on **Moves → Ability Buttons** for a floating pad. Drag it by its **ABILITIES** title bar and change **Button Size** (40-80) to fit your screen.
+
+| Row | Buttons |
+| --- | --- |
+| 1 | **1 2 3 4**: your moves, labelled with the current character's move names |
+| 2 | **R** special, **G** awaken, **Q** dash, **F** block |
+| 3 | **M1** attack, **BF** Black Flash, **BEHIND** Dash Behind, **COMBO** (runs the selected combo, turns red with "tap to stop" while running) |
+
+Key buttons stay pressed for as long as your finger is down, so you can hold block or hold a charge. Each button tracks its own finger, so you can hold **R** and tap **4** for variant moves. Simulated M1 clicks always avoid the hub's own windows, so they never land on a button.
 
 ## Combos
 

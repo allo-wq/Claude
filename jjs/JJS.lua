@@ -4,7 +4,7 @@
 
     Features
       Player   : Speed, High Jump, Infinite Jump, Noclip, Fly (works with the mobile thumbstick)
-      Moves    : Character combos (presets + your own), on-screen combo button,
+      Moves    : On-screen ability buttons, character combos (presets + your own), combo pad,
                  timed / Auto Black Flash, Dash Behind, Star Rage auto black hole,
                  Face Nearest Enemy, Auto M1, Auto Block, character auto-detect
       Visual   : Player ESP (health-coloured highlight + name / HP / distance), Fullbright
@@ -59,6 +59,8 @@ local Settings = {
 	AutoM1 = false,
 	AutoBlock = false,
 	TargetRange = 15,
+	AbilityPad = false,
+	PadSize = 54,
 	BFKey = "3",
 	BFDelay = 0.4,
 	AutoBlackFlash = false,
@@ -781,15 +783,53 @@ local function tapKey(code)
 	keyUp(code)
 end
 
--- PC clicks where the mouse is; touch screens click the middle of the view,
--- which is why the menu hides itself before a combo runs.
-local function clickM1()
-	local point
+-- Our own windows. A simulated click must never land on them: it would be
+-- swallowed by the GUI, or worse, press the pad's M1 button and loop.
+local clickBlockers = { main, flyPad, openButton }
+
+local function coveredByHub(point)
+	for _, obj in ipairs(clickBlockers) do
+		if obj.Visible then
+			local pos, size = obj.AbsolutePosition, obj.AbsoluteSize
+			if point.X >= pos.X and point.X <= pos.X + size.X and point.Y >= pos.Y and point.Y <= pos.Y + size.Y then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- Screen spots to try for touch clicks, as fractions of the view.
+local CLICK_SPOTS = {
+	Vector2.new(0.5, 0.45),
+	Vector2.new(0.5, 0.7),
+	Vector2.new(0.3, 0.45),
+	Vector2.new(0.7, 0.45),
+	Vector2.new(0.5, 0.25),
+}
+
+-- PC clicks where the mouse is; touch screens click the first free spot.
+local function clickPoint()
 	if UserInputService.MouseEnabled and not UserInputService.TouchEnabled then
-		point = UserInputService:GetMouseLocation()
-	else
-		local viewport = workspace.CurrentCamera.ViewportSize
-		point = Vector2.new(viewport.X / 2, viewport.Y * 0.45)
+		local mouse = UserInputService:GetMouseLocation()
+		if not coveredByHub(mouse) then
+			return mouse
+		end
+	end
+	local viewport = workspace.CurrentCamera.ViewportSize
+	for _, spot in ipairs(CLICK_SPOTS) do
+		local point = Vector2.new(viewport.X * spot.X, viewport.Y * spot.Y)
+		if not coveredByHub(point) then
+			return point
+		end
+	end
+	return nil
+end
+
+local function clickM1()
+	local point = clickPoint()
+	if not point then
+		return
 	end
 	pcall(function()
 		VirtualInputManager:SendMouseButtonEvent(point.X, point.Y, 0, true, game, 1)
@@ -1163,11 +1203,17 @@ local function runCombo(sequence)
 	end)
 end
 
+local heldPadKeys = {} -- [InputObject] = KeyCode held down by an ability pad button
+
 releaseCombat = function()
 	comboRun += 1
 	comboRunning = false
 	releaseBlock()
 	keyUp(KEYS.R)
+	for _, code in pairs(heldPadKeys) do
+		keyUp(code)
+	end
+	table.clear(heldPadKeys)
 	restoreAutoRotate()
 	for _, conn in ipairs(characterConns) do
 		conn:Disconnect()
@@ -1206,6 +1252,7 @@ local comboPad = new("Frame", {
 	Visible = false,
 	Parent = gui,
 }, { round(0, 10), new("UIStroke", { Color = Theme.Stroke }) })
+table.insert(clickBlockers, comboPad)
 
 local comboPadLabel = new("TextLabel", {
 	Font = Enum.Font.GothamBold,
@@ -1229,10 +1276,15 @@ local comboGo = new("TextButton", {
 	Parent = comboPad,
 }, { round(0, 8) })
 
+local refreshAbilityPad -- defined with the ability pad below
+
 local function refreshComboPad()
 	comboPadLabel.Text = selectedCombo()[1]
 	comboGo.Text = comboRunning and "STOP" or "COMBO"
 	comboGo.BackgroundColor3 = comboRunning and Theme.Danger or Theme.Accent
+	if refreshAbilityPad then
+		refreshAbilityPad()
+	end
 end
 comboStateChanged = refreshComboPad
 
@@ -1287,6 +1339,148 @@ local comboPadBehind = new("TextButton", {
 comboPadBehind.Activated:Connect(function()
 	task.spawn(dashBehind)
 end)
+
+-- Ability pad: big on-screen buttons for every key the game uses. Key buttons
+-- stay held while your finger is down, so block and hold variants work, and
+-- each button tracks its own touch, so you can hold R and tap 4 together.
+local abilityPad = new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 50),
+	BackgroundColor3 = Theme.Bg,
+	BackgroundTransparency = 0.3,
+	Visible = false,
+	Parent = gui,
+}, { round(0, 10), new("UIStroke", { Color = Theme.Stroke }) })
+table.insert(clickBlockers, abilityPad)
+
+local abilityHandle = new("TextLabel", {
+	Text = "ABILITIES  (drag here)",
+	Font = Enum.Font.GothamBold,
+	TextSize = 11,
+	TextColor3 = Theme.Sub,
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 0, 18),
+	Parent = abilityPad,
+})
+makeDraggable(abilityHandle, abilityPad)
+
+local abilityGrid = new("Frame", {
+	BackgroundTransparency = 1,
+	Position = UDim2.fromOffset(5, 20),
+	Size = UDim2.new(1, -10, 1, -24),
+	Parent = abilityPad,
+})
+local abilityGridLayout = new("UIGridLayout", {
+	CellPadding = UDim2.fromOffset(5, 5),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = abilityGrid,
+})
+
+local function layoutAbilityPad()
+	local width, height = Settings.PadSize, math.floor(Settings.PadSize * 0.85)
+	abilityGridLayout.CellSize = UDim2.fromOffset(width, height)
+	abilityPad.Size = UDim2.fromOffset(4 * width + 3 * 5 + 10, 20 + 3 * height + 2 * 5 + 6)
+end
+layoutAbilityPad()
+
+local function isPress(input)
+	return input.UserInputType == Enum.UserInputType.Touch
+		or input.UserInputType == Enum.UserInputType.MouseButton1
+end
+
+local function releasePadInput(input)
+	local code = heldPadKeys[input]
+	if code then
+		heldPadKeys[input] = nil
+		keyUp(code)
+	end
+end
+-- the finger can slide off the button before lifting, so also listen globally
+track(UserInputService.InputEnded:Connect(releasePadInput))
+
+local padOrder = 0
+local function abilityButton(title, color, onPress)
+	padOrder += 1
+	local button = new("TextButton", {
+		Text = "",
+		BackgroundColor3 = color,
+		BackgroundTransparency = 0.1,
+		LayoutOrder = padOrder,
+		Parent = abilityGrid,
+	}, { round(0, 8) })
+	new("TextLabel", {
+		Text = title,
+		Font = Enum.Font.GothamBold,
+		TextScaled = true,
+		TextColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, 3, 0, 2),
+		Size = UDim2.new(1, -6, 0.55, 0),
+		Parent = button,
+	}, { new("UITextSizeConstraint", { MaxTextSize = 18 }) })
+	local sub = new("TextLabel", {
+		Font = Enum.Font.Gotham,
+		TextScaled = true,
+		TextColor3 = Color3.fromRGB(225, 225, 235),
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, 3, 0.58, 0),
+		Size = UDim2.new(1, -6, 0.4, -2),
+		Parent = button,
+	}, { new("UITextSizeConstraint", { MaxTextSize = 10 }) })
+	button.InputBegan:Connect(function(input)
+		if isPress(input) then
+			onPress(input)
+		end
+	end)
+	button.InputEnded:Connect(releasePadInput)
+	return sub, button
+end
+
+local function keyPadButton(key, color, subText)
+	local code = KEYS[key]
+	local sub = abilityButton(key, color, function(input)
+		if not heldPadKeys[input] then
+			heldPadKeys[input] = code
+			keyDown(code)
+		end
+	end)
+	sub.Text = subText or ""
+	return sub
+end
+
+local moveSubs = {}
+for i = 1, 4 do
+	moveSubs[i] = keyPadButton(tostring(i), Theme.Accent)
+end
+keyPadButton("R", Color3.fromRGB(135, 80, 215), "Special")
+keyPadButton("G", Color3.fromRGB(215, 155, 30), "Awaken")
+keyPadButton("Q", Color3.fromRGB(55, 125, 225), "Dash")
+keyPadButton("F", Theme.Off, "Block (hold)")
+
+local m1Sub = abilityButton("M1", Theme.Item, function()
+	task.spawn(clickM1)
+end)
+m1Sub.Text = "Attack"
+local bfSub = abilityButton("BF", Color3.fromRGB(25, 25, 25), function()
+	task.spawn(blackFlash)
+end)
+bfSub.Text = "Black Flash"
+local behindSub = abilityButton("BEHIND", Theme.Item, function()
+	task.spawn(dashBehind)
+end)
+behindSub.Text = "Dash Behind"
+local comboSub, comboButton = abilityButton("COMBO", Theme.Accent, function()
+	runCombo(comboSequence(selectedCombo()))
+end)
+
+refreshAbilityPad = function()
+	local moves = CHARACTERS[Settings.Character].moves
+	for i = 1, 4 do
+		moveSubs[i].Text = moves[i] or ("Move " .. i)
+	end
+	comboSub.Text = comboRunning and "tap to stop" or selectedCombo()[1]
+	comboButton.BackgroundColor3 = comboRunning and Theme.Danger or Theme.Accent
+end
 
 ---------------------------------------------------------------------------
 -- Tabs and controls
@@ -1413,7 +1607,7 @@ local function addToggle(page, text, key, onChange)
 	render()
 end
 
-local function addStepper(page, text, key, step, min, max)
+local function addStepper(page, text, key, step, min, max, onChange)
 	local row = new("Frame", {
 		BackgroundColor3 = Theme.Item,
 		Size = UDim2.new(1, 0, 0, 40),
@@ -1448,6 +1642,9 @@ local function addStepper(page, text, key, step, min, max)
 			-- round to 2 decimals so 0.05 steps don't drift into 0.35000000001
 			Settings[key] = math.round(math.clamp(Settings[key] + delta, min, max) * 100) / 100
 			render()
+			if onChange then
+				onChange(Settings[key])
+			end
 		end)
 	end
 	stepButton("-", -86, -step)
@@ -1586,6 +1783,12 @@ local moveLegend = new("TextLabel", {
 	LayoutOrder = nextOrder(),
 	Parent = movesPage,
 }, { new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4) }) })
+
+addSection(movesPage, "On-screen buttons")
+addToggle(movesPage, "Ability Buttons", "AbilityPad", function(on)
+	abilityPad.Visible = on
+end)
+addStepper(movesPage, "Button Size", "PadSize", 5, 40, 80, layoutAbilityPad)
 
 addSection(movesPage, "Combos (tap to run, tap again to stop)")
 local comboList = new("Frame", {
