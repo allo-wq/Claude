@@ -68,8 +68,9 @@ export class Hud {
   }
 
   /** Draw text with its left edge (of the glyphs) at x and vertical centre y. */
-  token(text, x, y, { style = STYLE, scale = 1, opacity = 1, rot = 0, id = '' } = {}) {
+  token(text, x, y, { style = STYLE, scale = 1, opacity = 1, rot = 0, id = '', order = 10 } = {}) {
     const m = this._make(text, style, id);
+    m.renderOrder = order;          // explicit: equal orders would draw in creation order, which depends on frame history
     const { w, pad } = m.userData;
     const glyphW = w - pad * 2;
     m.position.set(x + (glyphW / 2) * scale, -y, 1);

@@ -12,10 +12,11 @@ const video = process.argv[2] || 'final-animation.mp4';
 const FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
 fs.mkdirSync('out/qa', { recursive: true });
 const run = (args) => { const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', ...args]); if (r.status) throw new Error(r.stderr.toString()); };
-const label = fs.existsSync(FONT) ? `drawtext=fontfile=${FONT}:text='f%{n}':x=4:y=4:fontsize=14:fontcolor=yellow:box=1:boxcolor=black@0.6,` : '';
+// labelled before select, so %{n} is the source frame number
+const label = fs.existsSync(FONT) ? `drawtext=fontfile=${FONT}:text='f%{n}':x=12:y=12:fontsize=64:fontcolor=yellow:box=1:boxcolor=black@0.6,` : '';
 const sheet = (frames, cols, w, out) => {
   const expr = frames.map((f) => `eq(n\\,${f})`).join('+');
-  run(['-i', video, '-vf', `select='${expr}',scale=${w}:-1,${label}tile=${cols}x${Math.ceil(frames.length / cols)}:padding=4:color=magenta`, '-frames:v', '1', '-vsync', 'vfr', out]);
+  run(['-i', video, '-vf', `${label}select='${expr}',scale=${w}:-1,tile=${cols}x${Math.ceil(frames.length / cols)}:padding=4:color=magenta`, '-frames:v', '1', '-vsync', 'vfr', out]);
 };
 
 // 1 frame per second at t = n + 0.5
@@ -27,7 +28,7 @@ sheet(starts.flatMap((f) => [f - 9, f - 6, f - 3, f, f + 3]), 10, 180, 'out/qa/t
 
 // loop seam: 716 717 718 719 | 0 1 2 3
 const tail = [FRAMES - 4, FRAMES - 3, FRAMES - 2, FRAMES - 1];
-run(['-i', video, '-vf', `select='${[...tail, 0, 1, 2, 3].map((f) => `eq(n\\,${f})`).join('+')}',scale=216:-1,${label}tile=8x1:padding=4:color=magenta`, '-frames:v', '1', '-vsync', 'vfr', 'out/qa/loop-seam-raw.png']);
+run(['-i', video, '-vf', `${label}select='${[...tail, 0, 1, 2, 3].map((f) => `eq(n\\,${f})`).join('+')}',scale=216:-1,tile=8x1:padding=4:color=magenta`, '-frames:v', '1', '-vsync', 'vfr', 'out/qa/loop-seam-raw.png']);
 // select keeps stream order (0 1 2 3 716 ...); reorder so the seam reads left → right
 const half = 4 * 216 + 3 * 4;
 run(['-i', 'out/qa/loop-seam-raw.png', '-filter_complex', `[0]split[a][b];[a]crop=${half}:ih:${half + 4}:0,pad=iw+12:ih:0:0:white[end];[b]crop=${half}:ih:0:0[start];[end][start]hstack`, 'out/qa/loop-seam.png']);

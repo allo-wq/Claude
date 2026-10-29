@@ -474,9 +474,7 @@ export const IMPL = {
       ears = { perk: 1.25, spread: 0.3 * cheer, wiggle: 0.2 * Math.sin(b * TAU * 2) };
     }
     const jump = b >= 38 && b < 39.6 ? 0.28 * Math.abs(Math.sin(Math.PI * (b - 38) * 1.25)) : 0;
-    B.set({ head, armR: arms.R, armL: arms.L, ears, eyes, mouth, bob: 0.05 * hop(b) + jump, squash: 0.05 * giggle * Math.sin(b * TAU * 3), blush: 0.9 + 0.3 * giggle });
-    // the nose squishes on the boop
-    B.nose.scale.set(1.35 * (1 + 0.35 * boop), 0.95 * (1 - 0.3 * boop), 0.8 * (1 - 0.35 * boop));
+    B.set({ head, armR: arms.R, armL: arms.L, ears, eyes, mouth, bob: 0.05 * hop(b) + jump, squash: 0.05 * giggle * Math.sin(b * TAU * 3), blush: 0.9 + 0.3 * giggle, boop });
     // Twinkle
     const p = SP5.clone();
     p.y += 0.05 * hop(b) + 0.12 * Math.abs(spring(b, 33, 1.5, 3)) + (b >= 38 && b < 39.6 ? 0.2 * Math.abs(Math.sin(Math.PI * (b - 38) * 1.25)) : 0);
@@ -634,7 +632,7 @@ export function lyrics(hud, b) {
       let y = ROW_Y[tk.row];
       if (active) { scale *= 1.1 + 0.14 * Math.exp(-u * 6); y -= 10 * Math.exp(-u * 5); }
       const glyphW = tk.w / tk.fit;
-      hud.token(tk.text, centre(tk) - (glyphW * scale) / 2, y, { id: `${line.index}.${i}`, style: u >= 0 ? ACTIVE_STYLE : LYRIC_STYLE, scale, rot: active ? 0.04 * Math.sin(u * 9) * Math.exp(-u * 3) : 0 });
+      hud.token(tk.text, centre(tk) - (glyphW * scale) / 2, y, { id: `${line.index}.${i}`, order: 10 + i * 0.01 + (active ? 0.5 : 0), style: u >= 0 ? ACTIVE_STYLE : LYRIC_STYLE, scale, rot: active ? 0.04 * Math.sin(u * 9) * Math.exp(-u * 3) : 0 });
     });
     // bouncing star: lands on each syllable as it is sung
     let i = toks.findIndex((tk) => rel >= tk.syl.beat && rel < tk.syl.beat + tk.syl.len);

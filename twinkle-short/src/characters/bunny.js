@@ -158,7 +158,7 @@ export class Bunny {
    * head: [nod, turn, tilt]; lean; bob (vertical); arms: [[x, y, z] L, [x, y, z] R] (character's left/right);
    * ears: {perk, flop, wiggle}; eyes: {...Eye.set}; mouth: {...Mouth.set}; squash
    */
-  set({ head = [0, 0, 0], lean = 0, bob = 0, armL = [0, 0, 0.15], armR = [0, 0, -0.15], ears = {}, eyes = {}, mouth = {}, squash = 0, blush = 0.8 } = {}) {
+  set({ head = [0, 0, 0], lean = 0, bob = 0, armL = [0, 0, 0.15], armR = [0, 0, -0.15], ears = {}, eyes = {}, mouth = {}, squash = 0, blush = 0.8, boop = 0 } = {}) {
     this.body.position.y = bob;
     this.body.rotation.set(lean, 0, 0);
     const st = 1 + squash;
@@ -176,5 +176,6 @@ export class Bunny {
     this.eyes.forEach((e, i) => e.set({ ...eyes, ...(eyes.wink === (i ? 'L' : 'R') ? { happy: 1 } : {}) }));
     this.mouth.set({ smile: 0.6, ...mouth, width: (mouth.width ?? 1) * 0.9 });
     this.cheeks.forEach((c) => (c.material.opacity = clamp(blush)));
+    this.nose.scale.set(1.35 * (1 + 0.35 * boop), 0.95 * (1 - 0.3 * boop), 0.8 * (1 - 0.35 * boop));   // squish on a boop
   }
 }

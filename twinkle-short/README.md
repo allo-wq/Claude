@@ -42,7 +42,7 @@ npm run check-audio         # pitch accuracy of every sung note (Praat) + line-b
 
 `render` options: `--workers 3` (parallel headless Chromium pages), `--scale 0.5`, `--from/--to` (frame range), `--fresh` (discard cached frames), `--audio file` and `--silent`. Frames are cached, so an interrupted render resumes where it stopped.
 
-Requirements: Node 18+, FFmpeg/ffprobe on `PATH`, and a Chromium for Playwright. Rendering uses SwiftShader software WebGL, so no GPU is needed. A full render takes about RENDER_MINUTES minutes on 4 CPU cores (3 workers). The Kokoro model files (about 340 MB) download on the first `npm run audio`. `check-audio` expects a sherpa-onnx Whisper model (`sherpa-onnx-whisper-base.en` or `-tiny.en` from the sherpa-onnx `asr-models` release) unpacked in `audio/models/`.
+Requirements: Node 18+, FFmpeg/ffprobe on `PATH`, and a Chromium for Playwright. Rendering uses SwiftShader software WebGL, so no GPU is needed. A full render takes about 34 minutes on 4 CPU cores (3 workers). The Kokoro model files (about 340 MB) download on the first `npm run audio`. `check-audio` expects a sherpa-onnx Whisper model (`sherpa-onnx-whisper-base.en` or `-tiny.en` from the sherpa-onnx `asr-models` release) unpacked in `audio/models/`.
 
 ## How it works
 
@@ -65,7 +65,14 @@ Requirements: Node 18+, FFmpeg/ffprobe on `PATH`, and a Chromium for Playwright.
 
 ## QA
 
-QA_SECTION
+All of this is reproducible with the commands above; the images in [`qa/`](qa/) are taken from the final MP4.
+
+- **`npm run verify`:** every check passes (see [`qa/verify.txt`](qa/verify.txt)): 1080×1920, 30/1 fps, H.264 High, yuv420p, 720 frames, 24.000 s; AAC 48 kHz stereo of the same length; −14.1 LUFS integrated, −1.3 dBTP true peak; no black frames.
+- **Loop seam** ([`qa/loop-seam.png`](qa/loop-seam.png)): frames 716–719 followed by 0–3. The star shrinks into the twinkle and the twinkle bursts, with no jump in camera, sky or lyrics.
+- **Sync** ([`qa/sync-sheet.png`](qa/sync-sheet.png)): the frame just after every syllable of lines 1 and 3. Each syllable is highlighted as it is sung and the action matches it ("lit-tle": tiny star; "star": burst; "Up": rocket).
+- **Transitions** ([`qa/transitions.png`](qa/transitions.png)) and a **contact sheet** at one frame per second ([`qa/contact-sheet.png`](qa/contact-sheet.png)).
+- **Determinism:** `npm run check-determinism` re-renders 15 sample frames in reverse order in a fresh browser and byte-compares them with the frames used for the MP4. It caught one leak during development: overlapping lyric tokens with equal draw order were drawn in object-creation order, which depended on which frames a worker had rendered before. Every token now has an explicit draw order.
+- **Singing** (`npm run check-audio`): all 42 sung notes are voiced and on pitch (median error 0.7 cents, max 5.1 cents, measured with Praat). An offline Whisper (base.en) transcribes the lead vocal line by line as "Twinkle twinkle little star" / "How I wonder what you are" / "The-the-the world's so high" / "Like in diamond in the sky", and the repeats the same way. The karaoke lyrics on screen carry the two weaker lines.
 
 ## Credits and licences
 
