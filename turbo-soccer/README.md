@@ -25,7 +25,7 @@ Tap **Preset** to cycle. A preset fills in every Skill setting, and you can stil
 ## How the bot plays
 
 - **Finds things by itself:**
-  - The **ball** is the biggest part with "ball" in its name.
+  - The **ball** is the best-scoring part. Points come from "ball", "puck" or "sphere" in its name or its parent's name, a sphere shape, equal size every way, being loose (unanchored), and moving between scans. It rescans every few seconds, so the real moving ball wins over decorations.
   - **Your car** is whatever you're seated in or welded to.
   - **The goals** are everything with "goal" in its name, split into the two ends of the field.
 - **Your net** is the end nearest where your car spawned. This is re-checked at every kickoff.
@@ -47,7 +47,10 @@ The **Bot** tab shows live diagnostics: whether the ball, your car and the goals
 ## If something's off
 
 - **It attacks your own net:** tap **Swap Goals**. It resets itself at the next kickoff.
-- **The diagnostics say "not found":** tap **Rescan Ball, Car & Goals** once you're in a match and driving.
+- **It can't find the ball, or picks the wrong thing:** under **Ball not found?** you have two options:
+  - **Pick Ball:** tap it, then tap the ball on your screen. The script remembers its name and size, so it finds the ball again after every goal.
+  - **Show Ball Candidates:** lists the 6 best guesses with name, size and score. Tap one to use it.
+- **The car or goals say "not found":** tap **Rescan Ball, Car & Goals** once you're in a match and driving. This also forgets a picked ball.
 - **Perfect Aim does nothing:** the diagnostics will say "(server controls it)". That means the game runs the ball on its server, so only real touches move it. Nothing a script sends can redirect it.
 - **The car oversteers or wobbles:** lower **Turn Rate**. If it's too fast to control, lower **Bot Speed**.
 

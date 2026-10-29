@@ -366,30 +366,153 @@ end
 -- Finding the ball, your car and the goals
 ---------------------------------------------------------------------------
 
--- The ball: the biggest part with "ball" in its name that isn't on a player.
-local ballCache, lastBallScan = nil, -math.huge
-local function findBall()
-	if ballCache and ballCache:IsDescendantOf(workspace) then
-		return ballCache
+local car = { root = nil, driver = nil, reach = 6, spawn = nil, kickoff = nil }
+local lastCarScan = -math.huge
+
+-- The ball. Every part gets a score from its name (or its parent's), a sphere
+-- shape, being the same size every way, being unanchored and having moved since
+-- the last scan. Cars, players and the hub's own marker are skipped.
+local BALL_WORDS = { "ball", "puck", "sphere", "orb" }
+local SKIP_WORDS = { "wheel", "tire", "tyre", "turbohub" }
+
+local function hasWord(name, words)
+	local lower = string.lower(name)
+	for _, word in ipairs(words) do
+		if string.find(lower, word, 1, true) then
+			return true
+		end
 	end
-	if os.clock() - lastBallScan < 1 then
+	return false
+end
+
+local learnedBall -- { name, size } of a ball you picked, so it's found again after it respawns
+local prevBallPos = setmetatable({}, { __mode = "k" })
+
+-- Returns a score and whether there's real evidence it's a ball (not just a big loose part).
+local function ballScore(part, skipModel, vehicleCache)
+	local size = part.Size
+	local biggest = math.max(size.X, size.Y, size.Z)
+	if biggest < 2 or biggest > 60 or hasWord(part.Name, SKIP_WORDS) then
 		return nil
 	end
-	lastBallScan = os.clock()
-	local best, bestScore
+	local model = part:FindFirstAncestorOfClass("Model")
+	if model then
+		if model == skipModel or Players:GetPlayerFromCharacter(model) then
+			return nil
+		end
+		local isCar = vehicleCache[model]
+		if isCar == nil then
+			isCar = model:FindFirstChildWhichIsA("VehicleSeat", true) ~= nil
+			vehicleCache[model] = isCar
+		end
+		if isCar then
+			return nil
+		end
+	end
+
+	local score, evidence = 0, false
+	if hasWord(part.Name, BALL_WORDS) then
+		score += 50
+		evidence = true
+	elseif part.Parent and part.Parent ~= workspace and hasWord(part.Parent.Name, BALL_WORDS) then
+		score += 35
+		evidence = true
+	end
+	if learnedBall and part.Name == learnedBall.name and (size - learnedBall.size).Magnitude < 1 then
+		score += 100
+		evidence = true
+	end
+	if part:IsA("Part") and part.Shape == Enum.PartType.Ball then
+		score += 40
+		evidence = true
+	end
+	if math.min(size.X, size.Y, size.Z) / biggest > 0.9 then
+		score += 15
+		evidence = true
+	end
+	if not part.Anchored then
+		score += 10
+	end
+	local previous = prevBallPos[part]
+	if previous and (part.Position - previous).Magnitude > 1 then
+		score += 30
+	end
+	prevBallPos[part] = part.Position
+	return score + math.min(biggest, 20), evidence
+end
+
+-- All plausible balls, best first.
+local function scanBalls()
+	local found = {}
+	local skipModel = car.root and car.root:FindFirstAncestorOfClass("Model")
+	local vehicleCache = {}
 	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") and string.find(string.lower(obj.Name), "ball", 1, true) then
-			local model = obj:FindFirstAncestorOfClass("Model")
-			if not (model and Players:GetPlayerFromCharacter(model)) then
-				local score = obj.Size.Magnitude + (obj.Anchored and 0 or 1000)
-				if not bestScore or score > bestScore then
-					best, bestScore = obj, score
-				end
+		if obj:IsA("BasePart") then
+			local score, evidence = ballScore(obj, skipModel, vehicleCache)
+			if score then
+				table.insert(found, { part = obj, score = score, accepted = evidence and score >= 45 })
 			end
 		end
 	end
-	ballCache = best
-	return best
+	table.sort(found, function(a, b)
+		return a.score > b.score
+	end)
+	return found
+end
+
+local ballCache, ballSource, lastBallScan = nil, "auto", -math.huge
+local floorY -- lowest the ball has sat, i.e. the pitch height
+
+local function setBall(part, source)
+	ballCache, ballSource = part, source
+	floorY = nil
+	if source == "picked" then
+		learnedBall = { name = part.Name, size = part.Size }
+	end
+end
+
+-- Rescans every second while there's no ball, and every 3 s otherwise so a
+-- better (moving) candidate can take over. A ball you picked is kept.
+local function findBall()
+	local valid = ballCache ~= nil and ballCache:IsDescendantOf(workspace)
+	if valid and ballSource == "picked" then
+		return ballCache
+	end
+	if os.clock() - lastBallScan < (valid and 3 or 1) then
+		return valid and ballCache or nil
+	end
+	lastBallScan = os.clock()
+	local best = scanBalls()[1]
+	if best and best.accepted then
+		if best.part ~= ballCache then
+			setBall(best.part, "auto")
+		end
+	elseif not valid then
+		ballCache = nil
+	end
+	return ballCache
+end
+
+-- Anchored / CFrame-driven balls report zero velocity, so measure it from movement.
+local ballSample = { part = nil, pos = nil, time = 0, vel = Vector3.zero }
+
+local function sampleBall(ball)
+	local now = os.clock()
+	if ballSample.part == ball and now > ballSample.time then
+		local measured = (ball.Position - ballSample.pos) / (now - ballSample.time)
+		ballSample.vel = ballSample.vel:Lerp(measured, 0.5)
+	elseif ballSample.part ~= ball then
+		ballSample.vel = Vector3.zero
+	end
+	ballSample.part, ballSample.pos, ballSample.time = ball, ball.Position, now
+end
+
+local function ballVelocity(ball)
+	local reported = ball.AssemblyLinearVelocity
+	if reported.Magnitude > 0.5 then
+		return reported
+	end
+	return ballSample.part == ball and ballSample.vel or reported
 end
 
 local function ballRadius(ball)
@@ -454,9 +577,6 @@ local function scanCar()
 	end
 	return nil
 end
-
-local car = { root = nil, driver = nil, reach = 6, spawn = nil, kickoff = nil }
-local lastCarScan = -math.huge
 
 local function getCar()
 	-- rescan every 2 s while we have a car, every 1 s while looking, and at once if it's gone
@@ -557,8 +677,6 @@ end
 -- Ball prediction
 ---------------------------------------------------------------------------
 
-local floorY -- lowest the ball has sat, i.e. the pitch height
-
 local function updateFloor(ball, r)
 	local bottom = ball.Position.Y - r
 	if not floorY or bottom < floorY then
@@ -583,7 +701,7 @@ local function interceptTime(from, p, v, speed, r)
 end
 
 local function landingPoint(ball, r)
-	local p, v = ball.Position, ball.AssemblyLinearVelocity
+	local p, v = ball.Position, ballVelocity(ball)
 	local g = workspace.Gravity
 	local height = p.Y - (floorY + r)
 	if height < 0.5 and math.abs(v.Y) < 2 then
@@ -649,7 +767,7 @@ local status = "Idle"
 local function botStep(ball, carRoot, driver, own, opp)
 	local r = ballRadius(ball)
 	local carPos = carRoot.Position
-	local ballPos, ballVel = ball.Position, ball.AssemblyLinearVelocity
+	local ballPos, ballVel = ball.Position, ballVelocity(ball)
 	local t = interceptTime(carPos, ballPos, ballVel, Settings.BotSpeed, r)
 	local predicted = predictBall(ballPos, ballVel, t, r)
 
@@ -769,7 +887,7 @@ local function updateVisuals(ball)
 		ballBillboard.StudsOffset = Vector3.new(0, r + 2, 0)
 		local root = car.root or getRoot()
 		local distance = root and math.floor((root.Position - ball.Position).Magnitude) or 0
-		ballLabel.Text = string.format("BALL  %d studs  |  speed %d", distance, math.floor(ball.AssemblyLinearVelocity.Magnitude))
+		ballLabel.Text = string.format("BALL  %d studs  |  speed %d", distance, math.floor(ballVelocity(ball).Magnitude))
 	end
 	if Settings.LandingMarker and ball and floorY then
 		local spot = landingPoint(ball, ballRadius(ball))
@@ -1197,13 +1315,93 @@ addButton(botPage, "Swap Goals (if it attacks your own net)", function()
 	notify(Settings.SwapGoals and "Goals swapped." or "Goals back to normal.")
 end)
 addButton(botPage, "Rescan Ball, Car & Goals", function()
-	ballCache, lastBallScan = nil, -math.huge
+	ballCache, ballSource, lastBallScan, learnedBall = nil, "auto", -math.huge, nil
 	car.root, lastCarScan = nil, -math.huge
 	goals.scannedAt = -math.huge
 	floorY = nil
 	notify("Rescanning...")
 end)
 local diagnostics = addNote(botPage)
+
+addSection(botPage, "Ball not found?")
+local pickingBall = false
+addButton(botPage, "Pick Ball (then tap it on screen)", function()
+	pickingBall = true
+	main.Visible = false
+	notify("Tap the ball on your screen.")
+end)
+
+local candidateList = new("Frame", {
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 0, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	LayoutOrder = 0, -- placed below its button once that exists
+	Parent = botPage,
+}, { new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+
+local function showCandidates()
+	for _, child in ipairs(candidateList:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+	local candidates = scanBalls()
+	if #candidates == 0 then
+		notify("Nothing ball-like found. Are you in a match?")
+	end
+	for i = 1, math.min(#candidates, 6) do
+		local part = candidates[i].part
+		local size = math.floor(math.max(part.Size.X, part.Size.Y, part.Size.Z) * 10) / 10
+		local button = new("TextButton", {
+			Text = string.format("Use: %s  (size %s, score %d)", part.Name, size, candidates[i].score),
+			Font = Enum.Font.Gotham,
+			TextSize = 13,
+			TextColor3 = part == ballCache and Theme.Accent or Theme.Text,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			BackgroundColor3 = Theme.Item,
+			Size = UDim2.new(1, 0, 0, 34),
+			LayoutOrder = i,
+			Parent = candidateList,
+		}, { round(0, 8), new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
+		button.Activated:Connect(function()
+			if part:IsDescendantOf(workspace) then
+				setBall(part, "picked")
+				notify("Ball set to " .. part.Name .. ".")
+				showCandidates()
+			end
+		end)
+	end
+end
+addButton(botPage, "Show Ball Candidates", showCandidates)
+candidateList.LayoutOrder = nextOrder()
+
+-- Pick Ball: the next tap on the game world chooses the part under your finger.
+track(UserInputService.InputBegan:Connect(function(input, processed)
+	if not pickingBall or processed then
+		return
+	end
+	if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+		return
+	end
+	pickingBall = false
+	local ray = workspace.CurrentCamera:ScreenPointToRay(input.Position.X, input.Position.Y)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { LP.Character, marker }
+	local result = workspace:Raycast(ray.Origin, ray.Direction * 2000, params)
+	if not result or not result.Instance:IsA("BasePart") then
+		notify("Missed. Tap Pick Ball and try again.")
+		return
+	end
+	-- a visual mesh welded to the real ball shares its physics root
+	local part = result.Instance
+	if not part.Anchored and part.AssemblyRootPart then
+		part = part.AssemblyRootPart
+	end
+	setBall(part, "picked")
+	notify("Ball set to " .. part.Name .. ". It'll be found again after goals.")
+end))
 
 -- Visual ------------------------------------------------------------------
 
@@ -1255,6 +1453,7 @@ track(RunService.Heartbeat:Connect(function()
 	local ball = findBall()
 	local carRoot, driver = getCar()
 	if ball then
+		sampleBall(ball)
 		updateFloor(ball, ballRadius(ball))
 		-- the ball jumping across the map means a kickoff: re-read which end is ours
 		if lastBallPos and (ball.Position - lastBallPos).Magnitude > 40 then
@@ -1289,9 +1488,17 @@ end))
 task.spawn(function()
 	while running do
 		local ball = ballCache
+		local ballLine = "not found. Use Pick Ball or Show Ball Candidates below"
+		if ball then
+			ballLine = string.format(
+				"%s (%s, %s)",
+				ball.Name,
+				ballSource == "picked" and "picked" or "auto",
+				ownsBall(ball) and "you control it" or "server controls it"
+			)
+		end
 		local lines = {
-			"Ball: "
-				.. (ball and (ball.Name .. (ownsBall(ball) and "  (you control it)" or "  (server controls it)")) or "not found"),
+			"Ball: " .. ballLine,
 			"Car: " .. (car.root and car.root:GetFullName() or "not found, get in a match"),
 			"Goals: " .. (goals.a and "found both ends" or (car.kickoff and "using kickoff direction" or "not found")),
 			"Bot: " .. (Settings.AutoPlay and status or "off"),
