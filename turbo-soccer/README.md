@@ -49,8 +49,13 @@ The **Bot** tab shows live diagnostics: whether the ball, your car and the goals
 
 | Mode | How it drives | Best for |
 | --- | --- | --- |
-| **Physics (works on mobile)**, default | Steers and speeds the car directly. No key presses needed | Mobile, and the most precise |
+| **Physics (works on mobile)** | Steers and speeds the car directly, applied both after and right before each physics step so the game's own car code can't cancel it. No key presses needed | Mobile, and the most precise. Only works if your device simulates your car (see "Car physics" in the diagnostics) |
+| Seat input | Sets the car seat's own throttle and steering, the values the game reads from your controls. No key presses needed | Cars with a VehicleSeat, including when the server controls the car's physics |
 | Keys (PC) | Holds W/A/D, holds left mouse to boost, taps right mouse to jump, like a player | PC. Looks more legit |
+
+**Test Drive Methods** tries all three for a moment each (about 3 s in total) and keeps the first one that actually moves your car. It runs by itself the first time you turn the bot on. Run it again while you're free to drive, not during the kickoff countdown.
+
+While the bot is on, a status line under the **BOT** pill shows what it's doing, or why it's stuck.
 
 ## If something's off
 
@@ -63,6 +68,7 @@ The **Bot** tab shows live diagnostics: whether the ball, your car and the goals
   - **Show Car Candidates:** lists car-like models nearest your camera. Tap yours.
 
   Either way it remembers the car's model name and finds it again after respawns.
+- **The bot does nothing:** read the status line under **BOT**, then tap **Test Drive Methods** while you can drive. If all three results are near 0, the game ignores every way a script can drive, so send me the diagnostics. Without goals it still plays and just chases the ball.
 - **Goals say "not found", or things get stuck:** tap **Rescan Ball, Car & Goals** once you're in a match. This also forgets anything you picked.
 - **Keys mode steers the wrong way:** drive forward yourself for a few seconds so it learns which way your car's nose points.
 - **Perfect Aim does nothing:** the diagnostics will say "(server controls it)". That means the game runs the ball on its server, so only real touches move it. Nothing a script sends can redirect it.

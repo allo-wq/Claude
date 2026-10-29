@@ -76,7 +76,7 @@ local PRESETS = {
 	},
 }
 
-local DRIVE_MODES = { "Physics (works on mobile)", "Keys (PC)" }
+local DRIVE_MODES = { "Physics (works on mobile)", "Seat input", "Keys (PC)" }
 
 local Settings = {
 	AutoPlay = false,
@@ -340,6 +340,9 @@ local function setMouse(button, down)
 	end)
 end
 
+local drivenSeat -- VehicleSeat the Seat input mode is steering
+local pendingDrive -- last Physics command, re-applied just before the next physics step
+
 local function releaseInputs()
 	for code in pairs(heldKeys) do
 		setKey(code, false)
@@ -347,6 +350,14 @@ local function releaseInputs()
 	for button in pairs(heldMouse) do
 		setMouse(button, false)
 	end
+	if drivenSeat then
+		local seat = drivenSeat
+		drivenSeat = nil
+		pcall(function()
+			seat.ThrottleFloat, seat.SteerFloat, seat.Throttle, seat.Steer = 0, 0, 0, 0
+		end)
+	end
+	pendingDrive = nil
 end
 
 local jumpReadyAt = 0
@@ -832,7 +843,9 @@ local function getGoals()
 		else
 			own, opp = goals.b, goals.a
 		end
-	elseif car.spawn and car.kickoff then
+	elseif car.spawn and (car.kickoff or ballCache) then
+		-- no goals in the map: the field runs from where the car spawned through the ball
+		car.kickoff = car.kickoff or ballCache.Position
 		local axis = flat(car.kickoff - car.spawn)
 		if axis.Magnitude < 1 then
 			return nil
@@ -900,19 +913,42 @@ local function steer(carRoot, forward, target)
 	return math.atan2(forward:Cross(desired).Y, forward:Dot(desired)), forward:Dot(desired)
 end
 
--- Physics mode drives the car's velocity directly, so it needs no key presses.
-local function physicsDrive(carRoot, forward, target, aerialTarget)
-	local angle, dot = steer(carRoot, forward, target)
-	carRoot.AssemblyAngularVelocity = Vector3.new(0, math.clamp(angle * 5, -Settings.TurnRate, Settings.TurnRate), 0)
-	local velocity = carRoot.AssemblyLinearVelocity
-	local topSpeed = Settings.Boost and Settings.BotSpeed or Settings.BotSpeed * 0.7
-	if aerialTarget then
-		local toBall = (aerialTarget - carRoot.Position).Unit
-		carRoot.AssemblyLinearVelocity = velocity:Lerp(toBall * topSpeed, 0.25)
+local function applyDrive(command)
+	local root = command.root
+	if not root.Parent then
 		return
 	end
-	local goal = forward * topSpeed * math.max(dot, 0.3) -- ease off through tight turns
-	carRoot.AssemblyLinearVelocity = Vector3.new(lerp(velocity.X, goal.X, 0.2), velocity.Y, lerp(velocity.Z, goal.Z, 0.2))
+	root.AssemblyAngularVelocity = command.angular
+	if command.full then
+		root.AssemblyLinearVelocity = command.linear
+	else
+		root.AssemblyLinearVelocity = Vector3.new(command.linear.X, root.AssemblyLinearVelocity.Y, command.linear.Z)
+	end
+end
+
+-- Physics mode drives the car's velocity directly, so it needs no key presses.
+-- The command is applied now and again just before the next physics step, so a
+-- game script that also sets the car's velocity doesn't simply cancel it.
+local function physicsDrive(carRoot, forward, target, aerialTarget)
+	local angle, dot = steer(carRoot, forward, target)
+	local velocity = carRoot.AssemblyLinearVelocity
+	local topSpeed = Settings.Boost and Settings.BotSpeed or Settings.BotSpeed * 0.7
+	local linear, full
+	if aerialTarget then
+		linear = velocity:Lerp((aerialTarget - carRoot.Position).Unit * topSpeed, 0.3)
+		full = true
+	else
+		local goal = forward * topSpeed * math.max(dot, 0.3) -- ease off through tight turns
+		linear = Vector3.new(lerp(velocity.X, goal.X, 0.35), 0, lerp(velocity.Z, goal.Z, 0.35))
+	end
+	pendingDrive = {
+		root = carRoot,
+		linear = linear,
+		full = full,
+		angular = Vector3.new(0, math.clamp(angle * 5, -Settings.TurnRate, Settings.TurnRate), 0),
+		expires = os.clock() + 0.1,
+	}
+	applyDrive(pendingDrive)
 end
 
 -- Keys mode presses W / A / D, holds left mouse to boost and taps right mouse to jump.
@@ -923,6 +959,31 @@ local function keysDrive(carRoot, forward, target, aerial)
 	setKey(Enum.KeyCode.A, angle > 0.12)
 	setKey(Enum.KeyCode.D, angle < -0.12)
 	setMouse(0, Settings.Boost and math.abs(angle) < 0.3 and distance > 25)
+	if aerial then
+		tapJump()
+	end
+end
+
+local function seatOf(carRoot)
+	if car.driver and car.driver:IsA("VehicleSeat") then
+		return car.driver
+	end
+	local model = modelOf(carRoot)
+	return model and model:FindFirstChildWhichIsA("VehicleSeat", true)
+end
+
+-- Seat input mode sets the VehicleSeat's own throttle and steering, the values
+-- the game's car script reads from your controls. No key presses needed.
+local function seatDrive(seat, carRoot, forward, target, aerial)
+	local angle = steer(carRoot, forward, target)
+	drivenSeat = seat
+	pcall(function()
+		seat.ThrottleFloat = 1
+		seat.Throttle = 1
+		seat.SteerFloat = math.clamp(-angle * 2, -1, 1) -- +1 steers right, angle + is left
+		seat.Steer = angle > 0.12 and -1 or (angle < -0.12 and 1 or 0)
+	end)
+	setMouse(0, Settings.Boost and math.abs(angle) < 0.3 and flat(target - carRoot.Position).Magnitude > 25)
 	if aerial then
 		tapJump()
 	end
@@ -946,12 +1007,18 @@ local function botStep(ball, carRoot, driver, own, opp)
 	local t = interceptTime(carPos, ballPos, ballVel, Settings.BotSpeed, r)
 	local predicted = predictBall(ballPos, ballVel, t, r)
 
-	local defending = Settings.AutoSave and isThreat(ballPos, ballVel, own, opp)
-	local hitDir = flat(defending and (predicted - own) or (opp - predicted))
-	if hitDir.Magnitude < 0.1 then
-		hitDir = flat(opp - own)
+	-- Without goals it still plays: it just drives through the ball the way it's facing it.
+	local defending = own ~= nil and Settings.AutoSave and isThreat(ballPos, ballVel, own, opp)
+	local hitDir
+	if own then
+		hitDir = flat(defending and (predicted - own) or (opp - predicted))
+		if hitDir.Magnitude < 0.1 then
+			hitDir = flat(opp - own)
+		end
+	else
+		hitDir = flat(predicted - carPos)
 	end
-	hitDir = hitDir.Unit
+	hitDir = hitDir.Magnitude > 0.1 and hitDir.Unit or Vector3.new(0, 0, -1)
 
 	-- Line up behind the ball on the hit line. From the wrong side, swing
 	-- round it instead of pushing it back toward our own net.
@@ -981,9 +1048,18 @@ local function botStep(ball, carRoot, driver, own, opp)
 		status = "Aerial"
 	end
 
+	if not own then
+		status ..= " (no goals found: just chasing)"
+	end
+
 	local forward = carForward(carRoot, driver)
+	local seat = Settings.DriveMode == 2 and seatOf(carRoot)
 	if Settings.DriveMode == 1 then
 		physicsDrive(carRoot, forward, target, aerial and predicted - hitDir * (r * 0.8) or nil)
+	elseif seat then
+		seatDrive(seat, carRoot, forward, target, aerial)
+	elseif Settings.DriveMode == 2 then
+		status = "Seat input picked, but your car has no seat. Tap Test Drive Methods"
 	else
 		keysDrive(carRoot, forward, target, aerial)
 	end
@@ -1003,6 +1079,83 @@ local function aimStep(ball, carRoot, opp)
 	local aim = (opp + Vector3.new(0, r + 2, 0) - ball.Position).Unit
 	ball.AssemblyLinearVelocity = aim * Settings.ShotPower + Vector3.new(0, Settings.ShotPower * 0.12, 0)
 	aimReadyAt = os.clock() + 0.3
+end
+
+-- Drive test: tries each drive mode for a moment and keeps the first one that
+-- actually moves the car, since games differ in what they let a script control.
+local testing = false
+local driveTested = false -- runs once by itself the first time Auto Play has a car
+local driveTestResult -- text summary for the diagnostics
+
+local function measureMove(seconds, apply, stop)
+	local root = car.root
+	local start = root.Position
+	local deadline = os.clock() + seconds
+	while running and os.clock() < deadline and root.Parent do
+		apply(root)
+		RunService.Heartbeat:Wait()
+	end
+	if stop then
+		stop()
+	end
+	return math.floor(flat(root.Position - start).Magnitude)
+end
+
+local function testDriveModes()
+	if testing then
+		return
+	end
+	local root, driver = getCar()
+	if not root then
+		notify("Get in your car first, then test again.")
+		return
+	end
+	testing, driveTested = true, true
+	releaseInputs()
+	status = "Testing drive methods..."
+	notify("Testing how to drive your car (about 3 seconds)...")
+	local forward = carForward(root, driver)
+
+	local results = {}
+	results[1] = measureMove(0.6, function(part)
+		local v = part.AssemblyLinearVelocity
+		part.AssemblyLinearVelocity = Vector3.new(forward.X * 60, v.Y, forward.Z * 60)
+	end)
+	task.wait(0.4)
+	local seat = seatOf(root)
+	if seat then
+		results[2] = measureMove(0.8, function()
+			pcall(function()
+				seat.ThrottleFloat, seat.Throttle = 1, 1
+			end)
+		end, function()
+			pcall(function()
+				seat.ThrottleFloat, seat.Throttle = 0, 0
+			end)
+		end)
+		task.wait(0.4)
+	end
+	results[3] = measureMove(0.8, function()
+		setKey(Enum.KeyCode.W, true)
+	end, function()
+		setKey(Enum.KeyCode.W, false)
+	end)
+	testing = false
+
+	driveTestResult = string.format(
+		"Physics %d, Seat %s, Keys %d studs",
+		results[1],
+		results[2] and tostring(results[2]) or "no seat",
+		results[3]
+	)
+	for mode = 1, 3 do
+		if results[mode] and results[mode] > 6 then
+			Settings.DriveMode = mode
+			notify("Driving with " .. DRIVE_MODES[mode] .. ". (" .. driveTestResult .. ")")
+			return
+		end
+	end
+	notify("Nothing moved your car (" .. driveTestResult .. "). Try again once you can drive, or send me the diagnostics.")
 end
 
 ---------------------------------------------------------------------------
@@ -1132,6 +1285,20 @@ local botButton = new("TextButton", {
 	TextColor3 = Color3.new(1, 1, 1),
 	Parent = gui,
 }, { round(1, 0) })
+
+-- What the bot is doing, shown under the BOT pill (and dragged with it).
+local statusLabel = new("TextLabel", {
+	Size = UDim2.fromOffset(280, 16),
+	Position = UDim2.new(0, 2, 1, 4),
+	BackgroundTransparency = 1,
+	Font = Enum.Font.GothamBold,
+	TextSize = 12,
+	TextColor3 = Color3.new(1, 1, 1),
+	TextStrokeTransparency = 0.2,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Visible = false,
+	Parent = botButton,
+})
 
 local main = new("Frame", {
 	Size = UDim2.fromOffset(PANEL_W, PANEL_H),
@@ -1473,6 +1640,12 @@ end)
 table.insert(controlRenders, function()
 	driveButton.Text = "Drive: " .. DRIVE_MODES[Settings.DriveMode]
 end)
+addButton(botPage, "Test Drive Methods (picks the one that works)", function()
+	task.spawn(function()
+		testDriveModes()
+		refreshControls()
+	end)
+end)
 
 addSection(botPage, "Skills")
 addToggle(botPage, "Boost", "Boost")
@@ -1718,14 +1891,28 @@ track(RunService.Heartbeat:Connect(function()
 	if ball and carRoot then
 		own, opp = getGoals()
 	end
-	if Settings.AutoPlay and ball and carRoot and own then
+	if Settings.AutoPlay and carRoot and not driveTested and not testing then
+		task.spawn(testDriveModes)
+	end
+	if testing then
+		-- testDriveModes is driving the car
+	elseif Settings.AutoPlay and ball and carRoot then
 		botStep(ball, carRoot, driver, own, opp)
 	elseif Settings.AutoPlay then
 		releaseInputs()
-		status = not ball and "Waiting for the ball" or not carRoot and "Waiting for your car" or "Finding the goals"
+		status = not ball and "Can't find the ball. Open the menu: Pick Ball"
+			or "Can't find your car. Open the menu: Pick Car"
 	end
 	if Settings.PerfectAim and ball and carRoot and opp then
 		aimStep(ball, carRoot, opp)
+	end
+end))
+
+-- Re-apply the Physics command right before the physics step (see physicsDrive).
+track(RunService.Stepped:Connect(function()
+	local command = pendingDrive
+	if command and Settings.AutoPlay and os.clock() < command.expires then
+		applyDrive(command)
 	end
 end))
 
@@ -1749,10 +1936,15 @@ task.spawn(function()
 				(modelOf(car.root) or car.root).Name,
 				car.method or "?"
 			) or "not found. Use Pick Car or Show Car Candidates below"),
+			"Car physics: " .. (car.root and (ownsBall(car.root) and "your device" or "the server, so only Seat / Keys can drive it") or "-"),
 			"Goals: " .. (goals.a and "found both ends" or (car.kickoff and "using kickoff direction" or "not found")),
+			"Drive: " .. DRIVE_MODES[Settings.DriveMode] .. (driveTestResult and ("  (test: " .. driveTestResult .. ")") or ""),
 			"Bot: " .. (Settings.AutoPlay and status or "off"),
 		}
 		diagnostics.Text = table.concat(lines, "\n")
+		statusLabel.Visible = Settings.AutoPlay
+		statusLabel.Text = status
+		refreshControls() -- the drive test may have changed modes
 		if Settings.Fullbright then
 			applyFullbright()
 		end
