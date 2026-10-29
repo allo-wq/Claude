@@ -75,6 +75,7 @@ While the bot is on, a status line under the **BOT** pill shows what it's doing,
   - **Show Car Candidates:** lists car-like models nearest your camera. Tap yours.
 
   Either way it remembers the car's model name and finds it again after respawns.
+- **It goes round in circles:** the car now faces the way it's moving rather than spinning toward its target, slows to a stop on its target, and keeps one side when going around the ball. As a safety net, if it covers a lot of ground over 3 s but ends up where it started and no closer to the ball, it drives straight at the ball for 2.5 s. The status line then reads "Was circling: going straight at the ball". If you see that message constantly, send me the diagnostics.
 - **It drives all over the place:** turn on **Visual → Bot Target Marker**. The green ball shows where the bot is heading.
   - If the orange-highlighted "ball" isn't the real ball, use **Pick Ball**.
   - If the green target sits on the wrong side of the ball, use **Swap Goals**.

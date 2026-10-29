@@ -948,12 +948,11 @@ end
 
 -- Physics mode drives the car's velocity directly, so it needs no key presses.
 -- It heads straight for the target rather than along the car's nose, so it
--- still gets there if the game won't let the car be turned, and it eases off
--- on arrival (unless shooting) so it doesn't overshoot and circle.
+-- still gets there if the game won't let the car be turned, and it slows to a
+-- stop on the target (unless shooting) instead of overshooting and looping back.
 -- The command is applied now and again just before the next physics step, so a
 -- game script that also sets the car's velocity doesn't simply cancel it.
 local function physicsDrive(carRoot, forward, target, aerialTarget, shooting)
-	local angle = steer(carRoot, forward, target)
 	local velocity = carRoot.AssemblyLinearVelocity
 	local topSpeed = Settings.Boost and Settings.BotSpeed or Settings.BotSpeed * 0.7
 	local linear, full
@@ -963,16 +962,25 @@ local function physicsDrive(carRoot, forward, target, aerialTarget, shooting)
 	else
 		local toTarget = flat(target - carRoot.Position)
 		local distance = toTarget.Magnitude
-		local speed = shooting and topSpeed or topSpeed * math.clamp(distance / 20, 0.3, 1)
-		local goal = distance > 0.5 and toTarget.Unit * speed or Vector3.zero
+		local speed = shooting and topSpeed or topSpeed * math.clamp(distance / 25, 0, 1)
+		local goal = distance > 2 and toTarget.Unit * speed or Vector3.zero
 		linear = Vector3.new(lerp(velocity.X, goal.X, 0.35), 0, lerp(velocity.Z, goal.Z, 0.35))
+	end
+	-- Point the nose where the car is actually going, and only while it's moving
+	-- fast. Aiming it at the target made the car spin on the spot whenever the
+	-- target ended up just behind it.
+	local heading = flat(linear)
+	local spin = 0
+	if heading.Magnitude > 12 then
+		heading = heading.Unit
+		local angle = math.atan2(forward:Cross(heading).Y, forward:Dot(heading))
+		spin = math.clamp(angle * 3, -Settings.TurnRate, Settings.TurnRate)
 	end
 	pendingDrive = {
 		root = carRoot,
 		linear = linear,
 		full = full,
-		-- turning the nose toward the target is just for looks now
-		angular = Vector3.new(0, math.clamp(angle * 4, -Settings.TurnRate, Settings.TurnRate), 0),
+		angular = Vector3.new(0, spin, 0),
 		expires = os.clock() + 0.1,
 	}
 	applyDrive(pendingDrive)
@@ -1049,6 +1057,40 @@ end
 local lastBallPos
 local status = "Idle"
 local botTarget -- where the bot is heading this frame, shown by the target marker
+
+-- Circling safety net: if the car has driven a long way over the last 3 s but
+-- ended up near where it started and no closer to the ball, it's going round in
+-- circles, so drive straight at the ball for a moment instead.
+local trail = {}
+local lastTrailSample = 0
+local unstickUntil = 0
+local orbitSide -- which side we pass the ball on, kept until we're behind it
+
+local function checkCircling(carPos, ballPos)
+	local now = os.clock()
+	if now - lastTrailSample < 0.25 then
+		return
+	end
+	lastTrailSample = now
+	table.insert(trail, { pos = carPos, ballDistance = flat(ballPos - carPos).Magnitude })
+	if #trail > 12 then
+		table.remove(trail, 1)
+	end
+	if #trail < 12 then
+		return
+	end
+	local path = 0
+	for i = 2, #trail do
+		path += flat(trail[i].pos - trail[i - 1].pos).Magnitude
+	end
+	local net = flat(trail[#trail].pos - trail[1].pos).Magnitude
+	local closer = trail[1].ballDistance - trail[#trail].ballDistance
+	if path > 60 and net < path * 0.25 and closer < 5 then
+		unstickUntil = now + 2.5
+		orbitSide = nil
+		table.clear(trail)
+	end
+end
 
 -- Air dribble (Physics mode): pop the ball up, then fly just behind and under
 -- it toward the net and finish with a shot. While your device controls the
@@ -1153,7 +1195,10 @@ local function botStep(ball, carRoot, driver, own, opp)
 	end
 	hitDir = hitDir.Magnitude > 0.1 and hitDir.Unit or Vector3.new(0, 0, -1)
 
-	if Settings.AirDribble and Settings.DriveMode == 1 and own and not defending then
+	checkCircling(carPos, ballPos)
+	local unsticking = os.clock() < unstickUntil
+
+	if Settings.AirDribble and Settings.DriveMode == 1 and own and not defending and not unsticking then
 		if dribbleStep(ball, carRoot, carForward(carRoot, driver), r, opp) then
 			return
 		end
@@ -1167,12 +1212,18 @@ local function botStep(ball, carRoot, driver, own, opp)
 	local fromBall = flat(carPos - predicted)
 	local target
 	local shooting = false
-	if fromBall:Dot(hitDir) > 0 and fromBall.Magnitude > r + 2 then
+	if unsticking then
+		local toBall = flat(predicted - carPos)
+		target = predicted + (toBall.Magnitude > 0.1 and toBall.Unit or hitDir) * 4
+		shooting = true
+		status = "Was circling: going straight at the ball"
+	elseif fromBall:Dot(hitDir) > 0 and fromBall.Magnitude > r + 2 then
+		-- pick a side once and keep it, or it flips every frame near the middle
 		local side = hitDir:Cross(Vector3.yAxis)
-		if fromBall:Dot(side) < 0 then
-			side = -side
+		if not orbitSide then
+			orbitSide = fromBall:Dot(side) < 0 and -1 or 1
 		end
-		target = approach + side * (r + 10)
+		target = approach + side * orbitSide * (r + 10)
 		status = defending and "Saving: getting goal-side" or "Rotating around the ball"
 	elseif flat(carPos - approach).Magnitude < r + 6 then
 		target = predicted + hitDir * 4
@@ -1181,6 +1232,9 @@ local function botStep(ball, carRoot, driver, own, opp)
 	else
 		target = approach
 		status = defending and "Saving: covering the net" or "Lining up the shot"
+	end
+	if unsticking or fromBall:Dot(hitDir) <= 0 then
+		orbitSide = nil -- behind the ball again: choose afresh next time
 	end
 
 	local aerial = Settings.Aerials
