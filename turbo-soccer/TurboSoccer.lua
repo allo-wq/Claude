@@ -366,7 +366,18 @@ end
 -- Finding the ball, your car and the goals
 ---------------------------------------------------------------------------
 
-local car = { root = nil, driver = nil, reach = 6, spawn = nil, kickoff = nil }
+local car = {
+	root = nil,
+	driver = nil,
+	method = nil,
+	reach = 6,
+	spawn = nil,
+	kickoff = nil,
+	picked = nil, -- a car you picked by tapping it
+	learnedName = nil, -- its model name, to find it again after it respawns
+	forwardLocal = Vector3.new(0, 0, -1),
+	driveAverage = Vector3.zero,
+}
 local lastCarScan = -math.huge
 
 -- The ball. Every part gets a score from its name (or its parent's), a sphere
@@ -385,6 +396,12 @@ local function hasWord(name, words)
 	return false
 end
 
+-- The model a part belongs to. Workspace is itself a Model, so loose parts get nil.
+local function modelOf(inst)
+	local model = inst:FindFirstAncestorOfClass("Model")
+	return model ~= workspace and model or nil
+end
+
 local learnedBall -- { name, size } of a ball you picked, so it's found again after it respawns
 local prevBallPos = setmetatable({}, { __mode = "k" })
 
@@ -395,7 +412,7 @@ local function ballScore(part, skipModel, vehicleCache)
 	if biggest < 2 or biggest > 60 or hasWord(part.Name, SKIP_WORDS) then
 		return nil
 	end
-	local model = part:FindFirstAncestorOfClass("Model")
+	local model = modelOf(part)
 	if model then
 		if model == skipModel or Players:GetPlayerFromCharacter(model) then
 			return nil
@@ -444,7 +461,7 @@ end
 -- All plausible balls, best first.
 local function scanBalls()
 	local found = {}
-	local skipModel = car.root and car.root:FindFirstAncestorOfClass("Model")
+	local skipModel = car.root and modelOf(car.root)
 	local vehicleCache = {}
 	for _, obj in ipairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
@@ -530,48 +547,177 @@ local function ownsBall(ball)
 	return ball.ReceiveAge == 0
 end
 
+local CAR_WORDS = { "car", "vehicle", "kart", "buggy", "truck" }
+local WHEEL_WORDS = { "wheel", "tire", "tyre" }
+
+local function mentionsMe(value)
+	if value == LP or value == LP.UserId or value == LP.Name then
+		return true
+	end
+	return type(value) == "string"
+		and (value == tostring(LP.UserId) or string.lower(value) == string.lower(LP.Name))
+end
+
+-- A model that belongs to you: an attribute or value pointing at you, or your name / id in its name.
 local function ownedBy(model)
-	for _, name in ipairs({ "Owner", "Player", "Driver" }) do
-		local attr = model:GetAttribute(name)
-		if attr == LP.Name or attr == LP.UserId then
+	for _, value in pairs(model:GetAttributes()) do
+		if mentionsMe(value) then
 			return true
 		end
-		local value = model:FindFirstChild(name)
-		if value then
-			if value:IsA("ObjectValue") and value.Value == LP then
-				return true
-			elseif value:IsA("StringValue") and value.Value == LP.Name then
-				return true
-			elseif (value:IsA("IntValue") or value:IsA("NumberValue")) and value.Value == LP.UserId then
+	end
+	for _, child in ipairs(model:GetChildren()) do
+		if child:IsA("ObjectValue") or child:IsA("StringValue") or child:IsA("IntValue") or child:IsA("NumberValue") then
+			if mentionsMe(child.Value) then
 				return true
 			end
 		end
 	end
-	return model.Name == LP.Name and model ~= LP.Character
+	local lower = string.lower(model.Name)
+	return string.find(lower, string.lower(LP.Name), 1, true) ~= nil
+		or string.find(lower, tostring(LP.UserId), 1, true) ~= nil
 end
 
--- Returns the car's physics root and the part that faces forward (seat or driver).
+local function looksLikeCar(model)
+	if model:FindFirstChildWhichIsA("VehicleSeat", true) then
+		return true
+	end
+	local wheels = 0
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") and hasWord(part.Name, WHEEL_WORDS) then
+			wheels += 1
+		end
+	end
+	if wheels >= 2 then
+		return true
+	end
+	-- no head but car-sized: a custom character that is the car
+	return not model:FindFirstChild("Head") and model:GetExtentsSize().Magnitude > 6
+end
+
+local function rootOf(model)
+	local part = model.PrimaryPart
+		or model:FindFirstChild("HumanoidRootPart")
+		or model:FindFirstChildWhichIsA("BasePart", true)
+	return part and (part.AssemblyRootPart or part)
+end
+
+-- The car-sized model a part belongs to: climbs out of small sub-models like "Wheels".
+local function carModelOf(part)
+	local model = modelOf(part)
+	while model and model.Parent and model.Parent ~= workspace and model.Parent:IsA("Model") and model:GetExtentsSize().Magnitude < 8 do
+		model = model.Parent
+	end
+	return model
+end
+
+local function cameraFocus()
+	return workspace.CurrentCamera.Focus.Position
+end
+
+-- After a picked car respawns: the model with the same name closest to the camera.
+local function nearestNamedModel(name)
+	local focus = cameraFocus()
+	local best, bestDistance
+	for _, model in ipairs(workspace:GetDescendants()) do
+		if model:IsA("Model") and model.Name == name then
+			local distance = (model:GetPivot().Position - focus).Magnitude
+			if not bestDistance or distance < bestDistance then
+				best, bestDistance = model, distance
+			end
+		end
+	end
+	return best
+end
+
+-- Every car-like model in the map, nearest to the camera first.
+local function scanCars()
+	local wheels, flagged = {}, {}
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("VehicleSeat") or (obj:IsA("BasePart") and hasWord(obj.Name, WHEEL_WORDS)) then
+			local model = carModelOf(obj)
+			if model then
+				wheels[model] = (wheels[model] or 0) + (obj:IsA("VehicleSeat") and 2 or 1)
+			end
+		elseif obj:IsA("Model") and hasWord(obj.Name, CAR_WORDS) then
+			flagged[obj] = true
+		end
+	end
+	for model, count in pairs(wheels) do
+		if count >= 2 then
+			flagged[model] = true
+		end
+	end
+	local focus = cameraFocus()
+	local found = {}
+	for model in pairs(flagged) do
+		if model:IsDescendantOf(workspace) then
+			table.insert(found, { model = model, distance = (model:GetPivot().Position - focus).Magnitude })
+		end
+	end
+	table.sort(found, function(a, b)
+		return a.distance < b.distance
+	end)
+	return found
+end
+
+-- Returns the car's physics root, the part that reliably faces forward (a seat
+-- or your character, if any) and how it was found. Tries, in order: a car you
+-- picked, a seat, whatever the camera follows, being welded into a car, your
+-- character being the car, then a model tagged with your name or id.
 local function scanCar()
+	local char = LP.Character
+	if car.picked and car.picked:IsDescendantOf(workspace) then
+		return car.picked.AssemblyRootPart or car.picked, nil, "picked"
+	end
+	if car.learnedName then
+		local model = nearestNamedModel(car.learnedName)
+		local root = model and rootOf(model)
+		if root then
+			car.picked = root
+			return root, nil, "picked"
+		end
+	end
+
 	local hum = getHum()
 	local seat = hum and hum.SeatPart
 	if seat then
-		return seat.AssemblyRootPart or seat, seat
+		return seat.AssemblyRootPart or seat, seat, "seat"
 	end
-	-- welded into a car: the character's assembly reaches parts outside the character
-	local hrp = getRoot()
-	if hrp then
-		for _, part in ipairs(hrp:GetConnectedParts(true)) do
-			if not part:IsDescendantOf(LP.Character) then
-				return hrp.AssemblyRootPart or hrp, hrp
+
+	local subject = workspace.CurrentCamera.CameraSubject
+	if subject and subject ~= ballCache and not hasWord(subject.Name, BALL_WORDS) then
+		if subject:IsA("BasePart") and not (char and subject:IsDescendantOf(char)) then
+			local seatPart = (subject:IsA("VehicleSeat") or subject:IsA("Seat")) and subject or nil
+			return subject.AssemblyRootPart or subject, seatPart, "camera"
+		elseif subject:IsA("Humanoid") and subject.Parent and subject.Parent ~= char then
+			local root = rootOf(subject.Parent)
+			if root then
+				return root, nil, "camera"
 			end
 		end
 	end
-	-- a car model tagged with our name
+
+	local hrp = getRoot()
+	if hrp then
+		for _, part in ipairs(hrp:GetConnectedParts(true)) do
+			if not part:IsDescendantOf(char) then
+				return hrp.AssemblyRootPart or hrp, hrp, "welded"
+			end
+		end
+	end
+
+	if char and looksLikeCar(char) then
+		local root = rootOf(char)
+		if root then
+			return root, nil, "your character"
+		end
+	end
+
 	for _, model in ipairs(workspace:GetDescendants()) do
-		if model:IsA("Model") and model ~= LP.Character and ownedBy(model) then
-			local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
-			if primary then
-				return primary.AssemblyRootPart or primary, primary
+		if model:IsA("Model") and model ~= char and ownedBy(model) then
+			local root = rootOf(model)
+			if root then
+				return root, nil, "name tag"
 			end
 		end
 	end
@@ -585,19 +731,48 @@ local function getCar()
 		return car.root, car.driver
 	end
 	lastCarScan = os.clock()
-	local root, driver = scanCar()
+	local root, driver, method = scanCar()
 	if root ~= car.root then
 		car.root = root
 		if root then
 			car.spawn = root.Position
 			local ball = findBall()
 			car.kickoff = ball and ball.Position
-			local model = root:FindFirstAncestorOfClass("Model")
+			local model = modelOf(root)
 			car.reach = math.clamp(model and model:GetExtentsSize().Magnitude / 2 or 6, 5, 14)
+			-- until driving teaches us better, guess the nose is along the root's longer side
+			car.forwardLocal = root.Size.X > root.Size.Z * 1.2 and Vector3.new(1, 0, 0) or Vector3.new(0, 0, -1)
+			car.driveAverage = Vector3.zero
 		end
 	end
-	car.driver = driver
+	car.driver, car.method = driver, method
 	return car.root, car.driver
+end
+
+-- Which way the car's nose points. A seat or your character faces forward;
+-- otherwise it's learned from which way the car moves while it drives normally.
+local function carForward(carRoot, driver)
+	local forward = driver and flat(driver.CFrame.LookVector)
+		or flat(carRoot.CFrame:VectorToWorldSpace(car.forwardLocal))
+	return forward.Magnitude > 0.01 and forward.Unit or Vector3.new(0, 0, -1)
+end
+
+local function learnForward(carRoot)
+	local velocity = flat(carRoot.AssemblyLinearVelocity)
+	if car.driver or velocity.Magnitude < 15 then
+		return
+	end
+	local localDir = carRoot.CFrame:VectorToObjectSpace(velocity.Unit)
+	car.driveAverage = car.driveAverage:Lerp(Vector3.new(localDir.X, 0, localDir.Z), 0.03)
+	local avg = car.driveAverage
+	if avg.Magnitude > 0.5 then
+		-- snap to the dominant local axis, since cars drive forward far more than backward
+		if math.abs(avg.X) > math.abs(avg.Z) then
+			car.forwardLocal = Vector3.new(math.sign(avg.X), 0, 0)
+		else
+			car.forwardLocal = Vector3.new(0, 0, math.sign(avg.Z))
+		end
+	end
 end
 
 -- Goals: everything named "goal", split into the two ends of the field.
@@ -806,8 +981,7 @@ local function botStep(ball, carRoot, driver, own, opp)
 		status = "Aerial"
 	end
 
-	local forward = flat((driver or carRoot).CFrame.LookVector)
-	forward = forward.Magnitude > 0.01 and forward.Unit or Vector3.new(0, 0, -1)
+	local forward = carForward(carRoot, driver)
 	if Settings.DriveMode == 1 then
 		physicsDrive(carRoot, forward, target, aerial and predicted - hitDir * (r * 0.8) or nil)
 	else
@@ -1316,17 +1490,18 @@ addButton(botPage, "Swap Goals (if it attacks your own net)", function()
 end)
 addButton(botPage, "Rescan Ball, Car & Goals", function()
 	ballCache, ballSource, lastBallScan, learnedBall = nil, "auto", -math.huge, nil
-	car.root, lastCarScan = nil, -math.huge
+	car.root, car.picked, car.learnedName, lastCarScan = nil, nil, nil, -math.huge
 	goals.scannedAt = -math.huge
 	floorY = nil
 	notify("Rescanning...")
 end)
 local diagnostics = addNote(botPage)
 
+local picking -- "ball" or "car" while waiting for you to tap one on screen
+
 addSection(botPage, "Ball not found?")
-local pickingBall = false
 addButton(botPage, "Pick Ball (then tap it on screen)", function()
-	pickingBall = true
+	picking = "ball"
 	main.Visible = false
 	notify("Tap the ball on your screen.")
 end)
@@ -1353,7 +1528,7 @@ local function showCandidates()
 		local part = candidates[i].part
 		local size = math.floor(math.max(part.Size.X, part.Size.Y, part.Size.Z) * 10) / 10
 		local button = new("TextButton", {
-			Text = string.format("Use: %s  (size %s, score %d)", part.Name, size, candidates[i].score),
+			Text = string.format("Use: %s  (size %s, score %d)", part.Name, size, math.floor(candidates[i].score)),
 			Font = Enum.Font.Gotham,
 			TextSize = 13,
 			TextColor3 = part == ballCache and Theme.Accent or Theme.Text,
@@ -1376,26 +1551,92 @@ end
 addButton(botPage, "Show Ball Candidates", showCandidates)
 candidateList.LayoutOrder = nextOrder()
 
--- Pick Ball: the next tap on the game world chooses the part under your finger.
+local function pickCar(root, model)
+	car.picked = root
+	car.learnedName = model and model.Name
+	car.root, lastCarScan = nil, -math.huge -- rerun getCar so spawn, reach and forward reset
+	notify("Car set to " .. (model and model.Name or root.Name) .. ". It'll be found again after respawns.")
+end
+
+addSection(botPage, "Car not found?")
+addButton(botPage, "Pick Car (then tap your car on screen)", function()
+	picking = "car"
+	main.Visible = false
+	notify("Tap your car on your screen.")
+end)
+
+local carCandidateList = new("Frame", {
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 0, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	LayoutOrder = 0, -- placed below its button once that exists
+	Parent = botPage,
+}, { new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+
+local function showCarCandidates()
+	for _, child in ipairs(carCandidateList:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+	local candidates = scanCars()
+	if #candidates == 0 then
+		notify("No car-like models found. Are you in a match?")
+	end
+	local current = car.root and modelOf(car.root)
+	for i = 1, math.min(#candidates, 6) do
+		local model = candidates[i].model
+		local button = new("TextButton", {
+			Text = string.format("Use: %s  (%d studs from camera)", model.Name, math.floor(candidates[i].distance)),
+			Font = Enum.Font.Gotham,
+			TextSize = 13,
+			TextColor3 = model == current and Theme.Accent or Theme.Text,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			BackgroundColor3 = Theme.Item,
+			Size = UDim2.new(1, 0, 0, 34),
+			LayoutOrder = i,
+			Parent = carCandidateList,
+		}, { round(0, 8), new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
+		button.Activated:Connect(function()
+			local root = model:IsDescendantOf(workspace) and rootOf(model)
+			if root then
+				pickCar(root, model)
+				showCarCandidates()
+			end
+		end)
+	end
+end
+addButton(botPage, "Show Car Candidates", showCarCandidates)
+carCandidateList.LayoutOrder = nextOrder()
+
+-- Pick Ball / Pick Car: the next tap on the game world chooses what's under your finger.
 track(UserInputService.InputBegan:Connect(function(input, processed)
-	if not pickingBall or processed then
+	if not picking or processed then
 		return
 	end
 	if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
 		return
 	end
-	pickingBall = false
+	local mode = picking
+	picking = nil
 	local ray = workspace.CurrentCamera:ScreenPointToRay(input.Position.X, input.Position.Y)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { LP.Character, marker }
+	-- your character may be the car, so only skip it when picking the ball
+	params.FilterDescendantsInstances = mode == "ball" and { LP.Character, marker } or { marker }
 	local result = workspace:Raycast(ray.Origin, ray.Direction * 2000, params)
 	if not result or not result.Instance:IsA("BasePart") then
-		notify("Missed. Tap Pick Ball and try again.")
+		notify("Missed. Tap Pick " .. (mode == "ball" and "Ball" or "Car") .. " and try again.")
+		return
+	end
+	local part = result.Instance
+	if mode == "car" then
+		local model = carModelOf(part)
+		pickCar((model and rootOf(model)) or part.AssemblyRootPart or part, model)
 		return
 	end
 	-- a visual mesh welded to the real ball shares its physics root
-	local part = result.Instance
 	if not part.Anchored and part.AssemblyRootPart then
 		part = part.AssemblyRootPart
 	end
@@ -1452,6 +1693,10 @@ closeButton.Activated:Connect(unload)
 track(RunService.Heartbeat:Connect(function()
 	local ball = findBall()
 	local carRoot, driver = getCar()
+	-- learn which way the nose points, except while Physics mode is steering it for us
+	if carRoot and not (Settings.AutoPlay and Settings.DriveMode == 1) then
+		learnForward(carRoot)
+	end
 	if ball then
 		sampleBall(ball)
 		updateFloor(ball, ballRadius(ball))
@@ -1499,7 +1744,11 @@ task.spawn(function()
 		end
 		local lines = {
 			"Ball: " .. ballLine,
-			"Car: " .. (car.root and car.root:GetFullName() or "not found, get in a match"),
+			"Car: " .. (car.root and string.format(
+				"%s (found via %s)",
+				(modelOf(car.root) or car.root).Name,
+				car.method or "?"
+			) or "not found. Use Pick Car or Show Car Candidates below"),
 			"Goals: " .. (goals.a and "found both ends" or (car.kickoff and "using kickoff direction" or "not found")),
 			"Bot: " .. (Settings.AutoPlay and status or "off"),
 		}

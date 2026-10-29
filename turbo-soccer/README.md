@@ -26,7 +26,15 @@ Tap **Preset** to cycle. A preset fills in every Skill setting, and you can stil
 
 - **Finds things by itself:**
   - The **ball** is the best-scoring part. Points come from "ball", "puck" or "sphere" in its name or its parent's name, a sphere shape, equal size every way, being loose (unanchored), and moving between scans. It rescans every few seconds, so the real moving ball wins over decorations.
-  - **Your car** is whatever you're seated in or welded to.
+  - **Your car** is found by trying, in order:
+    1. a car you picked
+    2. the seat you're in
+    3. whatever the camera follows
+    4. being welded into a car
+    5. your character being the car itself (car-sized, wheels, no head)
+    6. a model tagged with your name or user id
+
+    For steering it learns which way the nose points from how the car moves while you drive.
   - **The goals** are everything with "goal" in its name, split into the two ends of the field.
 - **Your net** is the end nearest where your car spawned. This is re-checked at every kickoff.
 - **Predicts the ball** with gravity and works out the earliest point the car can reach it.
@@ -50,7 +58,13 @@ The **Bot** tab shows live diagnostics: whether the ball, your car and the goals
 - **It can't find the ball, or picks the wrong thing:** under **Ball not found?** you have two options:
   - **Pick Ball:** tap it, then tap the ball on your screen. The script remembers its name and size, so it finds the ball again after every goal.
   - **Show Ball Candidates:** lists the 6 best guesses with name, size and score. Tap one to use it.
-- **The car or goals say "not found":** tap **Rescan Ball, Car & Goals** once you're in a match and driving. This also forgets a picked ball.
+- **It can't find your car, or picks the wrong one:** under **Car not found?** you have two options:
+  - **Pick Car:** tap it, then tap your car on screen.
+  - **Show Car Candidates:** lists car-like models nearest your camera. Tap yours.
+
+  Either way it remembers the car's model name and finds it again after respawns.
+- **Goals say "not found", or things get stuck:** tap **Rescan Ball, Car & Goals** once you're in a match. This also forgets anything you picked.
+- **Keys mode steers the wrong way:** drive forward yourself for a few seconds so it learns which way your car's nose points.
 - **Perfect Aim does nothing:** the diagnostics will say "(server controls it)". That means the game runs the ball on its server, so only real touches move it. Nothing a script sends can redirect it.
 - **The car oversteers or wobbles:** lower **Turn Rate**. If it's too fast to control, lower **Bot Speed**.
 
