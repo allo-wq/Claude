@@ -1,0 +1,12 @@
+PASS  resolution 1080x1920     1080x1920
+PASS  frame rate 30 fps        30/1 (avg 30/1)
+PASS  codec H.264              h264 High
+PASS  pixel format yuv420p     yuv420p
+PASS  frame count 720          720
+PASS  video duration 24.000 s  24.000000
+PASS  audio AAC 48 kHz stereo  aac 48000 Hz 2 ch
+PASS  audio length = video     24.000000 s
+PASS  loudness ≈ -14 LUFS      -14.1 LUFS integrated
+PASS  true peak ≤ -1 dBTP      -1.3 dBTP
+PASS  no black frames          none
+INFO  file size                18.3 MB, bitrate 6.1 Mb/s
