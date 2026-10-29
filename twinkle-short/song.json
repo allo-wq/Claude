@@ -1,0 +1,525 @@
+{
+  "title": "Twinkle, Twinkle, Little Star",
+  "credit": "Lyrics: Jane Taylor (1806). Melody: traditional French air \"Ah ! vous dirai-je, maman\" (18th century). Both public domain.",
+  "bpm": 120,
+  "beatsPerLoop": 48,
+  "offset": 0.1,
+  "key": "D major",
+  "lines": [
+    {
+      "text": "Twinkle, twinkle, little star,",
+      "start": 0,
+      "syllables": [
+        {
+          "t": "Twin",
+          "ph": "twˈɪŋ",
+          "beat": 0,
+          "len": 1,
+          "note": 62
+        },
+        {
+          "t": "kle",
+          "ph": "kəl",
+          "beat": 1,
+          "len": 1,
+          "note": 62,
+          "join": true
+        },
+        {
+          "t": "twin",
+          "ph": "twˈɪŋ",
+          "beat": 2,
+          "len": 1,
+          "note": 69
+        },
+        {
+          "t": "kle",
+          "ph": "kəl",
+          "beat": 3,
+          "len": 1,
+          "note": 69,
+          "join": true
+        },
+        {
+          "t": "lit",
+          "ph": "lˈɪ",
+          "beat": 4,
+          "len": 1,
+          "note": 71
+        },
+        {
+          "t": "tle",
+          "ph": "ɾəl",
+          "beat": 5,
+          "len": 1,
+          "note": 71,
+          "join": true
+        },
+        {
+          "t": "star",
+          "ph": "stˈɑːɹ",
+          "beat": 6,
+          "len": 2,
+          "note": 69
+        }
+      ]
+    },
+    {
+      "text": "How I wonder what you are!",
+      "start": 8,
+      "syllables": [
+        {
+          "t": "How",
+          "ph": "hˈaʊ",
+          "beat": 0,
+          "len": 1,
+          "note": 67
+        },
+        {
+          "t": "I",
+          "ph": "aɪ",
+          "beat": 1,
+          "len": 1,
+          "note": 67
+        },
+        {
+          "t": "won",
+          "ph": "wˈʌn",
+          "beat": 2,
+          "len": 1,
+          "note": 66
+        },
+        {
+          "t": "der",
+          "ph": "dɚ",
+          "beat": 3,
+          "len": 1,
+          "note": 66,
+          "join": true
+        },
+        {
+          "t": "what",
+          "ph": "wˈʌt",
+          "beat": 4,
+          "len": 1,
+          "note": 64
+        },
+        {
+          "t": "you",
+          "ph": "juː",
+          "beat": 5,
+          "len": 1,
+          "note": 64
+        },
+        {
+          "t": "are",
+          "ph": "ˈɑːɹ",
+          "beat": 6,
+          "len": 2,
+          "note": 62
+        }
+      ]
+    },
+    {
+      "text": "Up above the world so high,",
+      "start": 16,
+      "syllables": [
+        {
+          "t": "Up",
+          "ph": "ˈʌ",
+          "beat": 0,
+          "len": 1,
+          "note": 69
+        },
+        {
+          "t": "a",
+          "ph": "pə",
+          "beat": 1,
+          "len": 1,
+          "note": 69,
+          "join": true
+        },
+        {
+          "t": "bove",
+          "ph": "bˈʌv",
+          "beat": 2,
+          "len": 1,
+          "note": 67,
+          "join": true
+        },
+        {
+          "t": "the",
+          "ph": "ðə",
+          "beat": 3,
+          "len": 1,
+          "note": 67
+        },
+        {
+          "t": "world",
+          "ph": "wˈɜːld",
+          "beat": 4,
+          "len": 1,
+          "note": 66
+        },
+        {
+          "t": "so",
+          "ph": "sˈoʊ",
+          "beat": 5,
+          "len": 1,
+          "note": 66
+        },
+        {
+          "t": "high",
+          "ph": "hˈaɪ",
+          "beat": 6,
+          "len": 2,
+          "note": 64
+        }
+      ]
+    },
+    {
+      "text": "Like a diamond in the sky.",
+      "start": 24,
+      "syllables": [
+        {
+          "t": "Like",
+          "ph": "lˈaɪk",
+          "beat": 0,
+          "len": 1,
+          "note": 69
+        },
+        {
+          "t": "a",
+          "ph": "ə",
+          "beat": 1,
+          "len": 1,
+          "note": 69
+        },
+        {
+          "t": "dia",
+          "ph": "dˈaɪə",
+          "beat": 2,
+          "len": 1,
+          "note": 67
+        },
+        {
+          "t": "mond",
+          "ph": "mənd",
+          "beat": 3,
+          "len": 1,
+          "note": 67,
+          "join": true
+        },
+        {
+          "t": "in",
+          "ph": "ɪn",
+          "beat": 4,
+          "len": 1,
+          "note": 66
+        },
+        {
+          "t": "the",
+          "ph": "ðə",
+          "beat": 5,
+          "len": 1,
+          "note": 66
+        },
+        {
+          "t": "sky",
+          "ph": "skˈaɪ",
+          "beat": 6,
+          "len": 2,
+          "note": 64
+        }
+      ]
+    },
+    {
+      "text": "Twinkle, twinkle, little star,",
+      "start": 32,
+      "repeatOf": 0
+    },
+    {
+      "text": "How I wonder what you are!",
+      "start": 40,
+      "repeatOf": 1
+    }
+  ],
+  "cues": [
+    {
+      "beat": -0.06,
+      "sfx": "pop_big",
+      "gain": -3
+    },
+    {
+      "beat": 0,
+      "sfx": "sparkle",
+      "gain": -8
+    },
+    {
+      "beat": 1,
+      "sfx": "boing_small",
+      "gain": -10
+    },
+    {
+      "beat": 2,
+      "sfx": "ding",
+      "gain": -9
+    },
+    {
+      "beat": 3,
+      "sfx": "swish",
+      "gain": -10
+    },
+    {
+      "beat": 4,
+      "sfx": "squeak_down",
+      "gain": -11
+    },
+    {
+      "beat": 5,
+      "sfx": "squeak",
+      "gain": -12
+    },
+    {
+      "beat": 6,
+      "sfx": "tada",
+      "gain": -8
+    },
+    {
+      "beat": 7.45,
+      "sfx": "whoosh",
+      "gain": -8
+    },
+    {
+      "beat": 8,
+      "sfx": "boing",
+      "gain": -9
+    },
+    {
+      "beat": 10,
+      "sfx": "tick",
+      "gain": -12
+    },
+    {
+      "beat": 11,
+      "sfx": "pop",
+      "gain": -11
+    },
+    {
+      "beat": 11.25,
+      "sfx": "pop",
+      "gain": -11
+    },
+    {
+      "beat": 11.5,
+      "sfx": "pop",
+      "gain": -10
+    },
+    {
+      "beat": 12,
+      "sfx": "boing_q",
+      "gain": -10
+    },
+    {
+      "beat": 14,
+      "sfx": "twinkle",
+      "gain": -9
+    },
+    {
+      "beat": 15.45,
+      "sfx": "whoosh_up",
+      "gain": -8
+    },
+    {
+      "beat": 16,
+      "sfx": "rocket",
+      "gain": -8
+    },
+    {
+      "beat": 17,
+      "sfx": "puff",
+      "gain": -10
+    },
+    {
+      "beat": 18,
+      "sfx": "shimmer",
+      "gain": -10
+    },
+    {
+      "beat": 20,
+      "sfx": "harp",
+      "gain": -9
+    },
+    {
+      "beat": 22,
+      "sfx": "swirl",
+      "gain": -10
+    },
+    {
+      "beat": 23,
+      "sfx": "sparkle",
+      "gain": -10
+    },
+    {
+      "beat": 24,
+      "sfx": "spinup",
+      "gain": -10
+    },
+    {
+      "beat": 25,
+      "sfx": "shing",
+      "gain": -7
+    },
+    {
+      "beat": 26,
+      "sfx": "glint",
+      "gain": -11
+    },
+    {
+      "beat": 27,
+      "sfx": "glint",
+      "gain": -11
+    },
+    {
+      "beat": 28,
+      "sfx": "harp",
+      "gain": -9
+    },
+    {
+      "beat": 30,
+      "sfx": "poof",
+      "gain": -8
+    },
+    {
+      "beat": 30.5,
+      "sfx": "twinkle",
+      "gain": -10
+    },
+    {
+      "beat": 31.5,
+      "sfx": "swoop",
+      "gain": -9
+    },
+    {
+      "beat": 33,
+      "sfx": "boing_small",
+      "gain": -10
+    },
+    {
+      "beat": 34,
+      "sfx": "boop",
+      "gain": -6
+    },
+    {
+      "beat": 36,
+      "sfx": "magic",
+      "gain": -9
+    },
+    {
+      "beat": 38,
+      "sfx": "confetti",
+      "gain": -8
+    },
+    {
+      "beat": 40,
+      "sfx": "fluff",
+      "gain": -10
+    },
+    {
+      "beat": 44,
+      "sfx": "whoosh_soft",
+      "gain": -10
+    },
+    {
+      "beat": 45,
+      "sfx": "zip",
+      "gain": -10
+    },
+    {
+      "beat": 46,
+      "sfx": "ding",
+      "gain": -10
+    },
+    {
+      "beat": 47,
+      "sfx": "twinkle_in",
+      "gain": -9
+    }
+  ],
+  "adlibs": [
+    {
+      "beat": 15.3,
+      "name": "wow",
+      "gain": -9,
+      "pan": 0.25
+    },
+    {
+      "beat": 34.6,
+      "name": "giggle",
+      "gain": -9,
+      "pan": 0.2
+    },
+    {
+      "beat": 39.0,
+      "name": "yay",
+      "gain": -9,
+      "pan": 0.2
+    },
+    {
+      "beat": 42.2,
+      "name": "yawn",
+      "gain": -13,
+      "pan": 0.15
+    }
+  ],
+  "chords": [
+    "D",
+    "D",
+    "D",
+    "D",
+    "G",
+    "G",
+    "D",
+    "D",
+    "G",
+    "G",
+    "D",
+    "D",
+    "A",
+    "A",
+    "D",
+    "D",
+    "D",
+    "D",
+    "G",
+    "G",
+    "D",
+    "D",
+    "A",
+    "A",
+    "D",
+    "D",
+    "G",
+    "G",
+    "D",
+    "D",
+    "A",
+    "A",
+    "D",
+    "D",
+    "D",
+    "D",
+    "G",
+    "G",
+    "D",
+    "D",
+    "G",
+    "G",
+    "D",
+    "D",
+    "A",
+    "A",
+    "D",
+    "D"
+  ]
+}

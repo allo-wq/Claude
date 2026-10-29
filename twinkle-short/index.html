@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Twinkle, Twinkle, Little Star: 3D Short</title>
+  <style>
+    @font-face { font-family: 'Fredoka'; src: url('assets/fonts/fredoka-latin-700-normal.woff2') format('woff2'); font-weight: 700; }
+    @font-face { font-family: 'Fredoka'; src: url('assets/fonts/fredoka-latin-600-normal.woff2') format('woff2'); font-weight: 600; }
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    body.preview { display: grid; place-items: center; font-family: Fredoka, sans-serif; color: #ddd; }
+    #stage canvas { display: block; }
+    body.preview #stage canvas { height: calc(100vh - 64px); width: auto; aspect-ratio: 9 / 16; }
+    #ui { position: fixed; bottom: 0; left: 0; right: 0; height: 56px; display: flex; gap: 12px; align-items: center; padding: 0 16px; background: #111; }
+    #ui input[type=range] { flex: 1; }
+    #ui button { font: inherit; padding: 6px 14px; }
+    #cap { font-size: 13px; opacity: 0.8; min-width: 260px; }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "./node_modules/three/build/three.module.js", "three/addons/": "./node_modules/three/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <div id="stage"></div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

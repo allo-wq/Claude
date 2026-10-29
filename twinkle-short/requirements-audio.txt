@@ -1,0 +1,11 @@
+# Audio pipeline (scripts/sing.py, scripts/music.py, scripts/check_vocal.py)
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements-audio.txt
+kokoro-onnx==0.6.1
+onnxruntime==1.31.1
+numpy==2.5.4
+soundfile==0.14.0
+pyworld==0.3.5
+setuptools<81            # pyworld still imports pkg_resources
+praat-parselmouth==0.4.7 # QA: pitch accuracy
+sherpa-onnx==1.13.8      # QA: offline Whisper transcription
+pillow==13.0.0           # QA: tiling stills

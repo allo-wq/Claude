@@ -1,0 +1,24 @@
+{
+  "name": "twinkle-short",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Looping 3D nursery-rhyme YouTube Short: Twinkle, Twinkle, Little Star (Three.js, deterministic frame render, synthesized singing)",
+  "scripts": {
+    "preview": "node scripts/serve.mjs",
+    "render": "node scripts/render.mjs",
+    "render:fast": "node scripts/render.mjs --scale 0.5 --out out/preview-540p.mp4",
+    "stills": "node scripts/stills.mjs",
+    "contact-sheet": "node scripts/contact-sheet.mjs",
+    "verify": "node scripts/verify.mjs",
+    "check-determinism": "node scripts/check-determinism.mjs",
+    "audio": ".venv/bin/python scripts/sing.py && .venv/bin/python scripts/music.py",
+    "check-audio": ".venv/bin/python scripts/check_vocal.py"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
