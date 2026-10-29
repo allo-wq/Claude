@@ -16,11 +16,11 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/allo-wq/Claude/claude
 
 Tap **Preset** to cycle. A preset fills in every Skill setting, and you can still tweak them afterwards. **SSL** is loaded by default.
 
-| Preset | Speed | Boost | Aerials | Auto Save | Perfect Aim | Plays like |
-| --- | --- | --- | --- | --- | --- | --- |
-| Casual | 60 | off | off | off | off | Chases the ball on the ground |
-| Pro | 85 | on | on | on | off | Boosts, goes up for aerials, drops back to save |
-| **SSL** | 110 | on | on | on | **on** | Supersonic Legend: fastest rotations, aerials, saves, every touch aimed at the net |
+| Preset | Speed | Boost | Aerials | Auto Save | Perfect Aim | Air Dribble | Plays like |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Casual | 60 | off | off | off | off | off | Chases the ball on the ground |
+| Pro | 85 | on | on | on | off | off | Boosts, goes up for aerials, drops back to save |
+| **SSL** | 110 | on | on | on | **on** | **on** | Supersonic Legend: fastest rotations, aerials, air dribbles, saves, every touch aimed at the net |
 
 ## How the bot plays
 
@@ -41,6 +41,13 @@ Tap **Preset** to cycle. A preset fills in every Skill setting, and you can stil
 - **Lines up behind the ball** on the line to the opponent's net, then drives through it. If it's on the wrong side, it swings around the ball instead of knocking it toward your own net.
 - **Auto Save:** when the ball is in your half heading for your net, it gets goal-side and clears it away.
 - **Aerials:** when the predicted ball is high and close, it goes up to meet it.
+- **Air Dribble** (SSL, Physics mode only):
+  - **Start:** when the ball is low, right in front of your car, between you and the net, and more than ~45 studs from it, the car pops it up.
+  - **Carry:** the car flies just behind and under the ball toward the net, keeping it about 12 studs up.
+  - **Finish:** about 35 studs from the net it shoots.
+  - **Gives up** if it loses the ball, after 7 seconds, or when it has to defend.
+
+  It works properly when the diagnostics say the ball is controlled by **you**. Then the ball is steered along your car's nose. If the server controls the ball, only real touches keep it up, which drops much more often. The status line reads "Air dribble" while it's happening.
 - **Perfect Aim:** when the ball touches your car, it's sent straight at the opponent's net at **Shot Power**. This works whether the bot or you are driving.
 
 The **Bot** tab shows live diagnostics: whether the ball, your car and the goals were found, and what the bot is doing ("Lining up the shot", "Saving", "Aerial"...).

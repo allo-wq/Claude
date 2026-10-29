@@ -46,6 +46,7 @@ local PRESETS = {
 			Aerials = false,
 			AutoSave = false,
 			PerfectAim = false,
+			AirDribble = false,
 		},
 	},
 	{
@@ -59,11 +60,12 @@ local PRESETS = {
 			Aerials = true,
 			AutoSave = true,
 			PerfectAim = false,
+			AirDribble = false,
 		},
 	},
 	{
 		name = "SSL",
-		info = "Supersonic Legend: fastest rotations, aerials, saves and every touch aimed at the net.",
+		info = "Supersonic Legend: fastest rotations, aerials, air dribbles, saves and every touch aimed at the net.",
 		values = {
 			BotSpeed = 110,
 			TurnRate = 7,
@@ -72,6 +74,7 @@ local PRESETS = {
 			Aerials = true,
 			AutoSave = true,
 			PerfectAim = true,
+			AirDribble = true,
 		},
 	},
 }
@@ -89,6 +92,7 @@ local Settings = {
 	Aerials = true,
 	AutoSave = true,
 	PerfectAim = true,
+	AirDribble = true,
 	SwapGoals = false,
 	BallESP = true,
 	LandingMarker = true,
@@ -1046,6 +1050,89 @@ local lastBallPos
 local status = "Idle"
 local botTarget -- where the bot is heading this frame, shown by the target marker
 
+-- Air dribble (Physics mode): pop the ball up, then fly just behind and under
+-- it toward the net and finish with a shot. While your device controls the
+-- ball it's also steered along the car's nose at carry height; otherwise the
+-- car's own touches have to keep it up, which is much less reliable.
+local dribble = { active = false, startedAt = 0 }
+
+local DRIBBLE_HEIGHT = 12 -- studs above the pitch to carry the ball at
+local DRIBBLE_FINISH = 35 -- shoot once the ball is this close to the net
+local DRIBBLE_POP_TIME = 0.25
+
+local function canStartDribble(ball, carRoot, r, opp)
+	local toBall = ball.Position - carRoot.Position
+	local toGoal = flat(opp - carRoot.Position)
+	return toBall.Magnitude < r + car.reach + 1
+		and ball.Position.Y - floorY < r + 6
+		and flat(opp - ball.Position).Magnitude > DRIBBLE_FINISH + 10
+		and flat(toBall).Magnitude > 0.5
+		and toGoal.Magnitude > 0.5
+		and flat(toBall).Unit:Dot(toGoal.Unit) > 0.6 -- ball sits between car and net
+end
+
+-- Returns true while the dribble is driving the car this frame.
+local function dribbleStep(ball, carRoot, forward, r, opp)
+	local now = os.clock()
+	local ballPos = ball.Position
+	local toGoal = flat(opp - ballPos)
+	if not dribble.active then
+		if not canStartDribble(ball, carRoot, r, opp) then
+			return false
+		end
+		dribble.active, dribble.startedAt = true, now
+	end
+	local owner = ownsBall(ball)
+	local goalDir = toGoal.Unit
+	local lost = (ballPos - carRoot.Position).Magnitude > r + car.reach + 10
+	if lost or now - dribble.startedAt > 7 then
+		dribble.active = false
+		return false
+	end
+	if toGoal.Magnitude < DRIBBLE_FINISH then
+		dribble.active = false
+		if owner then
+			ball.AssemblyLinearVelocity = (opp + Vector3.new(0, r + 2, 0) - ballPos).Unit * Settings.ShotPower
+		end
+		status = "Air dribble: shot!"
+		return false
+	end
+
+	local speed = Settings.BotSpeed * 0.45
+	local follow
+	if now - dribble.startedAt < DRIBBLE_POP_TIME then
+		-- pop: jump up into the ball
+		status = "Air dribble: pop"
+		follow = goalDir * speed * 0.5 + Vector3.new(0, 45, 0)
+		if owner then
+			ball.AssemblyLinearVelocity = goalDir * speed * 0.5 + Vector3.new(0, 45, 0)
+		end
+	else
+		status = "Air dribble"
+		if owner then
+			local lift = math.clamp((floorY + r + DRIBBLE_HEIGHT - ballPos.Y) * 4, -40, 40)
+			ball.AssemblyLinearVelocity = goalDir * speed + Vector3.new(0, lift, 0)
+		end
+		-- stay just behind and under the ball, matching its pace toward the net
+		local carry = ballPos - goalDir * (r + 2) - Vector3.new(0, r * 0.8 + 1, 0)
+		follow = (carry - carRoot.Position) * 6 + goalDir * speed
+		botTarget = carry
+	end
+	if follow.Magnitude > Settings.BotSpeed then
+		follow = follow.Unit * Settings.BotSpeed
+	end
+	local angle = steer(carRoot, forward, carRoot.Position + goalDir * 10)
+	pendingDrive = {
+		root = carRoot,
+		linear = follow,
+		full = true,
+		angular = Vector3.new(0, math.clamp(angle * 4, -Settings.TurnRate, Settings.TurnRate), 0),
+		expires = now + 0.1,
+	}
+	applyDrive(pendingDrive)
+	return true
+end
+
 local function botStep(ball, carRoot, driver, own, opp)
 	local r = ballRadius(ball)
 	local carPos = carRoot.Position
@@ -1065,6 +1152,14 @@ local function botStep(ball, carRoot, driver, own, opp)
 		hitDir = flat(predicted - carPos)
 	end
 	hitDir = hitDir.Magnitude > 0.1 and hitDir.Unit or Vector3.new(0, 0, -1)
+
+	if Settings.AirDribble and Settings.DriveMode == 1 and own and not defending then
+		if dribbleStep(ball, carRoot, carForward(carRoot, driver), r, opp) then
+			return
+		end
+	else
+		dribble.active = false
+	end
 
 	-- Line up behind the ball on the hit line. From the wrong side, swing
 	-- round it instead of pushing it back toward our own net.
@@ -1724,6 +1819,7 @@ addToggle(botPage, "Boost", "Boost")
 addToggle(botPage, "Aerials", "Aerials")
 addToggle(botPage, "Auto Save (defend your net)", "AutoSave")
 addToggle(botPage, "Perfect Aim (also when you drive)", "PerfectAim")
+addToggle(botPage, "Air Dribble (Physics mode)", "AirDribble")
 addStepper(botPage, "Bot Speed", "BotSpeed", 5, 30, 200)
 addStepper(botPage, "Turn Rate", "TurnRate", 0.5, 2, 12)
 addStepper(botPage, "Shot Power", "ShotPower", 10, 50, 250)
@@ -1977,7 +2073,8 @@ track(RunService.Heartbeat:Connect(function()
 		status = not ball and "Can't find the ball. Open the menu: Pick Ball"
 			or "Can't find your car. Open the menu: Pick Car"
 	end
-	if Settings.PerfectAim and ball and carRoot and opp then
+	-- Perfect Aim would fire the ball off the car's nose mid-dribble
+	if Settings.PerfectAim and ball and carRoot and opp and not dribble.active then
 		aimStep(ball, carRoot, opp)
 	end
 end))
