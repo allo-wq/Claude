@@ -92,6 +92,7 @@ local Settings = {
 	SwapGoals = false,
 	BallESP = true,
 	LandingMarker = true,
+	TargetMarker = true,
 	Fullbright = false,
 	AntiAFK = true,
 }
@@ -388,6 +389,9 @@ local car = {
 	learnedName = nil, -- its model name, to find it again after it respawns
 	forwardLocal = Vector3.new(0, 0, -1),
 	driveAverage = Vector3.zero,
+	steerSign = 1, -- -1 once we learn the controls turn the car the other way
+	steerVotes = 0,
+	lastTurn = 0,
 }
 local lastCarScan = -math.huge
 
@@ -510,13 +514,24 @@ local function findBall()
 		return valid and ballCache or nil
 	end
 	lastBallScan = os.clock()
-	local best = scanBalls()[1]
-	if best and best.accepted then
-		if best.part ~= ballCache then
+	if not valid then
+		ballCache = nil
+	end
+	local candidates = scanBalls()
+	local best = candidates[1]
+	if best and best.accepted and best.part ~= ballCache then
+		-- stick with the current ball unless something scores clearly better,
+		-- so the bot doesn't flip between targets every few seconds
+		local currentScore = -math.huge
+		for _, candidate in ipairs(candidates) do
+			if candidate.part == ballCache and candidate.accepted then
+				currentScore = candidate.score
+				break
+			end
+		end
+		if best.score > currentScore + 30 then
 			setBall(best.part, "auto")
 		end
-	elseif not valid then
-		ballCache = nil
 	end
 	return ballCache
 end
@@ -754,6 +769,7 @@ local function getCar()
 			-- until driving teaches us better, guess the nose is along the root's longer side
 			car.forwardLocal = root.Size.X > root.Size.Z * 1.2 and Vector3.new(1, 0, 0) or Vector3.new(0, 0, -1)
 			car.driveAverage = Vector3.zero
+			car.steerSign, car.steerVotes, car.lastTurn = 1, 0, 0
 		end
 	end
 	car.driver, car.method = driver, method
@@ -927,10 +943,13 @@ local function applyDrive(command)
 end
 
 -- Physics mode drives the car's velocity directly, so it needs no key presses.
+-- It heads straight for the target rather than along the car's nose, so it
+-- still gets there if the game won't let the car be turned, and it eases off
+-- on arrival (unless shooting) so it doesn't overshoot and circle.
 -- The command is applied now and again just before the next physics step, so a
 -- game script that also sets the car's velocity doesn't simply cancel it.
-local function physicsDrive(carRoot, forward, target, aerialTarget)
-	local angle, dot = steer(carRoot, forward, target)
+local function physicsDrive(carRoot, forward, target, aerialTarget, shooting)
+	local angle = steer(carRoot, forward, target)
 	local velocity = carRoot.AssemblyLinearVelocity
 	local topSpeed = Settings.Boost and Settings.BotSpeed or Settings.BotSpeed * 0.7
 	local linear, full
@@ -938,26 +957,51 @@ local function physicsDrive(carRoot, forward, target, aerialTarget)
 		linear = velocity:Lerp((aerialTarget - carRoot.Position).Unit * topSpeed, 0.3)
 		full = true
 	else
-		local goal = forward * topSpeed * math.max(dot, 0.3) -- ease off through tight turns
+		local toTarget = flat(target - carRoot.Position)
+		local distance = toTarget.Magnitude
+		local speed = shooting and topSpeed or topSpeed * math.clamp(distance / 20, 0.3, 1)
+		local goal = distance > 0.5 and toTarget.Unit * speed or Vector3.zero
 		linear = Vector3.new(lerp(velocity.X, goal.X, 0.35), 0, lerp(velocity.Z, goal.Z, 0.35))
 	end
 	pendingDrive = {
 		root = carRoot,
 		linear = linear,
 		full = full,
-		angular = Vector3.new(0, math.clamp(angle * 5, -Settings.TurnRate, Settings.TurnRate), 0),
+		-- turning the nose toward the target is just for looks now
+		angular = Vector3.new(0, math.clamp(angle * 4, -Settings.TurnRate, Settings.TurnRate), 0),
 		expires = os.clock() + 0.1,
 	}
 	applyDrive(pendingDrive)
 end
 
+-- Seat and Keys modes: which way the controls turn the car is learned from how
+-- it actually yaws when we steer, in case left and right are the other way round.
+-- Returns the steering to send, from -1 to 1 with + = left.
+local function calibratedTurn(carRoot, angle)
+	if math.abs(car.lastTurn) > 0.5 and flat(carRoot.AssemblyLinearVelocity).Magnitude > 10 then
+		local yaw = carRoot.AssemblyAngularVelocity.Y -- + = turning left
+		if math.abs(yaw) > 0.2 then
+			local agreed = (yaw > 0) == (car.lastTurn > 0)
+			car.steerVotes = math.clamp(car.steerVotes + (agreed and 1 or -1), -40, 40)
+			if car.steerVotes <= -20 then
+				car.steerSign = -car.steerSign
+				car.steerVotes = 0
+			end
+		end
+	end
+	local turn = math.clamp(angle * 2, -1, 1)
+	car.lastTurn = turn -- what we wanted, before the learned flip
+	return turn * car.steerSign
+end
+
 -- Keys mode presses W / A / D, holds left mouse to boost and taps right mouse to jump.
 local function keysDrive(carRoot, forward, target, aerial)
 	local angle = steer(carRoot, forward, target)
+	local turn = calibratedTurn(carRoot, angle)
 	local distance = flat(target - carRoot.Position).Magnitude
 	setKey(Enum.KeyCode.W, true)
-	setKey(Enum.KeyCode.A, angle > 0.12)
-	setKey(Enum.KeyCode.D, angle < -0.12)
+	setKey(Enum.KeyCode.A, turn > 0.24)
+	setKey(Enum.KeyCode.D, turn < -0.24)
 	setMouse(0, Settings.Boost and math.abs(angle) < 0.3 and distance > 25)
 	if aerial then
 		tapJump()
@@ -976,12 +1020,13 @@ end
 -- the game's car script reads from your controls. No key presses needed.
 local function seatDrive(seat, carRoot, forward, target, aerial)
 	local angle = steer(carRoot, forward, target)
+	local turn = calibratedTurn(carRoot, angle)
 	drivenSeat = seat
 	pcall(function()
 		seat.ThrottleFloat = 1
 		seat.Throttle = 1
-		seat.SteerFloat = math.clamp(-angle * 2, -1, 1) -- +1 steers right, angle + is left
-		seat.Steer = angle > 0.12 and -1 or (angle < -0.12 and 1 or 0)
+		seat.SteerFloat = -turn -- the seat's +1 steers right, our + is left
+		seat.Steer = turn > 0.24 and -1 or (turn < -0.24 and 1 or 0)
 	end)
 	setMouse(0, Settings.Boost and math.abs(angle) < 0.3 and flat(target - carRoot.Position).Magnitude > 25)
 	if aerial then
@@ -999,6 +1044,7 @@ end
 
 local lastBallPos
 local status = "Idle"
+local botTarget -- where the bot is heading this frame, shown by the target marker
 
 local function botStep(ball, carRoot, driver, own, opp)
 	local r = ballRadius(ball)
@@ -1025,6 +1071,7 @@ local function botStep(ball, carRoot, driver, own, opp)
 	local approach = predicted - hitDir * (r + 4)
 	local fromBall = flat(carPos - predicted)
 	local target
+	local shooting = false
 	if fromBall:Dot(hitDir) > 0 and fromBall.Magnitude > r + 2 then
 		local side = hitDir:Cross(Vector3.yAxis)
 		if fromBall:Dot(side) < 0 then
@@ -1034,6 +1081,7 @@ local function botStep(ball, carRoot, driver, own, opp)
 		status = defending and "Saving: getting goal-side" or "Rotating around the ball"
 	elseif flat(carPos - approach).Magnitude < r + 6 then
 		target = predicted + hitDir * 4
+		shooting = true
 		status = defending and "Saving: clearing" or "Shooting"
 	else
 		target = approach
@@ -1052,10 +1100,11 @@ local function botStep(ball, carRoot, driver, own, opp)
 		status ..= " (no goals found: just chasing)"
 	end
 
+	botTarget = aerial and predicted or target
 	local forward = carForward(carRoot, driver)
 	local seat = Settings.DriveMode == 2 and seatOf(carRoot)
 	if Settings.DriveMode == 1 then
-		physicsDrive(carRoot, forward, target, aerial and predicted - hitDir * (r * 0.8) or nil)
+		physicsDrive(carRoot, forward, target, aerial and predicted - hitDir * (r * 0.8) or nil, shooting)
 	elseif seat then
 		seatDrive(seat, carRoot, forward, target, aerial)
 	elseif Settings.DriveMode == 2 then
@@ -1203,7 +1252,29 @@ local marker = new("Part", {
 	Parent = workspace.CurrentCamera,
 })
 
+-- A green ball where the bot is heading, to see what it's chasing.
+local targetMarker = new("Part", {
+	Name = "TurboHubTarget",
+	Shape = Enum.PartType.Ball,
+	Size = Vector3.new(3, 3, 3),
+	Anchored = true,
+	CanCollide = false,
+	CanQuery = false,
+	CanTouch = false,
+	CastShadow = false,
+	Material = Enum.Material.Neon,
+	Color = Color3.fromRGB(60, 230, 110),
+	Transparency = 1,
+	Parent = workspace.CurrentCamera,
+})
+
 local function updateVisuals(ball)
+	if Settings.TargetMarker and Settings.AutoPlay and botTarget then
+		targetMarker.CFrame = CFrame.new(botTarget)
+		targetMarker.Transparency = 0.3
+	else
+		targetMarker.Transparency = 1
+	end
 	local show = Settings.BallESP and ball ~= nil
 	ballHighlight.Enabled = show
 	ballBillboard.Enabled = show
@@ -1243,6 +1314,7 @@ local function unload()
 	gui:Destroy()
 	espFolder:Destroy()
 	marker:Destroy()
+	targetMarker:Destroy()
 	if genv.TurboHubUnload == unload then
 		genv.TurboHubUnload = nil
 	end
@@ -1797,7 +1869,8 @@ track(UserInputService.InputBegan:Connect(function(input, processed)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	-- your character may be the car, so only skip it when picking the ball
-	params.FilterDescendantsInstances = mode == "ball" and { LP.Character, marker } or { marker }
+	params.FilterDescendantsInstances = mode == "ball" and { LP.Character, marker, targetMarker }
+		or { marker, targetMarker }
 	local result = workspace:Raycast(ray.Origin, ray.Direction * 2000, params)
 	if not result or not result.Instance:IsA("BasePart") then
 		notify("Missed. Tap Pick " .. (mode == "ball" and "Ball" or "Car") .. " and try again.")
@@ -1823,6 +1896,7 @@ local visualPage = createTab("Visual")
 addSection(visualPage, "Ball")
 addToggle(visualPage, "Ball ESP", "BallESP")
 addToggle(visualPage, "Landing Marker", "LandingMarker")
+addToggle(visualPage, "Bot Target Marker (green)", "TargetMarker")
 addSection(visualPage, "World")
 addToggle(visualPage, "Fullbright", "Fullbright", setFullbright)
 
