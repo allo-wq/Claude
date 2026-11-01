@@ -1,0 +1,3 @@
+.snapshots/
+dist/.qa-host.html
+node_modules/

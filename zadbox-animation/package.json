@@ -1,0 +1,13 @@
+{
+  "name": "zadbox-animation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Looping hero animation for zadbox.net",
+  "scripts": {
+    "build": "node tools/build.cjs",
+    "qa": "node tools/qa.cjs",
+    "snapshots": "node tools/snapshots.cjs",
+    "video:landscape": "node tools/render-video.cjs landscape",
+    "video:portrait": "node tools/render-video.cjs portrait"
+  }
+}
