@@ -1,0 +1,157 @@
+{
+ "duration": 23.6,
+ "handoff": 1,
+ "cues": [
+  {
+   "type": "tap",
+   "t": 2,
+   "video": 3
+  },
+  {
+   "type": "fly",
+   "t": 2.1,
+   "d": 0.78,
+   "x0": 95,
+   "x1": 328,
+   "w": 360,
+   "video": 3.1
+  },
+  {
+   "type": "pop",
+   "t": 2.88,
+   "n": 1,
+   "video": 3.88
+  },
+  {
+   "type": "tap",
+   "t": 3.68,
+   "video": 4.68
+  },
+  {
+   "type": "fly",
+   "t": 3.78,
+   "d": 0.78,
+   "x0": 266,
+   "x1": 328,
+   "w": 360,
+   "video": 4.78
+  },
+  {
+   "type": "pop",
+   "t": 4.56,
+   "n": 2,
+   "video": 5.56
+  },
+  {
+   "type": "scroll",
+   "t": 4.75,
+   "d": 1.15,
+   "video": 5.75
+  },
+  {
+   "type": "tap",
+   "t": 5.85,
+   "video": 6.85
+  },
+  {
+   "type": "sheet",
+   "t": 6,
+   "video": 7
+  },
+  {
+   "type": "tap",
+   "t": 8.98,
+   "video": 9.98
+  },
+  {
+   "type": "switch",
+   "t": 9.02,
+   "video": 10.02
+  },
+  {
+   "type": "tap",
+   "t": 11.62,
+   "video": 12.62
+  },
+  {
+   "type": "count",
+   "t": 9.85,
+   "d": 1.3,
+   "video": 10.85
+  },
+  {
+   "type": "select",
+   "t": 11.66,
+   "video": 12.66
+  },
+  {
+   "type": "scroll",
+   "t": 12.2,
+   "d": 1.15,
+   "video": 13.2
+  },
+  {
+   "type": "tap",
+   "t": 14.55,
+   "video": 15.55
+  },
+  {
+   "type": "swap",
+   "t": 14.62,
+   "video": 15.62
+  },
+  {
+   "type": "scroll",
+   "t": 16.7,
+   "d": 0.95,
+   "big": true,
+   "video": 17.7
+  },
+  {
+   "type": "star",
+   "t": 17.5,
+   "i": 0,
+   "video": 18.5
+  },
+  {
+   "type": "star",
+   "t": 17.56,
+   "i": 1,
+   "video": 18.56
+  },
+  {
+   "type": "star",
+   "t": 17.62,
+   "i": 2,
+   "video": 18.62
+  },
+  {
+   "type": "star",
+   "t": 17.68,
+   "i": 3,
+   "video": 18.68
+  },
+  {
+   "type": "star",
+   "t": 17.74,
+   "i": 4,
+   "video": 18.74
+  },
+  {
+   "type": "slide",
+   "t": 19,
+   "d": 1.05,
+   "video": 20
+  },
+  {
+   "type": "ring",
+   "t": 20.3,
+   "video": 21.3
+  },
+  {
+   "type": "outro",
+   "t": 21.8,
+   "video": 22.8
+  }
+ ]
+}

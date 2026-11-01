@@ -781,6 +781,14 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
     return { x: x, y: y, w: el.offsetWidth, h: el.offsetHeight, cx: x + el.offsetWidth / 2, cy: y + el.offsetHeight / 2 };
   }
 
+  /* Sound cues: every audible event, in master-timeline seconds (used by tools/render-audio.cjs) */
+  var CUES = [];
+  function cue(type, t, data) {
+    var c = { type: type, t: Math.round(t * 10000) / 10000 };
+    if (data) for (var k in data) c[k] = data[k];
+    CUES.push(c);
+  }
+
   /* Text values driven by the timeline (read every frame) */
   var S = { badge: 0, items: 0, total: 0, cal0: 0, cal1: 0, pro0: 0, pro1: 0, carb0: 0, carb1: 0, fat0: 0, fat1: 0 };
   var last = {};
@@ -802,6 +810,7 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
   /* ------------------------------------------------------------------ */
   function buildMaster() {
     var tl = gsap.timeline({ paused: true, repeat: -1 });
+    CUES.length = 0;
     var out = 'power3.out', inOut = 'power2.inOut', exit = 'power2.in';
 
     /* measure everything before any transform is applied */
@@ -827,6 +836,7 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
     function tapTo(t, x, y, d) { tl.to(E.tap, { x: x, y: y, duration: d, ease: inOut }, t); }
     function tapHide(t) { tl.to(E.tap, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' }, t); }
     function press(t, target) {
+      cue('tap', t);
       tl.to(E.tap, { scale: 0.76, duration: 0.12, ease: 'power2.out' }, t)
         .to(E.tap, { scale: 1, duration: 0.3, ease: 'power2.out' }, t + 0.12)
         .set(E.ripple, { scale: 0.7, autoAlpha: 0.6 }, t + 0.05)
@@ -838,6 +848,7 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
     }
     function fly(t, el, from) {
       var d = 0.78;
+      cue('fly', t + 0.06, { d: d, x0: Math.round(from.cx), x1: Math.round(P.cart.cx), w: panel.offsetWidth });
       tl.set(el, { x: from.cx, y: from.cy, scale: 1.25, autoAlpha: 0, rotation: 0 }, t)
         .to(el, { autoAlpha: 1, scale: 1, duration: 0.18, ease: 'power1.out' }, t)
         .to(el, { x: P.cart.cx, duration: d, ease: 'power2.inOut' }, t + 0.06)
@@ -848,6 +859,7 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
       return t + d + 0.06;
     }
     function bump(t, count, total) {
+      cue('pop', t, { n: count });
       tl.set(S, { badge: count, items: count }, t)
         .to(E.badge, { scale: 1.45, duration: 0.14, ease: 'power2.out' }, t)
         .to(E.badge, { scale: 1, duration: 0.45, ease: 'back.out(3)' }, t + 0.14)
@@ -919,10 +931,12 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
 
     tl.to(E.cont, { backgroundColor: PURPLE, duration: 0.35, ease: 'power1.out' }, 4.62)
       .to(E.orderScroll, { y: -S1, duration: 1.15, ease: inOut }, 4.75);
+    cue('scroll', 4.75, { d: 1.15 });
     tapTo(5.0, P.cont.cx, P.cont.cy, 0.75);
     press(5.85, E.cont);
     tapHide(6.0);
 
+    cue('sheet', 6.0);
     tl.to(E.scrim, { autoAlpha: 1, duration: 0.4, ease: 'power1.out' }, 6.0)
       .to(E.sheet, { yPercent: 0, duration: 0.75, ease: 'power4.out' }, 6.0)
       .to(E.sheetFill, { scaleX: 1, duration: 2.0, ease: 'power1.inOut' }, 6.45)
@@ -932,6 +946,7 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
     tapAppear(8.35, P.tab2.cx - 30, P.tab2.cy + 150);
     tapTo(8.37, P.tab2.cx, P.tab2.cy, 0.58);
     press(8.98, null);
+    cue('switch', 9.02);
     tl.to(E.ind, { xPercent: 100, duration: 0.6, ease: 'power3.inOut' }, 9.02)
       .to(E.tab1, { color: INK, duration: 0.3, ease: 'none' }, 9.1)
       .to(E.tab2, { color: WHITE, duration: 0.3, ease: 'none' }, 9.18);
@@ -955,15 +970,19 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
     tapAppear(10.95, P.dur.cx + 40, P.dur.cy + 110);
     tapTo(10.97, P.dur.cx, P.dur.cy, 0.62);
     press(11.62, E.durPick);
+    cue('count', 9.85, { d: 1.3 });
+    cue('select', 11.66);
     tl.to(E.durSel, { autoAlpha: 1, duration: 0.3, ease: 'power1.out' }, 11.66);
     tapHide(12.0);
 
+    cue('scroll', 12.2, { d: 1.15 });
     tl.to(E.subScroll, { y: -S2, duration: 1.15, ease: inOut }, 12.2)
       .to(E.weekItems, { autoAlpha: 1, y: 0, duration: 0.55, stagger: 0.07, ease: out }, 12.75);
 
     tapAppear(13.95, P.swap.cx + 50, P.swap.cy - S2 + 90);
     tapTo(13.97, P.swap.cx, P.swap.cy - S2, 0.55);
     press(14.55, E.swapDay);
+    cue('swap', 14.62);
     tl.to(E.swapA, { autoAlpha: 0, scale: 0.82, duration: 0.35, ease: exit }, 14.62)
       .to(E.swapB, { autoAlpha: 1, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 14.8)
       .to(E.notice, { autoAlpha: 1, y: 0, duration: 0.55, ease: out }, 14.95);
@@ -972,6 +991,7 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
     /* ===== Transition → Chapter 3 ===================================== */
     layerOut(E.eyebrows[1], 16.6);
     layerOut(E.captions[1], 16.6);
+    cue('scroll', 16.7, { d: 0.95, big: true });
     tl.to(E.subScene, { y: -VH, duration: 0.95, ease: 'power3.inOut' }, 16.7)
       .set(E.revScene, { autoAlpha: 1 }, 16.7)
       .to(E.revScene, { y: 0, duration: 0.95, ease: 'power3.inOut' }, 16.7);
@@ -979,6 +999,9 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
     /* ===== Chapter 3 · Reviews ======================================== */
     layerIn(E.eyebrows[2], 17.05);
     layerIn(E.captions[2], 17.13);
+    E.stars.forEach(function (_, i) { cue('star', 17.5 + i * 0.06, { i: i }); });
+    cue('slide', 19.0, { d: 1.05 });
+    cue('ring', 20.3);
     tl.to(E.revItems, { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: out }, 17.35)
       .to(E.stars, { autoAlpha: 1, scale: 1, duration: 0.45, stagger: 0.06, ease: 'back.out(2.6)' }, 17.5)
       .to(E.revCards, { autoAlpha: 1, x: 0, duration: 0.65, stagger: 0.1, ease: out }, 17.75)
@@ -988,6 +1011,7 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
       .to(E.waRing, { autoAlpha: 0, scaleX: 1.12, scaleY: 1.45, duration: 1.0, ease: 'power2.out' }, 20.3);
 
     /* ===== Loop out → back to the t = 0 state ========================= */
+    cue('outro', 21.8);
     layerOut(E.eyebrows[2], 21.8);
     layerOut(E.captions[2], 21.8);
     tl.to(E.revScene, { autoAlpha: 0, y: -18, duration: 0.5, ease: exit }, 21.8)
@@ -1144,6 +1168,9 @@ html, body { margin: 0; height: 100%; background: #FFFFFF; }
     get duration() { return HANDOFF + END; },
     get loopDuration() { return END; },
     chapters: CHAPTERS.slice(),
+    handoff: HANDOFF,
+    /* audible events; t = master seconds, video = seconds from the start of the intro */
+    get cues() { return CUES.map(function (c) { var o = {}; for (var k in c) o[k] = c[k]; o.video = Math.round((c.t + HANDOFF) * 10000) / 10000; return o; }); },
     /* Render the exact frame at time t (intro + first loop). Stops playback. */
     renderAt: function (t) {
       if (!master) return false;

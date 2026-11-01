@@ -27,8 +27,9 @@ A 1-second intro (headline word reveal, app rising in) plays once before the fir
 ```
 dist/
   zadbox-animation.html            ← single self-contained file (fonts, images, code inlined; ~650 KB)
-  zadbox-animation-landscape.mp4   ← 1920×1080, 60 fps (ads, YouTube, desktop)
-  zadbox-animation-portrait.mp4    ← 1080×1920, 60 fps (Reels, Stories, TikTok, WhatsApp status)
+  zadbox-animation-landscape.mp4   ← 1920×1080, 60 fps, with sound (ads, YouTube, desktop)
+  zadbox-animation-portrait.mp4    ← 1080×1920, 60 fps, with sound (Reels, Stories, TikTok, WhatsApp status)
+  zadbox-animation-soundtrack.m4a  ← the soundtrack on its own (AAC 256 kbps, −14 LUFS)
 src/
   index.html  styles.css  animation.js
   assets/     fonts (Plus Jakarta Sans, OFL), logo, dish photos
@@ -37,7 +38,10 @@ tools/
   build.cjs          src → dist/zadbox-animation.html
   qa.cjs             automated behaviour checks (18)
   snapshots.cjs      exact-frame screenshots for review
-  render-video.cjs   frame-accurate MP4 export
+  render-video.cjs   frame-accurate MP4 export (silent)
+  render-audio.cjs   compose the soundtrack and add it to the MP4s
+  audio/compose.py   the music and sound-effect synthesiser (numpy)
+  audio/cues.json    sound cues exported from the timeline
 ```
 
 ## Putting it on the website
@@ -70,6 +74,39 @@ Copy the `<section class="zb" id="zadbox-hero">…</section>` markup, `styles.cs
 - **`prefers-reduced-motion`:** nothing autoplays. A still frame of each chapter is shown instead; the chapter buttons switch between them, and the play button still works.
 - **Accessibility:** the app mock-up is decorative (`aria-hidden`). The headline and captions are real text.
 
+## Sound
+
+The soundtrack is **original**. It was synthesised from scratch in `tools/audio/compose.py`, using no samples, stock music or licensed audio.
+
+- **Music:** a warm pad, a marimba arpeggio, soft bass and light drums. It is in F major (Fmaj9 → Dm9 → B♭maj9 → C) at 115.66 BPM, a tempo chosen so the bar lines land on the chapter changes (1.0 s, 9.3 s, 17.6 s). It ends on the home chord and fades out with the video.
+- **Sound effects:** each one is placed on the exact moment the animation exported for it (`audio/cues.json`):
+
+  | Event | Sound |
+  |---|---|
+  | Tap | soft click |
+  | Dish flies to the cart | whoosh, panned left to right as it moves |
+  | Cart badge | "pop" with a rising two-note ding |
+  | Delivery sheet | whoosh plus a three-note chime |
+  | Tab switch | whoosh |
+  | Plan macros counting up | soft ticks |
+  | Duration pick | ding |
+  | Dish swap | flip |
+  | Five stars | five rising sparkle notes |
+  | Review carousel | slide |
+  | WhatsApp | message chime |
+  | Loop out | settle |
+
+- **Mastering:** −14 LUFS integrated with a −1 dBTP ceiling, which suits Instagram, TikTok and YouTube.
+- **Measured sync:** taps, pops, chimes and stars all start within 0–2 ms of their on-screen event.
+
+The website version stays **silent** on purpose. Browsers block sound that starts on its own, and a muted hero is the norm.
+
+To change the sound, edit `compose.py` (the tempo, chords, `MELODY` and the per-event sounds in `compose_sfx`), then run:
+
+```bash
+node tools/render-audio.cjs     # re-exports cues, recomposes, re-masters, re-muxes both MP4s
+```
+
 ## Editing
 
 - **Colors:** the CSS custom properties at the top of `styles.css` (`--zb-purple`, …).
@@ -83,9 +120,10 @@ node tools/build.cjs                      # → dist/zadbox-animation.html
 node tools/qa.cjs                         # 18 behaviour checks
 node tools/render-video.cjs landscape     # → dist/zadbox-animation-landscape.mp4
 node tools/render-video.cjs portrait      # → dist/zadbox-animation-portrait.mp4
+node tools/render-audio.cjs               # add the soundtrack to both videos
 ```
 
-The tools need Node 18+, Playwright with Chromium, and ffmpeg (for the videos).
+The tools need Node 18+, Playwright with Chromium, ffmpeg (for the videos), and Python 3 with numpy (for the sound).
 
 ## Still to replace
 

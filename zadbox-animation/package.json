@@ -8,6 +8,7 @@
     "qa": "node tools/qa.cjs",
     "snapshots": "node tools/snapshots.cjs",
     "video:landscape": "node tools/render-video.cjs landscape",
-    "video:portrait": "node tools/render-video.cjs portrait"
+    "video:portrait": "node tools/render-video.cjs portrait",
+    "audio": "node tools/render-audio.cjs"
   }
 }
