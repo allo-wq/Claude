@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OSINT Atlas</title>
+  <meta name="description" content="OSINT Atlas — a pivot launcher, in-browser investigation toolbox, curated tool directory and case notebook for open-source intelligence research.">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/theme.js"></script>
+</head>
+<body>
+  <!-- Icon sprite -->
+  <svg width="0" height="0" class="sprite" aria-hidden="true">
+    <defs>
+      <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9M12 3C9.5 5.6 8.2 8.6 8.2 12s1.3 6.4 3.8 9"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v6c0 4.4 3.2 8.2 7.5 9 4.3-.8 7.5-4.6 7.5-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+      <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></symbol>
+      <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18"/></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5h10.5A3.5 3.5 0 0 1 19 8v12H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></symbol>
+      <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6.1-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 14.9 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.3"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></symbol>
+    </defs>
+  </svg>
+
+  <a class="skip" href="#pivot">Skip to content</a>
+
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#top" aria-label="OSINT Atlas home">
+        <svg class="ic brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
+        <span>OSINT<b>Atlas</b></span>
+      </a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#pivot" data-nav="pivot">Pivot</a>
+        <a href="#toolbox" data-nav="toolbox">Toolbox</a>
+        <a href="#directory" data-nav="directory">Directory</a>
+        <a href="#notebook" data-nav="notebook">Notebook</a>
+        <a href="#method" data-nav="method">Method</a>
+      </nav>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+        <svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ============ PIVOT ============ -->
+    <section class="hero" id="pivot" aria-labelledby="pivot-title">
+      <div class="wrap">
+        <p class="eyebrow">Open-source intelligence workbench</p>
+        <h1 id="pivot-title">Start from one clue.<br><span class="accent">Pivot to everything public.</span></h1>
+        <p class="lead">Paste a domain, IP, email, URL, username, file hash, coordinates or post ID. Atlas identifies it and lines up the right public sources, grouped by what each one tells you.</p>
+
+        <form class="pivot-form" id="pivot-form" autocomplete="off" role="search">
+          <div class="pivot-field">
+            <svg class="ic pf-icon" aria-hidden="true"><use href="#i-search"/></svg>
+            <label class="sr-only" for="pivot-input">Indicator to investigate</label>
+            <input id="pivot-input" class="pivot-input" type="text" spellcheck="false" placeholder="example.com · 8.8.8.8 · @handle · 48.8584, 2.2945" aria-describedby="pivot-hint">
+            <span class="type-badge" id="pivot-badge" aria-live="polite">auto</span>
+          </div>
+          <label class="sr-only" for="pivot-type">Indicator type</label>
+          <select id="pivot-type" class="select pivot-type" aria-label="Indicator type">
+            <option value="auto">Auto-detect</option>
+          </select>
+          <button class="btn primary pivot-go" type="submit">Pivot <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </form>
+        <p class="pivot-hint" id="pivot-hint">Defanged input like <code>hxxps://evil[.]example</code> is refanged automatically. Press <kbd>/</kbd> to focus.</p>
+
+        <div class="examples" aria-label="Examples">
+          <span class="examples-label">Try</span>
+          <button type="button" class="chip" data-example="wikipedia.org">wikipedia.org</button>
+          <button type="button" class="chip" data-example="1.1.1.1">1.1.1.1</button>
+          <button type="button" class="chip" data-example="@torvalds">@torvalds</button>
+          <button type="button" class="chip" data-example="48.85837, 2.294481">48.85837, 2.294481</button>
+          <button type="button" class="chip" data-example="275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f">EICAR sha256</button>
+          <button type="button" class="chip" data-example="1854000000000000000">post ID</button>
+        </div>
+
+        <div class="hero-stats" id="hero-stats"></div>
+
+        <div id="pivot-results" class="pivot-results" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ============ TOOLBOX ============ -->
+    <section class="section" id="toolbox" aria-labelledby="toolbox-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Toolbox</p>
+          <h2 id="toolbox-title">Utilities that run in your browser</h2>
+          <p class="lead">Everything here processes data locally — nothing you paste or drop is uploaded. The one exception is the live DNS &amp; RDAP lookup, which says so.</p>
+        </header>
+
+        <div class="toolbox">
+          <div class="tool-tabs" role="tablist" aria-label="Tools" id="tool-tabs">
+            <button role="tab" class="tool-tab" id="tab-intel" aria-controls="tool-intel" data-tool="intel"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg><span><b>Domain &amp; IP intel</b><small>Live DNS + RDAP</small></span></button>
+            <button role="tab" class="tool-tab" id="tab-exif" aria-controls="tool-exif" data-tool="exif"><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg><span><b>Image metadata</b><small>EXIF, GPS, camera</small></span></button>
+            <button role="tab" class="tool-tab" id="tab-ioc" aria-controls="tool-ioc" data-tool="ioc"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span><b>IOC extractor</b><small>Indicators from text</small></span></button>
+            <button role="tab" class="tool-tab" id="tab-dork" aria-controls="tool-dork" data-tool="dork"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg><span><b>Dork builder</b><small>Advanced search queries</small></span></button>
+            <button role="tab" class="tool-tab" id="tab-headers" aria-controls="tool-headers" data-tool="headers"><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg><span><b>Email headers</b><small>Hops, SPF, DKIM, DMARC</small></span></button>
+            <button role="tab" class="tool-tab" id="tab-hash" aria-controls="tool-hash" data-tool="hash"><svg class="ic" aria-hidden="true"><use href="#i-hash"/></svg><span><b>Hash generator</b><small>MD5 · SHA-1 · SHA-256</small></span></button>
+            <button role="tab" class="tool-tab" id="tab-codec" aria-controls="tool-codec" data-tool="codec"><svg class="ic" aria-hidden="true"><use href="#i-code"/></svg><span><b>Encode / decode</b><small>Base64, URL, hex, JWT</small></span></button>
+            <button role="tab" class="tool-tab" id="tab-time" aria-controls="tool-time" data-tool="time"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span><b>Time &amp; ID decoder</b><small>Timestamps, snowflakes</small></span></button>
+          </div>
+
+          <div class="tool-panels">
+            <!-- Domain & IP intel -->
+            <div class="tool-panel" id="tool-intel" role="tabpanel" aria-labelledby="tab-intel" hidden>
+              <header class="tp-head">
+                <h3>Domain &amp; IP intel</h3>
+                <p>Resolves DNS records and fetches registration data (RDAP) for a domain or IP address.</p>
+                <p class="net-note"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg> Sends the query to Google Public DNS (Cloudflare as fallback) and rdap.org. The target itself is never contacted.</p>
+              </header>
+              <form class="inline-form" id="intel-form" autocomplete="off">
+                <label class="sr-only" for="intel-input">Domain or IP</label>
+                <input id="intel-input" class="field mono" type="text" spellcheck="false" placeholder="example.com or 192.0.2.10">
+                <button class="btn primary" type="submit">Look up</button>
+              </form>
+              <div id="intel-out" class="tool-out"></div>
+            </div>
+
+            <!-- EXIF -->
+            <div class="tool-panel" id="tool-exif" role="tabpanel" aria-labelledby="tab-exif" hidden>
+              <header class="tp-head">
+                <h3>Image metadata</h3>
+                <p>Reads EXIF from JPEG and TIFF files: camera, lens, capture time, editing software and GPS position.</p>
+              </header>
+              <label class="dropzone" id="exif-drop">
+                <input type="file" id="exif-file" accept="image/jpeg,image/tiff,image/*" class="sr-only">
+                <svg class="ic dz-icon" aria-hidden="true"><use href="#i-upload"/></svg>
+                <span class="dz-title">Drop an image here or click to choose</span>
+                <span class="dz-sub">Processed locally — the file never leaves your device.</span>
+              </label>
+              <div id="exif-out" class="tool-out"></div>
+            </div>
+
+            <!-- IOC -->
+            <div class="tool-panel" id="tool-ioc" role="tabpanel" aria-labelledby="tab-ioc" hidden>
+              <header class="tp-head">
+                <h3>IOC extractor</h3>
+                <p>Paste a threat report, log or email. Atlas pulls out IPs, domains, URLs, emails, hashes, CVEs and crypto addresses, deduplicated, and refangs or defangs them.</p>
+              </header>
+              <div class="split">
+                <div class="stack">
+                  <label class="lbl" for="ioc-in">Source text</label>
+                  <textarea id="ioc-in" class="field mono" rows="13" spellcheck="false" placeholder="Paste text containing indicators…"></textarea>
+                  <div class="row">
+                    <button type="button" class="btn ghost" id="ioc-sample">Load sample</button>
+                    <label class="check"><input type="checkbox" id="ioc-defang"> Defang output</label>
+                  </div>
+                </div>
+                <div id="ioc-out" class="ioc-out" aria-live="polite"></div>
+              </div>
+            </div>
+
+            <!-- Dork -->
+            <div class="tool-panel" id="tool-dork" role="tabpanel" aria-labelledby="tab-dork" hidden>
+              <header class="tp-head">
+                <h3>Dork builder</h3>
+                <p>Compose search-operator queries without memorising syntax. Start from a preset or fill in fields.</p>
+              </header>
+              <div class="presets" id="dork-presets" aria-label="Presets"></div>
+              <div class="form-grid" id="dork-form">
+                <label class="fld"><span>All of these words</span><input class="field" data-dk="words" type="text"></label>
+                <label class="fld"><span>Exact phrase</span><input class="field" data-dk="exact" type="text"></label>
+                <label class="fld"><span>Any of these words</span><input class="field" data-dk="any" type="text" placeholder="space-separated"></label>
+                <label class="fld"><span>None of these words</span><input class="field" data-dk="none" type="text" placeholder="space-separated"></label>
+                <label class="fld"><span>Site or domain</span><input class="field mono" data-dk="site" type="text" placeholder="example.com"></label>
+                <label class="fld"><span>Exclude site</span><input class="field mono" data-dk="nosite" type="text" placeholder="www.example.com"></label>
+                <label class="fld"><span>File types</span><input class="field mono" data-dk="filetype" type="text" placeholder="pdf, docx, xlsx"></label>
+                <label class="fld"><span>Word in page title</span><input class="field" data-dk="intitle" type="text"></label>
+                <label class="fld"><span>Word in URL</span><input class="field" data-dk="inurl" type="text"></label>
+                <label class="fld"><span>Word in body text</span><input class="field" data-dk="intext" type="text"></label>
+                <label class="fld"><span>After date</span><input class="field" data-dk="after" type="date"></label>
+                <label class="fld"><span>Before date</span><input class="field" data-dk="before" type="date"></label>
+              </div>
+              <div class="query-box">
+                <div class="qb-top"><span class="lbl">Query</span><button type="button" class="btn ghost sm" id="dork-clear">Clear</button></div>
+                <code id="dork-query" class="query mono">Fill in a field to build a query</code>
+                <div class="row wrap-row" id="dork-engines"></div>
+              </div>
+            </div>
+
+            <!-- Email headers -->
+            <div class="tool-panel" id="tool-headers" role="tabpanel" aria-labelledby="tab-headers" hidden>
+              <header class="tp-head">
+                <h3>Email header analyzer</h3>
+                <p>Paste raw message headers (in Gmail: <em>Show original</em>; Outlook: <em>View message source</em>). Atlas orders the relay hops, measures delays and flags spoofing signals.</p>
+              </header>
+              <label class="lbl" for="hdr-in">Raw headers</label>
+              <textarea id="hdr-in" class="field mono" rows="9" spellcheck="false" placeholder="Received: from …"></textarea>
+              <div class="row">
+                <button type="button" class="btn primary" id="hdr-go">Analyze</button>
+                <button type="button" class="btn ghost" id="hdr-sample">Load sample</button>
+              </div>
+              <div id="hdr-out" class="tool-out"></div>
+            </div>
+
+            <!-- Hash -->
+            <div class="tool-panel" id="tool-hash" role="tabpanel" aria-labelledby="tab-hash" hidden>
+              <header class="tp-head">
+                <h3>Hash generator</h3>
+                <p>Fingerprint text or files for evidence integrity, or to look a file up on malware databases without uploading it.</p>
+              </header>
+              <div class="seg" role="radiogroup" aria-label="Input type">
+                <button type="button" class="seg-btn active" data-hash-mode="text" role="radio" aria-checked="true">Text</button>
+                <button type="button" class="seg-btn" data-hash-mode="file" role="radio" aria-checked="false">File</button>
+              </div>
+              <div data-hash-pane="text">
+                <label class="sr-only" for="hash-text">Text to hash</label>
+                <textarea id="hash-text" class="field mono" rows="5" spellcheck="false" placeholder="Type or paste text (hashed as UTF-8)…"></textarea>
+              </div>
+              <div data-hash-pane="file" hidden>
+                <label class="dropzone compact" id="hash-drop">
+                  <input type="file" id="hash-file" class="sr-only">
+                  <svg class="ic dz-icon" aria-hidden="true"><use href="#i-file"/></svg>
+                  <span class="dz-title">Drop a file or click to choose</span>
+                  <span class="dz-sub">Hashed locally. Up to 512&nbsp;MB.</span>
+                </label>
+              </div>
+              <div id="hash-out" class="tool-out"></div>
+            </div>
+
+            <!-- Codec -->
+            <div class="tool-panel" id="tool-codec" role="tabpanel" aria-labelledby="tab-codec" hidden>
+              <header class="tp-head">
+                <h3>Encode / decode</h3>
+                <p>Convert between common encodings found in URLs, payloads, tokens and obfuscated text.</p>
+              </header>
+              <div class="row">
+                <label class="sr-only" for="codec-op">Operation</label>
+                <select id="codec-op" class="select"></select>
+                <button type="button" class="btn ghost" id="codec-swap" title="Use output as input"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg> Output → input</button>
+              </div>
+              <div class="split">
+                <div class="stack"><label class="lbl" for="codec-in">Input</label><textarea id="codec-in" class="field mono" rows="9" spellcheck="false"></textarea></div>
+                <div class="stack"><div class="qb-top"><label class="lbl" for="codec-out">Output</label><button type="button" class="btn ghost sm" id="codec-copy"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg> Copy</button></div><textarea id="codec-out" class="field mono" rows="9" readonly></textarea></div>
+              </div>
+              <p class="err" id="codec-err" hidden></p>
+            </div>
+
+            <!-- Time -->
+            <div class="tool-panel" id="tool-time" role="tabpanel" aria-labelledby="tab-time" hidden>
+              <header class="tp-head">
+                <h3>Time &amp; ID decoder</h3>
+                <p>Convert Unix timestamps, and recover the creation time hidden in post and message IDs on X, Discord, Mastodon and TikTok.</p>
+              </header>
+              <div class="split">
+                <div class="card-lite">
+                  <h4>Timestamp</h4>
+                  <div class="inline-form">
+                    <label class="sr-only" for="ts-in">Timestamp or date</label>
+                    <input id="ts-in" class="field mono" type="text" placeholder="1700000000 or 2026-11-03T12:00Z">
+                    <button type="button" class="btn ghost" id="ts-now">Now</button>
+                  </div>
+                  <div id="ts-out" class="kv-list"></div>
+                </div>
+                <div class="card-lite">
+                  <h4>Snowflake / post ID</h4>
+                  <div class="inline-form">
+                    <label class="sr-only" for="sf-in">Snowflake ID</label>
+                    <input id="sf-in" class="field mono" type="text" inputmode="numeric" placeholder="1854000000000000000">
+                  </div>
+                  <div id="sf-out" class="kv-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DIRECTORY ============ -->
+    <section class="section alt" id="directory" aria-labelledby="directory-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Directory</p>
+          <h2 id="directory-title">Curated sources, by what they find</h2>
+          <p class="lead">Hand-picked services and open-source tools investigators rely on. Filter by category or access model.</p>
+        </header>
+        <div class="dir-controls">
+          <div class="dir-search">
+            <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+            <label class="sr-only" for="dir-search">Search the directory</label>
+            <input id="dir-search" class="field" type="search" placeholder="Search tools — e.g. satellite, subdomain, ship">
+          </div>
+          <div class="seg" id="dir-access" role="radiogroup" aria-label="Access"></div>
+        </div>
+        <div class="chips" id="dir-cats" aria-label="Categories"></div>
+        <p class="dir-count" id="dir-count" aria-live="polite"></p>
+        <div class="tool-grid" id="dir-grid"></div>
+      </div>
+    </section>
+
+    <!-- ============ NOTEBOOK ============ -->
+    <section class="section" id="notebook" aria-labelledby="notebook-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Case notebook</p>
+          <h2 id="notebook-title">Keep a record as you go</h2>
+          <p class="lead">Log entities and notes while you work, then export them. Stored only in this browser.</p>
+        </header>
+        <p class="banner warn" id="nb-storage-warn" hidden><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> Browser storage is unavailable here, so the notebook lasts only while this tab is open. Export before you leave.</p>
+
+        <div class="notebook">
+          <div class="nb-main">
+            <label class="lbl" for="nb-title">Case name</label>
+            <input id="nb-title" class="field nb-title" type="text" placeholder="Untitled case">
+
+            <form class="nb-add" id="nb-add" autocomplete="off">
+              <label class="sr-only" for="nb-type">Entity type</label>
+              <select id="nb-type" class="select"></select>
+              <label class="sr-only" for="nb-value">Value</label>
+              <input id="nb-value" class="field mono" type="text" placeholder="Value" required>
+              <label class="sr-only" for="nb-note">Note</label>
+              <input id="nb-note" class="field" type="text" placeholder="Note (optional)">
+              <button class="btn primary" type="submit"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Add</button>
+            </form>
+
+            <div class="table-wrap">
+              <table class="nb-table">
+                <thead><tr><th>Type</th><th>Value</th><th>Note</th><th>Added</th><th><span class="sr-only">Actions</span></th></tr></thead>
+                <tbody id="nb-rows"></tbody>
+              </table>
+              <p class="empty" id="nb-empty">No entities yet. Add one above, or use <b>Log to notebook</b> on any pivot result.</p>
+            </div>
+          </div>
+          <div class="nb-side">
+            <label class="lbl" for="nb-notes">Notes</label>
+            <textarea id="nb-notes" class="field" rows="12" placeholder="Hypotheses, sources, timeline, next steps…"></textarea>
+            <div class="nb-actions">
+              <button type="button" class="btn ghost" id="nb-export-md"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Markdown</button>
+              <button type="button" class="btn ghost" id="nb-export-json"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> JSON</button>
+              <label class="btn ghost" for="nb-import"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Import</label>
+              <input type="file" id="nb-import" accept="application/json,.json" class="sr-only">
+              <button type="button" class="btn danger-ghost" id="nb-clear"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> Clear</button>
+            </div>
+            <p class="saved" id="nb-saved" aria-live="polite"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ METHOD ============ -->
+    <section class="section alt" id="method" aria-labelledby="method-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Method</p>
+          <h2 id="method-title">Investigate carefully, verifiably and lawfully</h2>
+          <p class="lead">Tools find data; method turns it into findings others can trust.</p>
+        </header>
+
+        <ol class="cycle">
+          <li><span class="step">01</span><h3>Plan</h3><p>Write down the question you are answering, your legal basis and what is out of scope.</p></li>
+          <li><span class="step">02</span><h3>Collect</h3><p>Gather from open sources, passively where possible. Archive pages as you find them.</p></li>
+          <li><span class="step">03</span><h3>Process</h3><p>Normalise and deduplicate. Hash and timestamp files; never edit originals.</p></li>
+          <li><span class="step">04</span><h3>Analyse</h3><p>Corroborate across independent sources. Rate source reliability and your confidence.</p></li>
+          <li><span class="step">05</span><h3>Report</h3><p>Cite every source, capture date and method so someone else can reproduce your work.</p></li>
+        </ol>
+
+        <div class="method-grid">
+          <div class="card">
+            <h3><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg> OPSEC checklist</h3>
+            <p class="muted">Tick these off before you start. Saved in this browser.</p>
+            <ul class="checklist" id="opsec-list"></ul>
+            <p class="checklist-progress" id="opsec-progress"></p>
+          </div>
+          <div class="card">
+            <h3><svg class="ic" aria-hidden="true"><use href="#i-compass"/></svg> Ethics &amp; law</h3>
+            <ul class="ethics">
+              <li><b>Have a legitimate purpose</b> and stay within the law and each platform's terms of service.</li>
+              <li><b>Collect only what you need.</b> Personal data you don't gather can't leak or be misused.</li>
+              <li><b>Never harass, stalk, dox or intimidate.</b> Findings about people carry real-world consequences.</li>
+              <li><b>Treat breach data with caution.</b> Possessing or using it can be unlawful depending on where you are.</li>
+              <li><b>Verify before you publish.</b> Misidentification harms innocent people; state your confidence.</li>
+            </ul>
+            <p class="muted small">Further reading: the <a href="https://www.ohchr.org/en/publications/policy-and-methodological-publications/berkeley-protocol-digital-open-source" target="_blank" rel="noopener noreferrer">Berkeley Protocol on Digital Open Source Investigations</a>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <p><b>OSINT Atlas</b> — a static, client-side workbench. No accounts, no tracking, no server.</p>
+      <p class="muted">Third-party links open in a new tab and receive whatever you send them. Use responsibly and lawfully.</p>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/lib/md5.js"></script>
+  <script src="assets/js/lib/exif.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/tools.js"></script>
+</body>
+</html>
