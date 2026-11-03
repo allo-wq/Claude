@@ -19,7 +19,7 @@ local KEY_LINK = "https://sl1nk.com/y16flb2"   -- your "get key" page
 
 -- The key(s) your key page gives out. Add/replace these.
 local VALID_KEYS = {
-    ["PUT-YOUR-KEY-HERE"] = true,
+    ["tam"] = true,
     -- ["ANOTHER-KEY"] = true,
 }
 
