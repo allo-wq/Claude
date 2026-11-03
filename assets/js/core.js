@@ -63,7 +63,30 @@
     toast(label);
   }
 
-  function download(filename, text, type = 'text/plain') {
+  /* ---------- hosting context ----------
+     Inside the claude.ai viewer the page gets a `window.claude` with `use()`. That sandbox blocks
+     requests to outside services and page-started downloads, so saves go through its downloads
+     capability instead. Everywhere else `hosted` is false and nothing here changes behaviour. */
+  const hosted = !!(window.claude && typeof window.claude.use === 'function');
+  const downloadsReady = hosted
+    ? Promise.resolve().then(() => window.claude.use('downloads')).catch(() => null)
+    : Promise.resolve(null);
+
+  async function download(filename, text, type = 'text/plain') {
+    if (hosted) {
+      const dl = await downloadsReady;
+      if (!dl) { copy(text, 'Saving files is blocked here, so the export was copied to your clipboard'); return; }
+      try {
+        const res = await dl.save({ filename, data: text });
+        if (res && res.status === 'saved') toast(`Saved ${filename}`);
+      } catch (e) {
+        const code = e && e.code;
+        if (code === 'declined') return;
+        if (code === 'rate_limited') { toast('A save prompt is already open'); return; }
+        copy(text, 'Saving files is unavailable here, so the export was copied to your clipboard');
+      }
+      return;
+    }
     const url = URL.createObjectURL(new Blob([text], { type }));
     const a = document.createElement('a');
     a.href = url;
@@ -248,7 +271,7 @@
   }
 
   window.Atlas = {
-    $, $$, esc, icon, store, toast, copy, download,
+    $, $$, esc, icon, store, toast, copy, download, hosted, downloadsReady,
     fmtUTC, fmtLocal, relTime, fmtBytes, hostOf,
     refang, defang, detect, isIP, isIPv6, isPrivateIP, RX,
     decodeSnowflake,

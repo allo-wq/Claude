@@ -111,7 +111,7 @@
 
   let lastResult = null;
 
-  function renderPivot(d) {
+  function renderPivot(d, example) {
     const groups = D.pivots[d.type] || [];
     const allLinks = [];
     const groupsHTML = groups.map((g) => {
@@ -124,7 +124,7 @@
 
     const mismatch = d.guessed !== d.type
       ? `<p class="result-note">${icon('alert')}<span>This looks like a <b>${esc(D.types[d.guessed].label.toLowerCase())}</b>, but you chose <b>${esc(D.types[d.type].label.toLowerCase())}</b>. Some links may not resolve.</span></p>` : '';
-    const live = (d.type === 'domain' || d.type === 'ip')
+    const live = !A.hosted && (d.type === 'domain' || d.type === 'ip')
       ? `<button type="button" class="btn sm primary" data-act="live">${icon('globe')} Live DNS &amp; RDAP</button>` : '';
     const coordsTools = d.type === 'coords'
       ? `<p class="result-note">${icon('pin')}<span>Check the sun angle in SunCalc against shadows in your image to estimate the time it was taken.</span></p>` : '';
@@ -133,7 +133,7 @@
     pOut.innerHTML = `<article class="result">
       <div class="result-head">
         <span class="result-type">${esc(D.types[d.type].label)}</span>
-        <code class="result-value">${esc(d.value)}</code>
+        <code class="result-value">${esc(d.value)}</code>${example ? '<span class="pill info">Example — try your own above</span>' : ''}
         <div class="result-actions">
           ${live}
           <button type="button" class="btn sm ghost" data-act="copy">${icon('copy')} Copy</button>
@@ -408,14 +408,39 @@
       toast('That file is not an OSINT Atlas case export');
     }
   });
-  $('#nb-clear').addEventListener('click', () => {
-    if (!nb.entities.length && !nb.notes && !nb.title) return;
-    if (!window.confirm('Clear this case? Export it first if you want to keep it.')) return;
+  // Two-step clear: the first click arms the button, a second click within 4 s clears the case.
+  const clearBtn = $('#nb-clear');
+  let clearTimer = null;
+  function disarmClear() {
+    clearTimeout(clearTimer);
+    clearTimer = null;
+    clearBtn.classList.remove('armed');
+    clearBtn.innerHTML = `${icon('trash')} Clear`;
+  }
+  clearBtn.addEventListener('click', () => {
+    if (!nb.entities.length && !nb.notes && !nb.title) { toast('The notebook is already empty'); return; }
+    if (!clearTimer) {
+      clearBtn.classList.add('armed');
+      clearBtn.innerHTML = `${icon('trash')} Click again to clear`;
+      clearTimer = setTimeout(disarmClear, 4000);
+      return;
+    }
+    disarmClear();
     nb.title = ''; nb.notes = ''; nb.entities = [];
     saveNB(true);
     renderNB();
+    toast('Case cleared');
   });
   renderNB();
+
+  // Where page-started downloads are blocked and no save prompt is available, exports copy instead.
+  if (A.hosted) {
+    A.downloadsReady.then((dl) => {
+      if (dl) return;
+      $('#nb-export-md').innerHTML = `${icon('copy')} Copy Markdown`;
+      $('#nb-export-json').innerHTML = `${icon('copy')} Copy JSON`;
+    });
+  }
 
   /* =========================================================
      OPSEC checklist
@@ -440,8 +465,11 @@
   opsecCount();
 
   /* deep link: #q=<value> runs a pivot on load */
+  /* otherwise open with a worked example so the first view shows what the launcher does */
   const m = location.hash.match(/^#q=(.+)$/);
+  let deepLinked = false;
   if (m) {
-    try { A.pivot(decodeURIComponent(m[1])); } catch (_) { /* malformed */ }
+    try { A.pivot(decodeURIComponent(m[1])); deepLinked = true; } catch (_) { /* malformed */ }
   }
+  if (!deepLinked) renderPivot(A.detect('wikipedia.org', 'auto'), true);
 })();

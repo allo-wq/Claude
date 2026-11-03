@@ -30,7 +30,7 @@
     let n = ev.key === 'Home' ? 0 : ev.key === 'End' ? tabs.length - 1 : (i + keys[ev.key] + tabs.length) % tabs.length;
     selectTool(tabs[n].dataset.tool, true);
   });
-  selectTool(store.get('atlas.tool', 'intel'));
+  selectTool(store.get('atlas.tool', A.hosted ? 'ioc' : 'intel'));
 
   const loading = (msg) => `<div class="loading"><span class="spinner"></span>${esc(msg)}</div>`;
   const pivotBtn = (value, type, label) =>
@@ -61,6 +61,11 @@
   const intelOut = $('#intel-out');
   const DNS_TYPES = [['A', 1], ['AAAA', 28], ['CNAME', 5], ['MX', 15], ['NS', 2], ['TXT', 16], ['SOA', 6], ['CAA', 257]];
   let intelToken = 0;
+  const HOSTED_BLOCK = 'This hosted copy of Atlas runs in a sandbox that blocks requests to outside services, so live DNS and RDAP lookups only work when you run Atlas from its own files. The pivot links for this target still work.';
+  if (A.hosted) {
+    const note = $('#tool-intel .net-note');
+    if (note) note.innerHTML = `${icon('alert')} Live lookups need a self-hosted copy: this hosted page can't reach outside services. Run Atlas from its files to use this tool.`;
+  }
 
   async function doh(name, type) {
     const endpoints = [
@@ -186,7 +191,7 @@
     const txts = [];
     let hasMX = false;
     if (!anyOk) {
-      $('#intel-dns').innerHTML = `<div class="pb-body"><p class="err">Couldn't reach a DNS-over-HTTPS resolver. A network filter or browser extension may be blocking dns.google and cloudflare-dns.com.</p></div>`;
+      $('#intel-dns').innerHTML = `<div class="pb-body"><p class="err">${A.hosted ? esc(HOSTED_BLOCK) : "Couldn't reach a DNS-over-HTTPS resolver. A network filter or browser extension may be blocking dns.google and cloudflare-dns.com."}</p></div>`;
     } else {
       const nx = results[0].status === 'fulfilled' && results[0].value.Status === 3;
       if (nx) pushFlag('bad', `<b>NXDOMAIN</b> — ${esc(name)} does not exist in DNS.`);
@@ -258,7 +263,7 @@
       if (token !== intelToken) return;
       $('#intel-rdap').innerHTML = e.notFound
         ? `<p class="muted">No RDAP record found. Some country-code registries don't offer RDAP yet — try <a href="https://lookup.icann.org/en/lookup?name=${encodeURIComponent(name)}" target="_blank" rel="noopener noreferrer">ICANN Lookup</a> or the registry's WHOIS.</p>`
-        : `<p class="err">RDAP lookup failed (${esc(e.message || 'network error')}). The registry may not allow browser requests.</p>`;
+        : `<p class="err">${A.hosted ? 'Unavailable in this hosted copy.' : `RDAP lookup failed (${esc(e.message || 'network error')}). The registry may not allow browser requests.`}</p>`;
     }
   }
 
@@ -280,7 +285,7 @@
     if (token !== intelToken) return;
     const names = ((ptr && ptr.Answer) || []).filter((a) => a.type === 12).map((a) => String(a.data).replace(/\.$/, ''));
     $('#intel-ptr').innerHTML = ptr == null
-      ? '<p class="err">Couldn\'t reach a DNS-over-HTTPS resolver.</p>'
+      ? `<p class="err">${A.hosted ? esc(HOSTED_BLOCK) : "Couldn't reach a DNS-over-HTTPS resolver."}</p>`
       : names.length ? `<table class="kv">${names.map((n) => `<tr><th>PTR</th><td>${pivotBtn(n, 'domain')}</td></tr>`).join('')}</table>`
         : '<p class="muted">No PTR record.</p>';
 
@@ -306,7 +311,7 @@
       ])}</table>`;
     } catch (e) {
       if (token !== intelToken) return;
-      $('#intel-rdap').innerHTML = `<p class="err">RDAP lookup failed (${esc(e.notFound ? 'no record' : e.message || 'network error')}).</p>`;
+      $('#intel-rdap').innerHTML = `<p class="err">${A.hosted && !e.notFound ? 'Unavailable in this hosted copy.' : `RDAP lookup failed (${esc(e.notFound ? 'no record' : e.message || 'network error')}).`}</p>`;
     }
   }
 
@@ -446,8 +451,8 @@
           ['Flash', flash], ['Orientation', i0.Orientation ? esc(ORIENT[i0.Orientation] || i0.Orientation) : null],
         ])}
       </div>
-      <div class="panel-box"><h4>Reverse image search</h4><div class="pb-body">
-        <p class="small muted" style="margin-bottom:10px">These services need you to upload the image yourself — doing so shares it with them.</p>
+      <div class="panel-box"><h4>Reverse image search</h4><div class="pb-body pb-stack">
+        <p class="small muted">These services need you to upload the image yourself — doing so shares it with them.</p>
         <div class="row">
           <a class="btn sm ghost" href="https://lens.google.com/" target="_blank" rel="noopener noreferrer">${icon('external')} Google Lens</a>
           <a class="btn sm ghost" href="https://tineye.com/" target="_blank" rel="noopener noreferrer">${icon('external')} TinEye</a>
@@ -509,7 +514,7 @@
     const groups = IOC_TYPES.filter((t) => found[t.id]);
     if (!groups.length) { iocOut.innerHTML = '<div class="ioc-empty">No indicators found.</div>'; return; }
     const total = groups.reduce((n, t) => n + found[t.id].length, 0);
-    iocOut.innerHTML = `<div class="row" style="justify-content:space-between"><span class="small muted">${total} unique indicator${total === 1 ? '' : 's'}</span>
+    iocOut.innerHTML = `<div class="row between"><span class="small muted">${total} unique indicator${total === 1 ? '' : 's'}</span>
       <button type="button" class="btn sm ghost" data-ioc-copy="all">${icon('copy')} Copy all</button></div>` +
       groups.map((t) => `<section class="ioc-group">
         <header><b>${esc(t.label)}<span class="count">${found[t.id].length}</span></b>
@@ -535,25 +540,25 @@
   let iocTimer;
   iocIn.addEventListener('input', () => { clearTimeout(iocTimer); iocTimer = setTimeout(renderIOCs, 150); });
   iocDefang.addEventListener('change', renderIOCs);
-  $('#ioc-sample').addEventListener('click', () => {
-    iocIn.value = [
-      'Incident summary — phishing campaign (sample data)',
-      '',
-      'The lure came from billing@invoice-example[.]com and linked to',
-      'hxxps://login.example-secure[.]net/auth/verify?id=8812, which served invoice_8812.zip.',
-      '',
-      'The archive dropped update.exe:',
-      '  MD5     44d88612fea8a8f36de82e1278abb02f',
-      '  SHA-1   3395856ce81f2b7382dee72602f798b642f14140',
-      '  SHA-256 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f',
-      '',
-      'Beacons went to 203.0.113.45:8443 and 198.51.100[.]23, plus 2001:db8:85a3::8a2e:370:7334.',
-      'Initial access exploited CVE-2023-4966 on the VPN appliance.',
-      'Ransom demanded to bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4 or 0x52908400098527886E0F7030069857D2E4169EE7.',
-      'Report further sightings to soc@example.org.',
-    ].join('\n');
-    renderIOCs();
-  });
+  const IOC_SAMPLE = [
+    'Incident summary — phishing campaign (sample data)',
+    '',
+    'The lure came from billing@invoice-example[.]com and linked to',
+    'hxxps://login.example-secure[.]net/auth/verify?id=8812, which served invoice_8812.zip.',
+    '',
+    'The archive dropped update.exe:',
+    '  MD5     44d88612fea8a8f36de82e1278abb02f',
+    '  SHA-1   3395856ce81f2b7382dee72602f798b642f14140',
+    '  SHA-256 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f',
+    '',
+    'Beacons went to 203.0.113.45:8443 and 198.51.100[.]23, plus 2001:db8:85a3::8a2e:370:7334.',
+    'Initial access exploited CVE-2023-4966 on the VPN appliance.',
+    'Ransom demanded to bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4 or 0x52908400098527886E0F7030069857D2E4169EE7.',
+    'Report further sightings to soc@example.org.',
+  ].join('\n');
+  $('#ioc-sample').addEventListener('click', () => { iocIn.value = IOC_SAMPLE; renderIOCs(); });
+  $('#ioc-clear').addEventListener('click', () => { iocIn.value = ''; renderIOCs(); iocIn.focus(); });
+  if (!iocIn.value) iocIn.value = IOC_SAMPLE;
   renderIOCs();
 
   /* =========================================================
@@ -910,7 +915,7 @@
     const rows = A.decodeSnowflake(v);
     if (!rows.length) { sfOut.innerHTML = kvItem('Result', '<span class="err">Enter a numeric ID (up to 20 digits)</span>'); return; }
     sfOut.innerHTML = rows.map((r) => kvItem(r.name, r.plausible ? `${esc(A.fmtUTC(r.ms))}<br><span class="muted small">${esc(A.relTime(r.ms))}</span>` : '<span class="muted">not a plausible ID here</span>', !r.plausible)).join('') +
-      `<p class="small muted" style="margin-top:10px">Only the platform the ID came from is meaningful. Use the decoded time to verify when a post was really made.</p>`;
+      `<p class="small muted note-top">Only the platform the ID came from is meaningful. Use the decoded time to verify when a post was really made.</p>`;
   }
   tsIn.addEventListener('input', renderTs);
   sfIn.addEventListener('input', renderSf);
