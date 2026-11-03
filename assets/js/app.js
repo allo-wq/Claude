@@ -51,7 +51,7 @@
     [D.tools.length, 'curated tools'],
     [pivotLinkCount, 'pivot links'],
     [Object.keys(D.types).length, 'indicator types'],
-    [8, 'in-browser utilities'],
+    [$$('.tool-tab').length, 'in-browser utilities'],
   ].map(([n, l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join('');
 
   /* =========================================================
@@ -99,8 +99,7 @@
       chips.push(['domain', d.ctx.domain]);
       if (d.ctx.local && A.RX.username.test(d.ctx.local)) chips.push(['username', d.ctx.local]);
     }
-    if (d.type === 'url' && d.ctx.host) chips.push([d.ctx.hostType || 'domain', d.ctx.host]);
-    if (d.type === 'domain') {
+    if (d.type === 'url' && d.ctx.host) chips.push([d.ctx.hostType || 'domain', d.ctx.host]);    if (d.type === 'domain') {
       const parts = d.value.split('.');
       if (parts.length > 2) chips.push(['domain', parts.slice(-2).join('.')]);
     }
@@ -115,7 +114,9 @@
     const groups = D.pivots[d.type] || [];
     const allLinks = [];
     const groupsHTML = groups.map((g) => {
-      const links = g.items.map((it) => {
+      const items = g.items.filter((it) => !it.when || it.when(d));
+      if (!items.length) return '';
+      const links = items.map((it) => {
         try { allLinks.push(`${it.name}: ${it.url(d)}`); } catch (_) { /* skip */ }
         return linkHTML(it, d);
       }).join('');

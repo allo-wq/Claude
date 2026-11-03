@@ -15,6 +15,7 @@
     hash: { label: 'File hash', notebook: true },
     coords: { label: 'Coordinates', notebook: true },
     snowflake: { label: 'Post / snowflake ID', notebook: true },
+    numid: { label: 'Numeric account ID', notebook: true },
     keyword: { label: 'Keyword / name', notebook: true },
   };
 
@@ -82,6 +83,7 @@
     email: [
       { group: 'Exposure & accounts', items: [
         { name: 'Have I Been Pwned', desc: 'Known breaches', url: () => 'https://haveibeenpwned.com/', manual: true },
+        { name: 'Mozilla Monitor', desc: 'Breach alerts', url: () => 'https://monitor.mozilla.org/', manual: true },
         { name: 'Epieos', desc: 'Linked accounts', url: () => 'https://epieos.com/', manual: true },
         { name: 'Hunter verifier', desc: 'Deliverability check', url: (d) => `https://hunter.io/email-verifier/${e(d.value)}` },
         { name: 'Intelligence X', desc: 'Pastes, leaks, archives', url: (d) => `https://intelx.io/?s=${e(d.value)}` },
@@ -135,13 +137,21 @@
         { name: 'Pinterest', url: (d) => `https://www.pinterest.com/${e(d.value)}/` },
         { name: 'LinkedIn', desc: 'May notify the profile owner', url: (d) => `https://www.linkedin.com/in/${e(d.value)}`, active: true },
       ] },
+      { group: 'Gaming & chat', items: [
+        { name: 'Roblox profile', desc: 'Opens the account with this exact name', url: (d) => `https://www.roblox.com/user.aspx?username=${e(d.value)}` },
+        { name: 'Roblox search', desc: 'Similar usernames & display names', url: (d) => `https://www.roblox.com/search/users?keyword=${e(d.value)}` },
+        { name: 'Discord', desc: 'No public name lookup, so this searches the web', url: (d) => `https://www.google.com/search?q=${e(`"${d.ctx.tag || d.value}" discord`)}` },
+        { name: 'Steam', url: (d) => `https://steamcommunity.com/id/${e(d.value)}` },
+        { name: 'NameMC', desc: 'Minecraft name & history', url: (d) => `https://namemc.com/search?q=${e(d.value)}` },
+        { name: 'Xbox', desc: 'Gamertag profile', url: (d) => `https://xboxgamertag.com/search/${e(d.value)}` },
+        { name: 'Chess.com', url: (d) => `https://www.chess.com/member/${e(d.value)}` },
+      ] },
       { group: 'Tech & other', items: [
         { name: 'GitHub', url: (d) => `https://github.com/${e(d.value)}` },
         { name: 'GitLab', url: (d) => `https://gitlab.com/${e(d.value)}` },
         { name: 'Keybase', url: (d) => `https://keybase.io/${e(d.value)}` },
         { name: 'Hacker News', url: (d) => `https://news.ycombinator.com/user?id=${e(d.value)}` },
         { name: 'Medium', url: (d) => `https://medium.com/@${e(d.value)}` },
-        { name: 'Steam', url: (d) => `https://steamcommunity.com/id/${e(d.value)}` },
         { name: 'Linktree', url: (d) => `https://linktr.ee/${e(d.value)}` },
       ] },
     ],
@@ -186,8 +196,24 @@
     ],
 
     snowflake: [
-      { group: 'Open', items: [
+      { group: 'Discord', items: [
+        { name: 'Discord profile', desc: 'Opens in Discord if you can see the user', url: (d) => `https://discord.com/users/${e(d.value)}` },
+        { name: 'DiscordLookup', desc: 'User, bot or server by ID', url: (d) => `https://discordlookup.com/user/${e(d.value)}` },
+      ] },
+      { group: 'Other platforms', items: [
+        { name: 'Steam profile', desc: 'Steam64 ID', url: (d) => `https://steamcommunity.com/profiles/${e(d.value)}`, when: (d) => /^7656119\d{10}$/.test(d.value) },
         { name: 'X post', desc: 'If this is a post ID', url: (d) => `https://x.com/i/web/status/${e(d.value)}` },
+        { name: 'Google', desc: 'Exact match', url: (d) => `https://www.google.com/search?q=${q(d.value)}` },
+      ] },
+    ],
+
+    numid: [
+      { group: 'Roblox', items: [
+        { name: 'Roblox profile', desc: 'If this is a Roblox user ID', url: (d) => `https://www.roblox.com/users/${e(d.value)}/profile` },
+        { name: 'Rolimons', desc: 'Player stats & inventory value', url: (d) => `https://www.rolimons.com/player/${e(d.value)}` },
+        { name: 'Roblox game', desc: 'If this is a place ID', url: (d) => `https://www.roblox.com/games/${e(d.value)}` },
+      ] },
+      { group: 'Search', items: [
         { name: 'Google', desc: 'Exact match', url: (d) => `https://www.google.com/search?q=${q(d.value)}` },
       ] },
     ],
@@ -222,6 +248,8 @@
     { id: 'search', label: 'Search & dorking' },
     { id: 'social', label: 'Usernames & social' },
     { id: 'email', label: 'Email' },
+    { id: 'breach', label: 'Breaches & passwords' },
+    { id: 'gaming', label: 'Gaming & chat' },
     { id: 'domain', label: 'Domains & DNS' },
     { id: 'infra', label: 'IP & infrastructure' },
     { id: 'threat', label: 'Threat intel' },
@@ -260,7 +288,16 @@
     ['Bluesky search', 'https://bsky.app/search', 'social', 'free', 'Native post search with from:, mentions:, since: and until: operators.'],
     ['Reddit search', 'https://www.reddit.com/search', 'social', 'free', 'Posts and comments; pair with site:reddit.com dorks for better recall.'],
 
-    ['Have I Been Pwned', 'https://haveibeenpwned.com', 'email', 'free', 'Check whether an email address or domain appears in known data breaches.'],
+    ['Have I Been Pwned', 'https://haveibeenpwned.com', 'breach', 'free', 'Check whether an email address or domain appears in known data breaches.'],
+    ['Pwned Passwords', 'https://haveibeenpwned.com/Passwords', 'breach', 'free', 'Check whether a password has leaked. Its API uses k-anonymity, so the password itself is never sent.'],
+    ['Mozilla Monitor', 'https://monitor.mozilla.org', 'breach', 'freemium', 'Breach alerts for your email addresses, from Mozilla.'],
+
+    ['DiscordLookup', 'https://discordlookup.com', 'gaming', 'free', 'Look up a Discord user, bot or server by its numeric ID, including when it was created.'],
+    ['Roblox user search', 'https://www.roblox.com/search/users', 'gaming', 'free', 'Official search for Roblox accounts by username or display name.'],
+    ['Rolimons', 'https://www.rolimons.com', 'gaming', 'free', 'Roblox player profiles, inventory values and trade history.'],
+    ['NameMC', 'https://namemc.com', 'gaming', 'free', 'Minecraft usernames, skins and name-change history.'],
+    ['Xbox Gamertag', 'https://xboxgamertag.com', 'gaming', 'free', 'Xbox profiles, gamerscore and recently played games.'],
+    ['SteamID.io', 'https://steamid.io', 'gaming', 'free', 'Convert between Steam profile links, custom names and numeric IDs.'],
     ['Hunter', 'https://hunter.io', 'email', 'freemium', 'Discover the email format an organisation uses, and verify addresses.'],
     ['Epieos', 'https://epieos.com', 'email', 'freemium', 'Reverse email lookup for linked Google and other service accounts.'],
     ['holehe', 'https://github.com/megadose/holehe', 'email', 'oss', 'CLI that checks which sites an email is registered on via sign-up flows.'],
@@ -367,5 +404,27 @@
     { name: 'Spreadsheets & exports', needs: 'site', set: { filetype: 'csv, xls, xlsx' } },
   ];
 
-  window.ATLAS_DATA = { types, pivots, categories, access, tools, opsec, dorkPresets };
+  /* ---------- password check (local) ----------
+     Frequently leaked passwords and base words, lowercase. Matching happens in the browser. */
+  const commonPasswords = (
+    '123456 password 123456789 12345678 12345 qwerty 1234567 111111 1234567890 123123 abc123 1234 password1 ' +
+    'iloveyou 1q2w3e4r 000000 qwerty123 zaq12wsx dragon sunshine princess letmein 654321 monkey 1qaz2wsx 123321 ' +
+    'qwertyuiop superman asdfghjkl 696969 football baseball welcome shadow master michael jennifer hunter hunter2 ' +
+    'trustno1 ranger buster thomas robert soccer batman test pass killer hockey george charlie andrew michelle ' +
+    'jessica pepper daniel access joshua maggie starwars silver william dallas yankees 123qwe 666666 hello ' +
+    'hello123 freedom whatever qazwsx ninja azerty loveme mustang flower cheese computer internet samsung google ' +
+    'minecraft roblox fortnite pokemon naruto blink182 liverpool chelsea arsenal iloveu lovely babygirl angel ' +
+    'nicole ashley summer secret admin admin123 root toor guest changeme default p@ssw0rd passw0rd password123 ' +
+    'password! qwerty1 11111111 88888888 987654321 121212 112233 7777777 55555 159753 147258369 1111 0000 ' +
+    'aaaaaa abcdef abcd1234 a1b2c3 zxcvbnm asdf asdf1234 1q2w3e q1w2e3r4 letmein1 welcome1 monkey123 dragon123 ' +
+    'iloveyou1 robux discord roblox123 minecraft123 fortnite123 qwerty12 12341234 123654 789456 456789 ' +
+    'football1 princess1 sunshine1 superman1 baseball1 master123 shadow123 love123 lol123 gamer123 apple ' +
+    'banana orange chocolate cookie purple 123abc 1234qwer qwer1234 asdfgh zxcvbn 11223344 102030 5201314'
+  ).split(' ');
+  const weakWords = ['password', 'passwd', 'qwerty', 'admin', 'welcome', 'letmein', 'monkey', 'dragon', 'football',
+    'baseball', 'soccer', 'iloveyou', 'princess', 'sunshine', 'shadow', 'master', 'superman', 'batman', 'pokemon',
+    'minecraft', 'roblox', 'discord', 'fortnite', 'robux', 'gamer', 'killer', 'hello', 'secret', 'login', 'summer',
+    'winter', 'spring', 'autumn', 'starwars', 'cookie', 'banana', 'chocolate', 'computer', 'internet', 'freedom'];
+
+  window.ATLAS_DATA = { types, pivots, categories, access, tools, opsec, dorkPresets, commonPasswords, weakWords };
 })();

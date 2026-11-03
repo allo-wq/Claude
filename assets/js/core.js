@@ -160,6 +160,8 @@
     url: /^[a-z][a-z0-9+.-]*:\/\/\S+$/i,
     coords: /^\(?\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*\)?$/,
     snowflake: /^\d{15,20}$/,
+    numid: /^\d{3,14}$/,
+    discordTag: /^@?([^\s#@:]{2,32})#(\d{4})$/,
     username: /^@?[a-z0-9_][a-z0-9._-]{0,38}$/i,
     hex: /^[a-f0-9]+$/i,
   };
@@ -179,6 +181,8 @@
     if (isIP(s)) return 'ip';
     if (RX.hex.test(s) && HASH_BY_LEN[s.length]) return 'hash';
     if (RX.snowflake.test(s)) return 'snowflake';
+    if (RX.numid.test(s)) return 'numid';
+    if (RX.discordTag.test(s)) return 'username';
     const slash = s.indexOf('/');
     if (slash > 0 && RX.domain.test(s.slice(0, slash))) return 'url';
     if (RX.domain.test(s.replace(/\.$/, ''))) return 'domain';
@@ -216,9 +220,12 @@
         value = s.toLowerCase();
         ctx.algo = HASH_BY_LEN[s.length] || 'hash';
         break;
-      case 'username':
-        value = s.replace(/^@/, '');
+      case 'username': {
+        const tag = s.match(RX.discordTag);
+        if (tag) { ctx.tag = `${tag[1]}#${tag[2]}`; value = tag[1]; } // legacy Discord name#1234
+        else value = s.replace(/^@/, '');
         break;
+      }
       case 'coords': {
         const c = s.match(RX.coords);
         if (c) { ctx.lat = +c[1]; ctx.lon = +c[2]; value = `${ctx.lat}, ${ctx.lon}`; }

@@ -45,6 +45,7 @@
       <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
       <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></symbol>
+      <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15.5" r="4.5"/><path d="m11.3 12.3 8.2-8.2M16.5 7l2.5 2.5M14.2 9.3l2 2"/></symbol>
       <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></symbol>
     </defs>
   </svg>
@@ -121,6 +122,7 @@
         <div class="toolbox">
           <div class="tool-tabs" role="tablist" aria-label="Tools" id="tool-tabs">
             <button role="tab" class="tool-tab" id="tab-intel" aria-controls="tool-intel" data-tool="intel"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg><span><b>Domain &amp; IP intel</b><small>Live DNS + RDAP</small></span></button>
+            <button role="tab" class="tool-tab" id="tab-breach" aria-controls="tool-breach" data-tool="breach"><svg class="ic" aria-hidden="true"><use href="#i-key"/></svg><span><b>Breach check</b><small>Leaked passwords &amp; sites</small></span></button>
             <button role="tab" class="tool-tab" id="tab-exif" aria-controls="tool-exif" data-tool="exif"><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg><span><b>Image metadata</b><small>EXIF, GPS, camera</small></span></button>
             <button role="tab" class="tool-tab" id="tab-ioc" aria-controls="tool-ioc" data-tool="ioc"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span><b>IOC extractor</b><small>Indicators from text</small></span></button>
             <button role="tab" class="tool-tab" id="tab-dork" aria-controls="tool-dork" data-tool="dork"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg><span><b>Dork builder</b><small>Advanced search queries</small></span></button>
@@ -144,6 +146,57 @@
                 <button class="btn primary" type="submit">Look up</button>
               </form>
               <div id="intel-out" class="tool-out"></div>
+            </div>
+
+            <!-- Breach check -->
+            <div class="tool-panel" id="tool-breach" role="tabpanel" aria-labelledby="tab-breach" hidden>
+              <header class="tp-head">
+                <h3>Breach check</h3>
+                <p>See whether a password has shown up in a data breach, and which breaches hit a website such as discord.com or roblox.com.</p>
+                <p class="net-note" id="breach-note"><svg class="ic" aria-hidden="true"><use href="#i-key"/></svg> Your password never leaves this page. Only the first 5 characters of its SHA-1 hash go to Have I Been Pwned.</p>
+              </header>
+              <div class="split">
+                <div class="card-lite stack-12">
+                  <h4>Password</h4>
+                  <form class="inline-form" id="pw-form" autocomplete="off">
+                    <label class="sr-only" for="pw-in">Password to check</label>
+                    <input id="pw-in" class="field mono" type="password" autocomplete="off" spellcheck="false" placeholder="Type a password">
+                    <button type="button" class="btn ghost" id="pw-show" aria-pressed="false">Show</button>
+                    <button class="btn primary" type="submit">Check leaks</button>
+                  </form>
+                  <div class="meter" id="pw-meter" aria-hidden="true"><span></span></div>
+                  <div id="pw-out" class="stack-12" aria-live="polite">
+                    <p class="small muted">Rates strength as you type, entirely in your browser. <b>Check leaks</b> asks Have I Been Pwned whether the password appears in its breach data.</p>
+                  </div>
+                  <div id="pw-pwned" aria-live="polite"></div>
+                </div>
+                <div class="card-lite stack-12">
+                  <h4>Website breaches</h4>
+                  <form class="inline-form" id="site-form" autocomplete="off">
+                    <label class="sr-only" for="site-in">Website domain</label>
+                    <input id="site-in" class="field mono" type="text" spellcheck="false" placeholder="discord.com">
+                    <button class="btn primary" type="submit">Check site</button>
+                  </form>
+                  <div class="chips" id="site-chips">
+                    <button type="button" class="chip" data-site="discord.com">discord.com</button>
+                    <button type="button" class="chip" data-site="roblox.com">roblox.com</button>
+                    <button type="button" class="chip" data-site="twitch.tv">twitch.tv</button>
+                    <button type="button" class="chip" data-site="epicgames.com">epicgames.com</button>
+                    <button type="button" class="chip" data-site="adobe.com">adobe.com</button>
+                  </div>
+                  <div id="site-out" class="stack-12" aria-live="polite"></div>
+                </div>
+              </div>
+              <div class="card-lite stack-12">
+                <h4>Your email address</h4>
+                <p class="small muted">Email breach searches run on the services themselves, which verify that the address is yours. Atlas copies the address and opens the site so you can paste it.</p>
+                <div class="inline-form">
+                  <label class="sr-only" for="em-in">Your email address</label>
+                  <input id="em-in" class="field mono" type="email" autocomplete="email" spellcheck="false" placeholder="you@example.com">
+                  <a class="btn ghost" id="em-hibp" href="https://haveibeenpwned.com/" target="_blank" rel="noopener noreferrer"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg> Have I Been Pwned</a>
+                  <a class="btn ghost" id="em-monitor" href="https://monitor.mozilla.org/" target="_blank" rel="noopener noreferrer"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg> Mozilla Monitor</a>
+                </div>
+              </div>
             </div>
 
             <!-- EXIF -->

@@ -572,3 +572,19 @@ textarea.field { height: auto; padding: 10px 12px; resize: vertical; line-height
 
 /* pills inside uppercase panel headings keep their own casing */
 .panel-box > h4 .pill, .panel-box > h4 .pills { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+/* breach check */
+.stack-12 { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.card-lite.stack-12 h4 { margin-bottom: 0; }
+.meter { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.meter span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--red); transition: width .2s ease, background-color .2s ease; }
+.meter.s0 span { width: 12%; background: var(--red); }
+.meter.s1 span { width: 34%; background: var(--red); }
+.meter.s2 span { width: 58%; background: var(--amber); }
+.meter.s3 span { width: 80%; background: var(--green); }
+.meter.s4 span { width: 100%; background: var(--green); }
+.pw-issues { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; color: var(--text); }
+.pw-issues li::marker { color: var(--amber); }
+.breach { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 12px; display: grid; gap: 8px; min-width: 0; }
+.breach-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.breach-top b { margin-right: 4px; }

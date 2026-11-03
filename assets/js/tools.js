@@ -920,4 +920,188 @@
   tsIn.addEventListener('input', renderTs);
   sfIn.addEventListener('input', renderSf);
   $('#ts-now').addEventListener('click', () => { tsIn.value = String(Math.floor(Date.now() / 1000)); renderTs(); });
+
+  /* =========================================================
+     9. Breach check
+     Passwords: rated locally, then checked against Have I Been Pwned's Pwned Passwords range API
+     (k-anonymity: only the first 5 hex characters of the SHA-1 hash are sent). The password is
+     never stored, logged or sent anywhere else.
+     Sites: Have I Been Pwned's public breach list, filtered by domain.
+     ========================================================= */
+  const pwForm = $('#pw-form');
+  const pwIn = $('#pw-in');
+  const pwShow = $('#pw-show');
+  const pwMeter = $('#pw-meter');
+  const pwOut = $('#pw-out');
+  const pwPwned = $('#pw-pwned');
+  const pwIntro = pwOut.innerHTML;
+  const COMMON_PW = new Set(D.commonPasswords);
+  const SEQS = ['abcdefghijklmnopqrstuvwxyz', '01234567890', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+  const LABELS = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+  const unleet = (s) => s.replace(/[@4]/g, 'a').replace(/3/g, 'e').replace(/[1!|]/g, 'i').replace(/0/g, 'o').replace(/[$5]/g, 's').replace(/7/g, 't');
+  let pwToken = 0;
+
+  if (A.hosted) {
+    $('#breach-note').innerHTML = `${icon('alert')} The strength rating works here. Leak and site checks need a self-hosted copy, because this hosted page can't reach outside services.`;
+  }
+
+  function hasSequence(s) {
+    for (const seq of SEQS) {
+      const rev = seq.split('').reverse().join('');
+      for (let i = 0; i + 4 <= s.length; i++) {
+        const chunk = s.slice(i, i + 4);
+        if (seq.includes(chunk) || rev.includes(chunk)) return true;
+      }
+    }
+    return false;
+  }
+
+  function crackTime(bits) {
+    const secs = Math.pow(2, bits) / 2 / 1e10; // average guesses at 10 billion per second (offline, fast hash)
+    if (secs < 1) return 'less than a second';
+    const units = [['century', 'centuries', 3153.6e6], ['year', 'years', 31536e3], ['month', 'months', 2592e3], ['day', 'days', 86400], ['hour', 'hours', 3600], ['minute', 'minutes', 60], ['second', 'seconds', 1]];
+    if (secs > 3153.6e9) return 'more than a million years';
+    for (const [one, many, size] of units) {
+      if (secs >= size) { const v = Math.round(secs / size); return `about ${v.toLocaleString()} ${v === 1 ? one : many}`; }
+    }
+    return '';
+  }
+
+  function assessPassword(pw) {
+    const issues = [];
+    const lower = pw.toLowerCase();
+    const plain = unleet(lower);
+    let pool = 0;
+    if (/[a-z]/.test(pw)) pool += 26;
+    if (/[A-Z]/.test(pw)) pool += 26;
+    if (/\d/.test(pw)) pool += 10;
+    if (/[^a-zA-Z0-9]/.test(pw)) pool += 33;
+    let bits = pw.length * Math.log2(Math.max(pool, 2));
+    const base = lower.replace(/[\d!@#$%^&*._-]+$/, '');
+    const common = COMMON_PW.has(lower) || COMMON_PW.has(plain);
+    const baseCommon = !common && base.length >= 4 && (COMMON_PW.has(base) || COMMON_PW.has(unleet(base)));
+    if (common) { issues.push('It is one of the most common passwords. Attackers try these first.'); bits = Math.min(bits, 10); }
+    else if (baseCommon) { issues.push(`It is a common password (“${base}”) with a few characters added.`); bits = Math.min(bits, 20); }
+    if (pw.length < 8) issues.push('Shorter than 8 characters.');
+    else if (pw.length < 12) issues.push('Under 12 characters. Each extra character makes it much harder to crack.');
+    if (/^\d+$/.test(pw)) issues.push('Only numbers.');
+    else if (/^[a-z]+$/i.test(pw) && pw.length < 16) issues.push('Only letters. Add numbers or symbols, or make it longer.');
+    if (/(.)\1{2,}/.test(pw)) { issues.push('Repeats the same character three or more times.'); bits -= 8; }
+    if (hasSequence(lower)) { issues.push('Contains an easy sequence like abcd, 1234 or qwer.'); bits -= 10; }
+    if (/(?:19|20)\d{2}/.test(pw)) { issues.push('Contains a year, which is easy to guess.'); bits -= 6; }
+    const word = !common && !baseCommon && D.weakWords.find((w) => plain.includes(w));
+    if (word) { issues.push(`Contains the common word “${word}”.`); bits -= 12; }
+    bits = Math.max(0, bits);
+    const score = bits < 28 ? 0 : bits < 40 ? 1 : bits < 60 ? 2 : bits < 80 ? 3 : 4;
+    return { score, bits, issues, label: LABELS[score] };
+  }
+
+  function renderStrength() {
+    const pw = pwIn.value;
+    pwToken++;
+    pwPwned.innerHTML = '';
+    if (!pw) { pwMeter.className = 'meter'; pwOut.innerHTML = pwIntro; return; }
+    const r = assessPassword(pw);
+    pwMeter.className = `meter s${r.score}`;
+    const cls = r.score <= 1 ? 'bad' : r.score === 2 ? 'warn' : 'ok';
+    pwOut.innerHTML = `
+      <div class="row between"><span class="pill ${cls}">${esc(r.label)}</span><span class="small muted">Time to crack offline: ${esc(crackTime(r.bits))}</span></div>
+      ${r.issues.length ? `<ul class="pw-issues">${r.issues.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="small muted">No obvious weaknesses. Use it on one site only, and turn on two-factor authentication.</p>'}
+      ${r.score <= 2 ? '<p class="small muted">Tip: a password manager can create and remember a long random password for every account.</p>' : ''}`;
+  }
+
+  async function checkPwned() {
+    const pw = pwIn.value;
+    if (!pw) { pwIn.focus(); return; }
+    const token = ++pwToken;
+    if (!(window.crypto && crypto.subtle)) { pwPwned.innerHTML = flagRow('warn', 'The leak check needs the page to be served over HTTPS or from localhost.'); return; }
+    pwPwned.innerHTML = loading('Checking Have I Been Pwned…');
+    try {
+      const hex = (await digestHex('SHA-1', new TextEncoder().encode(pw))).toUpperCase();
+      const prefix = hex.slice(0, 5);
+      const suffix = hex.slice(5);
+      const r = await fetchTimeout(`https://api.pwnedpasswords.com/range/${prefix}`, {}, 10000);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const text = await r.text();
+      if (token !== pwToken) return;
+      const line = text.split(/\r?\n/).find((l) => l.slice(0, 35).toUpperCase() === suffix);
+      const count = line ? parseInt(line.split(':')[1], 10) || 0 : 0;
+      pwPwned.innerHTML = count > 0
+        ? flagRow('bad', `<b>Leaked: this password appears ${esc(count.toLocaleString())} time${count === 1 ? '' : 's'} in breach data.</b> Don't use it anywhere, and change it on every account where you have.`)
+        : flagRow('ok', '<b>Not found</b> in Have I Been Pwned\'s leaked-password data. Check the strength rating too: an unleaked password can still be easy to guess.');
+    } catch (e) {
+      if (token !== pwToken) return;
+      pwPwned.innerHTML = flagRow('warn', A.hosted
+        ? 'This hosted copy can\'t reach Have I Been Pwned. Run Atlas from its own files to check leaks, or use the Pwned Passwords page on haveibeenpwned.com.'
+        : `Couldn't reach Have I Been Pwned (${esc(e.message || 'network error')}). A network filter or browser extension may be blocking api.pwnedpasswords.com.`);
+    }
+  }
+
+  pwIn.addEventListener('input', renderStrength);
+  pwForm.addEventListener('submit', (ev) => { ev.preventDefault(); checkPwned(); });
+  pwShow.addEventListener('click', () => {
+    const show = pwIn.type === 'password';
+    pwIn.type = show ? 'text' : 'password';
+    pwShow.textContent = show ? 'Hide' : 'Show';
+    pwShow.setAttribute('aria-pressed', String(show));
+    pwIn.focus();
+  });
+
+  /* ---- website breaches ---- */
+  const siteForm = $('#site-form');
+  const siteIn = $('#site-in');
+  const siteOut = $('#site-out');
+  let siteToken = 0;
+  const textOf = (html) => new DOMParser().parseFromString(`<!doctype html><body>${html}`, 'text/html').body.textContent || '';
+
+  async function siteBreaches(raw) {
+    const d = A.detect(raw, 'auto');
+    let domain = d && (d.type === 'domain' ? d.value : d.type === 'url' ? d.ctx.host : d.type === 'email' ? d.ctx.domain : null);
+    if (!domain) { siteOut.innerHTML = '<p class="err">Enter a website domain, such as discord.com.</p>'; return; }
+    domain = domain.replace(/^www\./, '');
+    siteIn.value = domain;
+    const token = ++siteToken;
+    siteOut.innerHTML = loading(`Looking up breaches of ${domain}…`);
+    try {
+      const r = await fetchTimeout(`https://haveibeenpwned.com/api/v3/breaches?Domain=${encodeURIComponent(domain)}`, {}, 12000);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const list = await r.json();
+      if (token !== siteToken) return;
+      if (!Array.isArray(list) || !list.length) {
+        siteOut.innerHTML = flagRow('ok', `No breaches of <b>${esc(domain)}</b> are recorded in Have I Been Pwned. That doesn't prove it was never breached.`);
+        return;
+      }
+      list.sort((a, b) => String(b.BreachDate).localeCompare(String(a.BreachDate)));
+      siteOut.innerHTML = `<p class="small muted">${list.length} breach${list.length === 1 ? '' : 'es'} recorded for ${esc(domain)}, newest first</p>` + list.map((b) => {
+        const desc = textOf(b.Description || '').trim();
+        const classes = (b.DataClasses || []).map((c) => `<span class="pill${/password/i.test(c) ? ' bad' : ''}">${esc(c)}</span>`).join('');
+        return `<article class="breach">
+          <div class="breach-top"><b>${esc(b.Title || b.Name)}</b>
+            <span class="pill">${esc(b.BreachDate || 'date unknown')}</span>
+            <span class="pill warn">${esc(Number(b.PwnCount || 0).toLocaleString())} accounts</span>
+            ${b.IsVerified === false ? '<span class="pill">unverified</span>' : ''}</div>
+          ${desc ? `<p class="small muted">${esc(desc.length > 280 ? `${desc.slice(0, 277)}…` : desc)}</p>` : ''}
+          ${classes ? `<div class="pills">${classes}</div>` : ''}
+        </article>`;
+      }).join('');
+    } catch (e) {
+      if (token !== siteToken) return;
+      siteOut.innerHTML = `<p class="err">${A.hosted
+        ? 'This hosted copy can\'t reach Have I Been Pwned. Run Atlas from its own files to look up site breaches.'
+        : `Couldn't reach Have I Been Pwned (${esc(e.message || 'network error')}).`}</p>`;
+    }
+  }
+  siteForm.addEventListener('submit', (ev) => { ev.preventDefault(); siteBreaches(siteIn.value); });
+  $('#site-chips').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-site]');
+    if (b) { siteIn.value = b.dataset.site; siteBreaches(b.dataset.site); }
+  });
+
+  /* ---- email: copy, then open the service ---- */
+  const emIn = $('#em-in');
+  ['#em-hibp', '#em-monitor'].forEach((sel) => $(sel).addEventListener('click', (ev) => {
+    const v = emIn.value.trim();
+    if (!v) { ev.preventDefault(); emIn.focus(); toast('Enter your email address first'); return; }
+    copy(v, 'Email copied. Paste it into the site.');
+  }));
 })();
