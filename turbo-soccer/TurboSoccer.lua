@@ -32,6 +32,10 @@ local genv = (getgenv and getgenv()) or _G
 if genv.TurboHubUnload then
 	pcall(genv.TurboHubUnload)
 end
+-- SSLBot drives the car too; only one of them may run at a time
+if genv.SSLBotUnload then
+	pcall(genv.SSLBotUnload)
+end
 
 -- Skill presets fill in the Bot settings below; every value can still be tuned after.
 local PRESETS = {
