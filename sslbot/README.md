@@ -37,6 +37,24 @@ The decision logic and its tuning (`ARRIVE_EARLY`, `MIN_APPROACH_SPEED`, the PD 
 - **Teammates and opponents:** any car model whose owner is on your Team is a teammate, everything else is an opponent. They're used for role ranking and for working out who reaches the ball first.
 - **Boost:** Turbo Soccer's boost meter isn't readable, so the bot assumes it has boost. There are no boost-pad grabs.
 
+## Air dribbles and flip resets (added on top of the original)
+
+The uploaded bot only makes single aerial touches. This version adds an SSL-style move. It runs in **Physics** drive mode only, because it needs the script's Rocket League car model for air control and to hand back the flip.
+
+| Phase | What happens |
+| --- | --- |
+| `setup` | Lines up behind a slow, low ball and catches it on the nose |
+| `pop` | Jumps to pop it up |
+| `carry` | Flies just behind and under it, pushing it toward the net at about 700 uu up. The nose follows the push needed to stay with the ball, with boost when lined up |
+| `reset` | Rolls so the roof faces away from the ball and the wheels touch it. That gives the flip back, as in Rocket League, and the flip never runs out until used |
+| `aim` | Nose at the back of the ball, then flips into it for the shot. If no flip is left, it rams the ball with boost |
+
+**When it goes for one:** only when it's free. It must be the first man, behind a slow ball sitting on the ground, more than 3500 uu from their net, with no opponent able to challenge in time. It shoots early if an opponent comes within 700 uu or it's 2200 uu from the net. It gives up if it loses the ball or lands, and waits 3 s before trying again. The status under **BOT** shows `air_dribble:setup`, `:pop`, `:carry`, `:reset`, `:aim` and `flip_shot`.
+
+**Dribble Assist** (on by default) only works when the Ball line in the diagnostics says "you control it". It keeps the ball resting on the car's nose while carrying, lets it settle onto the wheels for the reset, and aims the finishing touch at the net. When the server controls the ball, only the car's real touches move it, so air dribbles drop far more often.
+
+Toggles: **Air Dribble**, **Flip Resets**, **Dribble Assist**.
+
 ## Drive modes
 
 SSLBot outputs controller inputs (throttle, steer, pitch, yaw, roll, jump, boost, handbrake). They're turned into driving three ways:

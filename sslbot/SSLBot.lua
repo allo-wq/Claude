@@ -45,6 +45,9 @@ local Settings = {
 	AutoPlay = false,
 	DriveMode = 1,
 	Aerials = true,
+	AirDribble = true,
+	FlipReset = true,
+	DribbleAssist = true,
 	SwapGoals = false,
 	DebugMarkers = true,
 	AntiAFK = true,
@@ -927,6 +930,10 @@ local function toWorld(p)
 	return Field.origin + (Field.x * p.X + Field.y * p.Y + Vector3.yAxis * p.Z) * Field.scale
 end
 
+local function toWorldVec(v)
+	return (Field.x * v.X + Field.y * v.Y + Vector3.yAxis * v.Z) * Field.scale
+end
+
 ---------------------------------------------------------------------------
 -- SSLBot port: helpers (util/vec.py), all in the field frame, z up
 ---------------------------------------------------------------------------
@@ -1531,6 +1538,183 @@ function Kickoff:step(brain, s, c)
 end
 
 ---------------------------------------------------------------------------
+-- Air dribble + flip reset (added on top of the original bot)
+---------------------------------------------------------------------------
+
+-- Phases: setup (catch the rolling ball on the nose) -> pop (jump it up) ->
+-- carry (fly under it toward the net) -> reset (wheels onto the ball to get
+-- the flip back) -> aim (nose at the ball, then flip into it, or ram it with
+-- boost if there's no flip left). Physics drive mode only: it needs the
+-- script's Rocket League car model for air control and to hand back the flip.
+-- With Dribble Assist and your device simulating the ball, the ball is also
+-- kept on the nose and the final touch is aimed; otherwise only real touches
+-- move it, which drops it far more often.
+local Dribble = {}
+Dribble.__index = Dribble
+
+local DRIBBLE_HEIGHT = 700 -- uu: carry height for the ball
+local DRIBBLE_SPEED = 900 -- uu/s toward the net while carrying
+local FINAL_SHOT_SPEED = 2800 -- uu/s for an assisted finishing touch
+
+function Dribble.new(now, wantReset)
+	return setmetatable({
+		phase = "setup",
+		start = now,
+		phaseAt = now,
+		wantReset = wantReset,
+		target = nil,
+		flip = nil,
+		shotFired = false,
+	}, Dribble)
+end
+
+function Dribble:setPhase(phase, now)
+	self.phase, self.phaseAt = phase, now
+end
+
+-- Point the nose along the acceleration that holds the car at `spot`, moving
+-- with `matchVel` (a PD on position plus gravity compensation), and boost
+-- when the nose is lined up with it.
+local function hover(me, spot, matchVel, orient, now, c, targetUp)
+	local want = (spot - me.pos) * 6 + (matchVel - me.vel) * 2.5 + Vector3.new(0, 0, C.GRAVITY)
+	local dir = unit(want)
+	if dir.Magnitude < 0.5 then
+		dir = me.ori.forward
+	end
+	local up = targetUp or unit(Vector3.new(0, 0, 1) - dir * dir.Z)
+	if up.Magnitude < 0.5 then
+		up = me.ori.up
+	end
+	orient:step(me, dir, up, now, c)
+	c.boost = me.ori.forward:Dot(dir) > 0.8 and want.Magnitude > 250
+	c.throttle = 1
+end
+
+local function finalShot(s, ballP)
+	local target = Vector3.new(clamp(ballP.X, -500, 500), s.oppGoal.Y, C.GOAL_H * 0.45)
+	return unit(target - ballP) * FINAL_SHOT_SPEED + Vector3.new(0, 0, 150)
+end
+
+function Dribble:step(s, c, orient)
+	local me, now = s.me, s.time
+	local ball, ballVel = s.ball.pos, s.ball.vel
+	local R = C.BALL_RADIUS
+	local shot = Strat.shotDirection(s, ball)
+	local el = now - self.phaseAt
+	local toBall = ball - me.pos
+	self.target = ball
+	if now - self.start > 9 then
+		return false
+	end
+
+	if self.phase == "setup" then
+		-- line up behind the rolling ball and catch it on the nose
+		if ball.Z > R + 120 or toBall.Magnitude > 2500 or el > 3.5 then
+			return false
+		end
+		local contact = withZ(ball - shot * (R + 30), C.CAR_REST_Z)
+		local loc = localOf(me, ball)
+		local catchUp = loc.X > 600 and 700 or 250
+		Drive.to(me, contact, clamp(fflat(ballVel):Dot(shot) + catchUp, 500, 1600), c)
+		self.target = contact
+		if me.on_ground and loc.X > R * 0.5 and loc.X < R + 140 and math.abs(loc.Y) < 60 then
+			self:setPhase("pop", now)
+			self.popAt = now
+			if s.ownBall then
+				s.ballCommand = me.vel + Vector3.new(0, 0, 750) + shot * 150
+			end
+		end
+		return true
+	end
+
+	if self.phase == "pop" then
+		c.jump = el < 0.18
+		c.throttle = 1
+		c.pitch = -0.3
+		if el > 0.25 then
+			self:setPhase("carry", now)
+		end
+		return true
+	end
+
+	-- in the air from here on
+	if me.on_ground and now - self.popAt > 0.6 then
+		return false -- landed: the dribble is over
+	end
+	if toBall.Magnitude > R + 700 or ball.Z < 150 then
+		return false -- lost it
+	end
+	local nearestFoe = math.huge
+	for _, foe in ipairs(s.foes) do
+		nearestFoe = math.min(nearestFoe, (foe.pos - ball).Magnitude)
+	end
+	local toGoal = fflat(s.oppGoal - ball).Magnitude
+
+	if self.phase == "carry" then
+		-- sit just behind and under the ball, nose into it, carrying it toward the net
+		local below = Vector3.new(0, 0, R * 0.6 + 30)
+		local carryVel = shot * DRIBBLE_SPEED + Vector3.new(0, 0, clamp((DRIBBLE_HEIGHT - ball.Z) * 2, -300, 400))
+		hover(me, ball - shot * (R + 50) - below, carryVel, orient, now, c)
+		if s.ownBall then
+			-- keep it resting on the nose
+			s.ballCommand = carryVel + (me.pos + shot * (R + 50) + below - ball) * 3
+		end
+		if toGoal < 2200 or nearestFoe < 700 or el > 4 then
+			self:setPhase("aim", now)
+		elseif self.wantReset and el > 0.8 and ball.Z > 400 then
+			self:setPhase("reset", now)
+		end
+		return true
+	end
+
+	if self.phase == "reset" then
+		-- roll the wheels onto the ball: roof away from it, nose toward the net
+		local roof = unit(me.pos - ball)
+		local nose = unit(shot - roof * shot:Dot(roof))
+		if nose.Magnitude < 0.5 then
+			nose = me.ori.forward
+		end
+		orient:step(me, nose, roof, now, c)
+		-- slide under it along the nose while it's still ahead
+		c.boost = toBall:Dot(me.ori.forward) > 40 and me.ori.forward:Dot(nose) > 0.8
+		if s.ownBall then
+			-- let it settle onto the wheels, falling with the car
+			local wheelSpot = me.pos - me.ori.up * (R + me.halfHeight)
+			s.ballCommand = me.vel + (wheelSpot - ball) * 2
+		end
+		if me.flip_reset or el > 1.2 then
+			self:setPhase("aim", now) -- reset (or out of time): go for the shot
+		end
+		return true
+	end
+
+	-- aim: nose at the back of the ball, then flip into it, or ram it with boost
+	local dir = unit(ball - shot * (R * 0.5) - me.pos)
+	orient:step(me, dir, unit(Vector3.new(0, 0, 1) - dir * dir.Z), now, c)
+	c.boost = me.ori.forward:Dot(dir) > 0.75
+	local close = toBall.Magnitude < R + 220
+	if self.flip then
+		Seq.step(self.flip, now, c)
+		return not self.flip.done
+	end
+	if close and me.has_flip then
+		local loc = localOf(me, ball)
+		local x, y = dir2(loc.X, loc.Y)
+		self.flip = Seq.new({
+			{ 0.03, { jump = false } },
+			{ 0.05, { jump = true, pitch = -x, yaw = y } },
+			{ 0.5, { jump = false } },
+		}, "flip_shot")
+		Seq.step(self.flip, now, c)
+	end
+	if close and s.ownBall and not self.shotFired then
+		s.ballCommand = finalShot(s, ball)
+		self.shotFired = true
+	end
+	return el < 1.5
+end
+
+---------------------------------------------------------------------------
 -- strategy/brain.py
 ---------------------------------------------------------------------------
 
@@ -1550,6 +1734,8 @@ function Brain.new()
 		label = "",
 		target = nil,
 		icpt = nil,
+		dribble = nil,
+		dribbleReadyAt = 0,
 	}, Brain)
 end
 
@@ -1578,8 +1764,19 @@ function Brain:tick(s)
 	end
 
 	if self.kick then
+		self.dribble = nil
 		self.kick:step(self, s, c)
 		return self:startSeq(s, c)
+	end
+
+	if self.dribble then
+		self.label = "air_dribble:" .. self.dribble.phase
+		if self.dribble:step(s, c, self.orient) then
+			self.target = self.dribble.target
+			return c
+		end
+		self.dribble = nil
+		self.dribbleReadyAt = s.time + 3
 	end
 
 	if self.aerial then
@@ -1707,6 +1904,14 @@ function Brain:attack(s, c, icpt, foeEta, urgent, shotFn)
 		return
 	end
 
+	if self:canDribble(s, icpt, foeEta, urgent, shotFn) then
+		self.dribble = Dribble.new(s.time, Settings.FlipReset)
+		self.label = "air_dribble:setup"
+		self.dribble:step(s, c, self.orient)
+		self.target = self.dribble.target
+		return
+	end
+
 	local contact, target, offset = Strat.approach(me, ballP, shot)
 	local dist = fflat(contact - me.pos).Magnitude
 	self.target = target
@@ -1737,6 +1942,28 @@ function Brain:attack(s, c, icpt, foeEta, urgent, shotFn)
 		local sl = relative(me.ori, shot)
 		self.seq = Seq.flip(lx + sl.X, ly + sl.Y)
 	end
+end
+
+-- Only when it's free: a slow, low ball we're behind, far from their net,
+-- with no opponent able to challenge before we'd get there.
+function Brain:canDribble(s, icpt, foeEta, urgent, shotFn)
+	if not (Settings.AirDribble and Settings.DriveMode == 1) then
+		return false
+	end
+	if urgent or shotFn or s.time < self.dribbleReadyAt then
+		return false
+	end
+	local me, ball = s.me, s.ball.pos
+	if ball.Z > C.BALL_RADIUS + 60 or fflat(s.ball.vel).Magnitude > 1500 then
+		return false
+	end
+	if (ball - me.pos).Magnitude > 1800 or fflat(s.oppGoal - ball).Magnitude < 3500 then
+		return false
+	end
+	if foeEta < (icpt.time - s.time) + 1 then
+		return false
+	end
+	return Strat.onside(s, me)
 end
 
 function Brain:shadow(s, c, back, wantBoost)
@@ -1962,6 +2189,8 @@ local exec = {
 	dodged = false,
 	jumpTime = 0,
 	jumpAt = -math.huge,
+	hasReset = false, -- flip given back by the wheels touching the ball
+	resetAt = -math.huge,
 	lastAt = 0,
 }
 
@@ -1994,7 +2223,12 @@ local function buildState(ball, carRoot, driver)
 		me.on_ground = false
 	end
 	me.jumped, me.double_jumped = exec.jumped, exec.doubleJumped
+	-- a flip is left until it's used, or 1.25 s after the jump (a reset never runs out)
+	me.has_flip = not (exec.dodged or exec.doubleJumped) and (exec.jumpTime < 1.25 or exec.hasReset)
+	me.flip_reset = exec.hasReset
+	me.halfHeight = car.halfHeight / Field.scale
 	s.me = me
+	s.ownBall = Settings.DribbleAssist and ownsPart(ball)
 	s.friends, s.foes = otherStates()
 	return s, forwardW, upW
 end
@@ -2026,7 +2260,7 @@ end
 -- velocity directly, so no key presses are needed and it works on mobile.
 local AIR_TURN_RATE = 5.5 -- rad/s, Rocket League's max angular speed
 
-local function physicsExecute(c, me, carRoot, forwardW, upW)
+local function physicsExecute(c, me, carRoot, forwardW, upW, ballPart)
 	local now = os.clock()
 	local dt = clamp(now - exec.lastAt, 1 / 240, 1 / 20)
 	exec.lastAt = now
@@ -2040,6 +2274,7 @@ local function physicsExecute(c, me, carRoot, forwardW, upW)
 	local full = false
 	if me.on_ground then
 		exec.jumped, exec.doubleJumped, exec.dodged, exec.jumpTime = false, false, false, 0
+		exec.hasReset = false
 		local vf = me.forward_speed
 		local a
 		if c.throttle * vf < -1 then
@@ -2066,10 +2301,18 @@ local function physicsExecute(c, me, carRoot, forwardW, upW)
 	else
 		full = true
 		exec.jumpTime += dt
-		if c.jump and exec.jumped and not exec.dodged and exec.jumpTime < C.JUMP_HOLD_MAX then
+		-- Flip reset: all four wheels on the ball gives the flip back, as in Rocket League
+		if Settings.FlipReset and ballPart and now - exec.resetAt > 0.5 then
+			local toBall = ballPart.Position - carRoot.Position
+			if toBall.Magnitude < ballRadius(ballPart) + car.halfHeight + 1 and unit(toBall):Dot(upW) < -0.6 then
+				exec.dodged, exec.doubleJumped, exec.jumped, exec.jumpTime = false, false, true, 0
+				exec.hasReset, exec.resetAt = true, now
+			end
+		end
+		if c.jump and exec.jumped and not exec.dodged and exec.jumpTime < C.JUMP_HOLD_MAX and not exec.hasReset then
 			v += upW * (C.JUMP_HOLD_ACCEL * s * dt)
 		end
-		if rising and not (exec.dodged or exec.doubleJumped) and exec.jumpTime < 1.25 then
+		if rising and not (exec.dodged or exec.doubleJumped) and (exec.jumpTime < 1.25 or exec.hasReset) then
 			if math.abs(c.pitch) + math.abs(c.yaw) > 0.5 then
 				local dir = flat(forwardW * -c.pitch + rightW * c.yaw)
 				if dir.Magnitude > 0.01 then
@@ -2081,6 +2324,7 @@ local function physicsExecute(c, me, carRoot, forwardW, upW)
 				v += upW * (C.JUMP_IMPULSE * s)
 				exec.doubleJumped = true
 			end
+			exec.hasReset = false
 		end
 		if c.boost then
 			v += forwardW * (C.AIR_BOOST_ACCEL * s * dt)
@@ -2162,9 +2406,15 @@ local function sslStep(ball, carRoot, driver, own, opp)
 	botTarget = brain.target and toWorld(brain.target)
 	botIntercept = brain.icpt and toWorld(brain.icpt.slice.pos)
 
+	-- Dribble Assist: the dribble's wish for the ball, applied only while your
+	-- device is the one simulating it (otherwise the change wouldn't stick)
+	if s.ballCommand and s.ownBall then
+		ball.AssemblyLinearVelocity = toWorldVec(s.ballCommand)
+	end
+
 	local seat = Settings.DriveMode == 2 and seatOf(carRoot)
 	if Settings.DriveMode == 1 then
-		physicsExecute(c, s.me, carRoot, forwardW, upW)
+		physicsExecute(c, s.me, carRoot, forwardW, upW, ball)
 	elseif seat then
 		seatExecute(c, s.me, carRoot, seat)
 	elseif Settings.DriveMode == 2 then
@@ -2553,6 +2803,9 @@ addButton("Test Drive Methods (picks the one that works)", function()
 	end)
 end)
 addToggle("Aerials", "Aerials")
+addToggle("Air Dribble (Physics mode)", "AirDribble")
+addToggle("Flip Resets (Physics mode)", "FlipReset")
+addToggle("Dribble Assist (when you control the ball)", "DribbleAssist")
 
 addSection("Field")
 addButton("Swap Goals (if it attacks your own net)", function()
