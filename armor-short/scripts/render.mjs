@@ -27,7 +27,7 @@ const scale = parseFloat(opt('scale', '1'));
 const fps = parseInt(opt('fps', String(CONFIG.fps)), 10);
 const workers = parseInt(opt('workers', '2'), 10);
 const out = path.resolve(ROOT, opt('out', 'out/armor-price-short.mp4'));
-const crf = opt('crf', '17');
+const crf = opt('crf', '20');
 const quality = parseFloat(opt('jpeg', '0.96'));
 
 const TL = buildTimeline(CONFIG);
