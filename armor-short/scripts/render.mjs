@@ -27,7 +27,7 @@ const scale = parseFloat(opt('scale', '1'));
 const fps = parseInt(opt('fps', String(CONFIG.fps)), 10);
 const workers = parseInt(opt('workers', '2'), 10);
 const out = path.resolve(ROOT, opt('out', 'out/armor-price-short.mp4'));
-const crf = opt('crf', '20');
+const crf = opt('crf', '21');
 const quality = parseFloat(opt('jpeg', '0.96'));
 
 const TL = buildTimeline(CONFIG);
@@ -80,6 +80,12 @@ const wav = path.join(ROOT, 'build', 'soundtrack.wav');
 const py = spawnSync('python3', [path.join(ROOT, 'scripts', 'audio.py'), path.join(ROOT, 'build', 'timeline.json'), wav], { stdio: 'inherit' });
 if (py.status !== 0) throw new Error('soundtrack generation failed');
 
+// bring the soundtrack to -14 LUFS (YouTube's reference) with a plain gain change
+const meter = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', wav, '-af', 'ebur128=framelog=quiet', '-f', 'null', '-'], { encoding: 'utf8' });
+const lufs = parseFloat((/I:\s+(-?[\d.]+) LUFS/.exec(meter.stderr) || [])[1]);
+const gain = Number.isFinite(lufs) ? Math.min(0, -14 - lufs) : 0;
+console.log(`[render] soundtrack ${lufs} LUFS -> gain ${gain.toFixed(1)} dB`);
+
 // encode
 fs.mkdirSync(path.dirname(out), { recursive: true });
 execFileSync(
@@ -91,7 +97,7 @@ execFileSync(
     '-vf', 'scale=in_range=pc:out_range=tv:in_color_matrix=bt601:out_color_matrix=bt709,format=yuv420p',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', crf, '-profile:v', 'high',
     '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
-    '-af', 'loudnorm=I=-14:TP=-1.0:LRA=11', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000',
+    '-af', `volume=${gain.toFixed(2)}dB`, '-c:a', 'aac', '-b:a', '256k', '-ar', '48000',
     '-movflags', '+faststart', '-shortest', out,
   ],
   { stdio: 'inherit' }

@@ -359,10 +359,8 @@ function renderFrame(t) {
   lights.rimWarm.intensity = 3.2 + Math.min(flash * 1.6, 4);
 
   // overlay
-  const h0 = performance.now();
   hud.draw(t);
   hudTex.needsUpdate = true;
-  window.PROF = { hud: Math.round(performance.now() - h0) };
 
   // post
   const ps = postState(t, TL);

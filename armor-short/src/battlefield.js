@@ -3,7 +3,7 @@
 // function of time so any frame can be rendered independently.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { mulberry32, noise1, sat, smooth, lerp } from './util.js';
+import { mulberry32, noise1, sat, smooth } from './util.js';
 import { NOISE_GLSL } from './materials.js';
 
 const HAZE = new THREE.Color(0.075, 0.03, 0.014);
@@ -531,7 +531,6 @@ export function buildBattlefield(TL, scale = 1) {
         tk.turret.rotation.y = 0.25 * Math.sin(t * 0.3 + i * 2);
       });
       for (const fn of updaters) fn(t, camera);
-      void lerp;
     },
   };
 }
