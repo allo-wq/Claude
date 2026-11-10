@@ -3,7 +3,7 @@
 import { clamp, sat, lerp, prog, smooth, ease, kick, wobble, noise1, DEG } from './util.js';
 
 const X0 = 9.0; // how far off-screen-left a piece starts
-export const SET = { scale: 0.56, y: 0.3 }; // full-set group transform in the finale
+export const SET = { scale: 0.52, y: 0.46 }; // full-set group transform in the finale
 
 const bell = (t, a, b) => (t <= a || t >= b ? 0 : Math.sin(Math.PI * prog(t, a, b)));
 
@@ -173,7 +173,7 @@ export function postState(t, TL) {
     zoom += 0.12 * kick(t, F.slam, 0.16);
     if (t >= F.countStart && t < F.slam) zoom += 0.045 * Math.pow(prog(t, F.countStart, F.countEnd), 2);
     zoomBlur += 0.09 * kick(t, F.slam, 0.1);
-    addFlash(0.6 * kick(t, F.slam, 0.07), 0.6, 1.0, 0.7);
+    addFlash(0.45 * kick(t, F.slam, 0.06), 0.6, 1.0, 0.7);
     addFlash(0.2 * kick(t, F.sweepEnd, 0.05), 0.4, 1.0, 0.55);
   }
   for (const tc of TL.cuts) {
@@ -184,7 +184,7 @@ export function postState(t, TL) {
   }
   ca += 0.45 * shake;
   // fade in / out
-  const fade = smooth(0, 0.12, t) * (1 - smooth(TL.duration - 0.25, TL.duration, t));
+  const fade = 1 - smooth(TL.duration - 0.14, TL.duration, t); // no fade-in: frame 0 is the thumbnail
   return {
     shakeX: shake * noise1(t * 37, 11),
     shakeY: shake * noise1(t * 37, 23),

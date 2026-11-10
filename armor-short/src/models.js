@@ -706,7 +706,7 @@ function pair(build, M, solo, set) {
 // Returns { id: piece }. piece.root is what the choreography animates.
 export function buildPieces() {
   const defs = {
-    helmet: { build: buildHelmet, maxW: 2.5, maxH: 2.9, yaw: -0.5, setScale: 0.62, setPos: [0, 2.72, 0], setYaw: 0 },
+    helmet: { build: buildHelmet, maxW: 2.5, maxH: 2.9, yaw: -0.5, tilt: 0.3, setScale: 0.62, setPos: [0, 2.72, 0], setYaw: 0 },
     goggles: { build: buildGoggles, maxW: 2.75, maxH: 2.6, yaw: -0.45, setScale: 0.51, setPos: [0, 2.98, 0.07], setYaw: 0 },
     vest: { build: buildVest, maxW: 2.55, maxH: 3.0, yaw: -0.45, setScale: 0.85, setPos: [0, 0.5, 0], setYaw: 0 },
     gloves: {
@@ -774,6 +774,7 @@ export function buildPieces() {
       fitScale: f.s,
       halfH: (f.size.y * f.s) / 2,
       yaw: d.yaw,
+      tilt: d.tilt ?? 0,
       setScale: d.setScale / f.s, // root scale that gives the native->set scale
       setPos: d.setPos,
       setYaw: d.setYaw,

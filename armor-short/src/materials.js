@@ -94,10 +94,10 @@ varying vec3 vPPos;`
         /* glsl */ `#include <emissivemap_fragment>
   {
     float fr_ = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 2.0);
-    float band_ = exp(-abs(gEdge_) * 9.0) * uSweepGlow;
+    float band_ = exp(-abs(gEdge_) * 20.0) * uSweepGlow;
     float scan_ = 0.5 + 0.5 * sin(vWPos.y * 46.0 - uTime * 14.0);
-    totalEmissiveRadiance += vec3(0.0, 1.0, 0.16) * (gMask_ * (0.03 + 0.55 * fr_ * fr_ + 0.03 * scan_ + uFlash * 1.2) + band_ * 5.0);
-    totalEmissiveRadiance += vec3(0.7, 1.0, 0.8) * band_ * band_ * 6.0;
+    totalEmissiveRadiance += vec3(0.0, 1.0, 0.16) * (gMask_ * (0.03 + 0.55 * fr_ * fr_ + 0.03 * scan_ + uFlash * 1.2) + band_ * 2.4);
+    totalEmissiveRadiance += vec3(0.7, 1.0, 0.8) * band_ * band_ * 1.6;
   }`
       );
   };

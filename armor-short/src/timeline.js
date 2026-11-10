@@ -48,7 +48,7 @@ export function buildTimeline(cfg) {
 
   // Hook words land on beats 0, 1, 2 and get wiped as the first piece arrives.
   const hook = {
-    lines: cfg.hook.map((text, i) => ({ text, t: 0.12 + i * beat })),
+    lines: cfg.hook.map((text, i) => ({ text, t: -0.06 + i * beat })), // first word is already landing on frame 0
     out: t0 - IN - 0.1,
   };
 
@@ -57,7 +57,7 @@ export function buildTimeline(cfg) {
   const explosions = [];
   const addEx = (t, x, y, z, size) => explosions.push({ t, x, y, z, size, seed: rnd() * 100 });
 
-  addEx(0.02, -10, 2, -70, 1.5);
+  addEx(-0.1, -7, 2, -62, 1.6); // already blooming on frame 0
   addEx(beat * 2, 16, 1, -55, 1.1);
   pieces.forEach((p, i) => {
     const s = i % 2 ? 1 : -1;
@@ -66,8 +66,8 @@ export function buildTimeline(cfg) {
     addEx(p.T + 6 * beat + rnd() * 0.2, s * (30 + rnd() * 20), 1, -90 - rnd() * 30, 1.0);
   });
   finale.lands.forEach((t, k) => addEx(t, (k % 2 ? 1 : -1) * (12 + k * 5), 1, -55 - k * 6, 0.9));
-  addEx(finale.slam, -13, 2, -58, 2.3);
-  addEx(finale.slam + 0.12, 15, 2, -66, 2.0);
+  addEx(finale.slam, -13, 2, -58, 1.7);
+  addEx(finale.slam + 0.12, 15, 2, -66, 1.5);
   addEx(finale.slam + beat * 2, 30, 1, -80, 1.3);
   addEx(finale.slam + beat * 4, -28, 1, -85, 1.2);
   explosions.sort((a, b) => a.t - b.t);

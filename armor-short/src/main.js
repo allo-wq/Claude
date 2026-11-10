@@ -104,7 +104,7 @@ const scanner = new THREE.Group();
 }
 // shockwave rings (green lock-in, price slam)
 const waves = [0, 1, 2].map(() => {
-  const m = new THREE.Mesh(new THREE.RingGeometry(0.93, 1.0, 96), additive(new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, side: THREE.DoubleSide })));
+  const m = new THREE.Mesh(new THREE.RingGeometry(0.965, 1.0, 96), additive(new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, side: THREE.DoubleSide })));
   m.visible = false;
   fg.add(m);
   return m;
@@ -135,7 +135,7 @@ class ScenePass extends Pass {
           tHud: { value: hudTex },
           uBlur: { value: query.has('noblur') ? 0.0 : 0.0055 },
           uAspect: { value: W / H },
-          uGain: { value: 1.12 },
+          uGain: { value: 1.04 },
           uHudA: { value: query.has('nohud') ? 0 : 1 },
         },
         vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
@@ -284,7 +284,7 @@ function renderFrame(t) {
     if (!st.visible) continue;
     piece.setMode(st.mode);
     piece.root.position.set(st.x, st.y, st.z);
-    piece.root.rotation.set(st.pitch, st.yaw, st.roll, 'YXZ');
+    piece.root.rotation.set(st.pitch + (st.mode === 'solo' ? piece.tilt : 0), st.yaw, st.roll, 'YXZ');
     piece.root.scale.setScalar(st.scale);
     piece.root.updateMatrixWorld(true);
     piece.U.uSweepY.value = st.sweepY;
@@ -330,7 +330,7 @@ function renderFrame(t) {
     }
     wave(p.sweepEnd, 0.4, 1.0, 0.3, 3.0, 0.9);
     wave(p.slam, 0.5, 1.2, 0.9, 3.2, 1.3);
-    wave(p.land, 0.3, 0.8, 2.4, 1.6, 0.9);
+    wave(p.land, 0.26, 0.75, 1.3, 0.85, 0.45);
   }
   if (t >= F.sweepStart - 0.02 && t <= F.sweepEnd + 0.06) {
     scanner.visible = true;

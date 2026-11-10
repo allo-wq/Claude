@@ -14,7 +14,7 @@ const L = {
   itemY: 816,
   priceY: 1425,
   fLabelY: 188,
-  fPriceY: 1500,
+  fPriceY: 1512,
 };
 
 // "going from one to the price": starts at exactly 1, ends at exactly `price`.
@@ -343,7 +343,7 @@ export class HUD {
         scale = lerp(0.3, 1, ease.outBack(prog(t, p.countStart, p.countStart + 0.13))) * lerp(0.86, 1.0, q) * (1 + 0.035 * tick);
         y += (tick - 0.5) * 12 * (1 - q);
       } else {
-        scale = 1 + 0.55 * kick(t, p.slam, 0.08) + 0.035 * Math.sin(age * 9) * Math.exp(-age / 0.45);
+        scale = 1 + 0.3 * kick(t, p.slam, 0.09) + 0.035 * Math.sin(age * 9) * Math.exp(-age / 0.45);
         rot = -0.035 * (1 - Math.exp(-age / 0.05));
         rays(ctx, W / 2 + dx, L.priceY, age, 22, 0.38, 'rgba(160,255,195,0.95)', 620);
       }
@@ -366,11 +366,11 @@ export class HUD {
       const out = prog(t, F.slam, F.slam + 0.25);
       const sc = lerp(1.12, 1, ease.outCubic(a)) + 0.12 * ease.outCubic(out);
       const bw = 900 * sc;
-      const bh = 1000 * sc;
-      brackets(ctx, W / 2, 800, bw, bh, 90, 8, a * (1 - out), GREEN);
+      const bh = 960 * sc;
+      brackets(ctx, W / 2, 770, bw, bh, 90, 8, a * (1 - out), GREEN);
       const scanning = t < F.sweepEnd;
       const blink = 0.55 + 0.45 * Math.sign(Math.sin(t * 34));
-      text(ctx, scanning ? 'SCANNING SET' : 'ADDING UP', W / 2 - bw / 2 + 28, 800 - bh / 2 + 46, 32, { font: 'Oswald', weight: 600, align: 'left', track: 6, fill: GREEN, alpha: a * (1 - out) * (scanning ? blink : 1), stroke: '#000', strokeW: 7, shadowBlur: 8, shadowY: 2 });
+      text(ctx, scanning ? 'SCANNING SET' : 'ADDING UP', W / 2 - bw / 2 + 28, 770 - bh / 2 + 46, 32, { font: 'Oswald', weight: 600, align: 'left', track: 6, fill: GREEN, alpha: a * (1 - out) * (scanning ? blink : 1), stroke: '#000', strokeW: 7, shadowBlur: 8, shadowY: 2 });
     }
 
     if (t >= F.countStart) {
@@ -380,7 +380,7 @@ export class HUD {
       // TOTAL COST pill
       const pa = ease.outBack(prog(t, F.countStart, F.countStart + 0.16));
       ctx.save();
-      ctx.translate(W / 2, L.fPriceY - 172);
+      ctx.translate(W / 2, L.fPriceY - 212);
       ctx.scale(pa * (1 + 0.12 * kick(t, F.slam, 0.1)), pa * (1 + 0.12 * kick(t, F.slam, 0.1)));
       ctx.rotate(-0.03);
       ctx.fillStyle = GREEN;
@@ -390,7 +390,7 @@ export class HUD {
       ctx.roundRect(-205, -40, 410, 80, 12);
       ctx.fill();
       ctx.restore();
-      text(ctx, cfg.finale.tag, W / 2, L.fPriceY - 170, 60, { scale: pa * (1 + 0.12 * kick(t, F.slam, 0.1)), rot: -0.03, fill: INK, track: 5, maxW: 370 });
+      text(ctx, cfg.finale.tag, W / 2, L.fPriceY - 210, 60, { scale: pa * (1 + 0.12 * kick(t, F.slam, 0.1)), rot: -0.03, fill: INK, track: 5, maxW: 370 });
 
       let scale;
       let rot = 0;
@@ -401,7 +401,7 @@ export class HUD {
         y += (tick - 0.5) * 12 * (1 - q);
       } else {
         const beatPulse = Math.pow(0.5 + 0.5 * Math.cos(((age % TL.beat) / TL.beat) * Math.PI * 2), 6);
-        scale = 1 + 0.7 * kick(t, F.slam, 0.1) + 0.03 * beatPulse;
+        scale = 1 + 0.26 * kick(t, F.slam, 0.11) + 0.03 * beatPulse;
         rot = -0.04 * (1 - Math.exp(-age / 0.05));
         rays(ctx, W / 2, L.fPriceY, age, 34, 0.5, 'rgba(160,255,195,0.95)', 900);
         rays(ctx, W / 2, L.fPriceY, age - 0.12, 26, 0.5, 'rgba(255,255,255,0.8)', 760);
@@ -410,7 +410,7 @@ export class HUD {
         moneyBurst(ctx, W / 2, L.fPriceY - 60, age, 46, 99, 1.25);
         moneyBurst(ctx, W / 2, L.fPriceY - 60, age - 0.18, 30, 57, 1.0);
       }
-      drawPrice(ctx, this.fmt(val), W / 2, y, 300, { scale, rot, alpha: 1, final: done });
+      drawPrice(ctx, this.fmt(val), W / 2, y, 284, { scale, rot, alpha: 1, final: done });
     }
   }
 
