@@ -43,7 +43,7 @@ def _loop_point(u, a):
     return a * c / d, a * s * c / d
 
 
-def _loop_path(ctx, x, y, a, u0, u1, steps):
+def loop_path(ctx, x, y, a, u0, u1, steps):
     for i in range(steps + 1):
         px, py = _loop_point(u0 + (u1 - u0) * i / steps, a)
         (ctx.move_to if i == 0 else ctx.line_to)(x + px, y + py)
@@ -101,7 +101,7 @@ def draw_card(ctx, cx, cy, t):
         grad = cairo.LinearGradient(lx - la, 0, lx + la, 0)
         grad.add_color_stop_rgba(0, *VIOLET, al * a)
         grad.add_color_stop_rgba(1, *PINK, al * a)
-        _loop_path(ctx, lx, 0, la, 0, 2 * math.pi, 96)
+        loop_path(ctx, lx, 0, la, 0, 2 * math.pi, 96)
         ctx.close_path()
         ctx.set_source(grad)
         ctx.set_line_width(lw)
@@ -110,7 +110,7 @@ def draw_card(ctx, cx, cy, t):
     n = 14
     ctx.set_line_width(6)
     for i in range(n):
-        _loop_path(ctx, lx, 0, la, head - (i + 1) * 0.08, head - i * 0.08, 3)
+        loop_path(ctx, lx, 0, la, head - (i + 1) * 0.08, head - i * 0.08, 3)
         ctx.set_source_rgba(1, 1, 1, a * (1 - i / n) ** 1.5)
         ctx.stroke()
 
