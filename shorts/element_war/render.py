@@ -27,10 +27,12 @@ from common import GOLD, H, RED, WHITE, W  # noqa: E402
 import sim as S  # noqa: E402
 from sim import ARENA, DT, FIRE, NAMES, PLANT, WATER  # noqa: E402
 
-DEFAULT_SEED = 1
+DEFAULT_SEED = 231
 COL = [(1.0, 0.45, 0.12), (0.22, 0.62, 1.0), (0.32, 0.90, 0.38)]
 LIGHT = [(1.0, 0.88, 0.35), (0.65, 0.92, 1.0), (0.78, 1.0, 0.5)]
 VERB = {FIRE: "BURNS", PLANT: "DRINKS", WATER: "PUTS OUT"}
+ONE = {FIRE: "FLAME", WATER: "DROP", PLANT: "LEAF"}
+MANY = {FIRE: "FLAMES", WATER: "DROPS", PLANT: "LEAVES"}
 AX0, AY0, AX1, AY1 = ARENA
 ACX, ACY = (AX0 + AX1) / 2, (AY0 + AY1) / 2
 SPR = 96                     # sprite canvas size (icons are drawn at ~2x and scaled down)
@@ -162,6 +164,8 @@ class Battle:
         self.first_out_t = self.extinct[0][0]
         before = self.counts[: int(round(self.first_out_t / DT))]
         self.winner_min = int(before[:, self.winner].min())
+        self.peak = int(before.max())
+        self.peak_type = int(np.unravel_index(before.argmax(), before.shape)[1])
 
         # leader (unique top count) and when it last changed, per frame
         self.leader = np.full(self.F, -1)
@@ -397,9 +401,21 @@ class Renderer:
             a = C.clamp01((3.4 - v) / 0.3) * (0.75 + 0.25 * math.sin(v * 9))
             C.text(ctx, "PICK ONE IN THE COMMENTS", W / 2, 460, 40, GOLD, alpha=a)
         elif len(alive) == 3:
-            self.rules(ctx, 460, C.clamp01((v - 3.4) / 0.3))
+            low = [k for k in alive if cnt[k] <= 3]
+            if low and s < b.T:
+                k = min(low, key=lambda j: cnt[j])
+                C.text(ctx, f"ONLY {cnt[k]} {(ONE if cnt[k] == 1 else MANY)[k]} LEFT!", W / 2, 460, 46, COL[k],
+                       scale=1 + 0.06 * math.sin(v * 10))
+            else:
+                self.rules(ctx, 460, C.clamp01((v - 3.4) / 0.3))
         elif len(alive) == 2 and s < b.T:
-            C.text(ctx, f"ONLY {NAMES[alive[0]]} AND {NAMES[alive[1]]} LEFT", W / 2, 460, 40, WHITE)
+            p, q = alive if S.PREY[alive[0]] == alive[1] else alive[::-1]
+            age = v - b.tm.v_of_s(b.first_out_t)
+            if age < 1.3:
+                C.text(ctx, f"ONLY {NAMES[alive[0]]} AND {NAMES[alive[1]]} LEFT", W / 2, 460, 40, WHITE)
+            else:
+                C.text(ctx, f"...AND {NAMES[p]} {VERB[p]} {NAMES[q]}!", W / 2, 460, 46, COL[p],
+                       scale=C.ease_out_back((age - 1.3) / 0.35))
 
         # "X IS OUT!" banner
         for t, k, _, _ in b.extinct:
@@ -448,11 +464,16 @@ class Renderer:
         C.text(ctx, NAMES[k], W / 2, 850, 190, COL[k], scale=C.ease_out_back(t / 0.45), outline=0.1)
         C.text(ctx, "TAKES OVER!", W / 2, 1005, 118, WHITE,
                scale=C.ease_out_back((t - 0.15) / 0.45), outline=0.1)
-        if b.winner_min <= 15:
-            C.text(ctx, f"CAME BACK FROM ONLY {b.winner_min} LEFT", W / 2, 1130, 46, GOLD,
-                   alpha=C.clamp01((t - 0.45) / 0.25))
+        a = C.clamp01((t - 0.45) / 0.25)
+        if b.winner_min == 1:
+            C.text(ctx, f"CAME BACK FROM A SINGLE {ONE[k]}!", W / 2, 1125, 48, GOLD, alpha=a)
+        elif b.winner_min <= 15:
+            C.text(ctx, f"CAME BACK FROM ONLY {b.winner_min} LEFT", W / 2, 1125, 48, GOLD, alpha=a)
+        if b.peak_type != k and b.peak >= S.N - 15:
+            C.text(ctx, f"({NAMES[b.peak_type]} WAS {S.N - b.peak} AWAY FROM WINNING)", W / 2, 1182, 36,
+                   (0.86, 0.84, 0.95), alpha=C.clamp01((t - 0.7) / 0.25))
         a = C.clamp01((t - 1.0) / 0.3)
-        C.text(ctx, f"DID YOU PICK {NAMES[k]}?", W / 2, 1250, 58, WHITE, alpha=a,
+        C.text(ctx, f"DID YOU PICK {NAMES[k]}?", W / 2, 1280, 58, WHITE, alpha=a,
                scale=0.9 + 0.1 * C.ease_out_back((t - 1.0) / 0.4))
         if t >= 1.6:
             brand.draw_card(ctx, W / 2, 1470, t - 1.6)
