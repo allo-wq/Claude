@@ -98,7 +98,7 @@ class Race:
 
         # time remap: video time v -> sim time s, with slow motion on the final ring
         ds, slow = 1e-3, 0.28
-        s = np.arange(0.0, T + 4.6, ds)
+        s = np.arange(0.0, T + 5.2, ds)
         sp = np.ones_like(s)
         a0, a1, b0, b1 = T - 0.8, T - 0.5, T + 0.25, T + 0.7
         m = (s >= a0) & (s < a1)
@@ -229,7 +229,7 @@ class Race:
 
 
 # ------------------------------------------------------------------------ drawing
-def text(ctx, s, x, y, size, col, alpha=1.0, scale=1.0, face=FONT, outline=0.14):
+def text(ctx, s, x, y, size, col, alpha=1.0, scale=1.0, face=FONT, outline=0.14, left=False):
     if alpha <= 0.003 or scale <= 0.01:
         return
     ctx.save()
@@ -239,7 +239,7 @@ def text(ctx, s, x, y, size, col, alpha=1.0, scale=1.0, face=FONT, outline=0.14)
     xb, yb, tw, th, _, _ = ctx.text_extents(s)
     ctx.translate(x, y)
     ctx.scale(scale, scale)
-    ctx.move_to(-(xb + tw / 2), -(yb + th / 2))
+    ctx.move_to(-xb if left else -(xb + tw / 2), -(yb + th / 2))
     ctx.text_path(s)
     if outline:
         ctx.set_source_rgba(0.02, 0.0, 0.06, 0.85 * alpha)
@@ -484,23 +484,70 @@ class Renderer:
             self.confetti(ctx, v - (r.vW - 0.1))
         if v >= r.vW:
             t = v - r.vW
-            g = cairo.RadialGradient(CX, 1150, 50, CX, 1150, 760)
+            g = cairo.RadialGradient(CX, 1120, 50, CX, 1120, 780)
             g.add_color_stop_rgba(0, 0, 0, 0.03, 0.6 * clamp01(t / 0.3))
             g.add_color_stop_rgba(1, 0, 0, 0.03, 0.0)
             ctx.set_source(g)
             ctx.paint()
             wc = BALL_COL[r.winner]
-            text(ctx, BALL_NAME[r.winner], W / 2, 980, 200, wc,
+            text(ctx, BALL_NAME[r.winner], W / 2, 900, 200, wc,
                  scale=ease_out_back(t / 0.45), face=FONT_HEAVY, outline=0.1)
-            text(ctx, "WINS!", W / 2, 1165, 170, WHITE,
+            text(ctx, "WINS!", W / 2, 1080, 170, WHITE,
                  scale=ease_out_back((t - 0.15) / 0.45), face=FONT_HEAVY, outline=0.1)
             a = clamp01((t - 0.45) / 0.25)
-            text(ctx, str(r.final[0]), W / 2 - 115, 1325, 92, BALL_COL[0], alpha=a, face=FONT_HEAVY)
-            text(ctx, "\u2013", W / 2, 1320, 92, WHITE, alpha=a, face=FONT_HEAVY)
-            text(ctx, str(r.final[1]), W / 2 + 115, 1325, 92, BALL_COL[1], alpha=a, face=FONT_HEAVY)
+            text(ctx, str(r.final[0]), W / 2 - 115, 1235, 92, BALL_COL[0], alpha=a, face=FONT_HEAVY)
+            text(ctx, "\u2013", W / 2, 1230, 92, WHITE, alpha=a, face=FONT_HEAVY)
+            text(ctx, str(r.final[1]), W / 2 + 115, 1235, 92, BALL_COL[1], alpha=a, face=FONT_HEAVY)
             a = clamp01((t - 1.0) / 0.3)
-            text(ctx, "DID YOU CALL IT?", W / 2, 1460, 60, GOLD, alpha=a,
+            text(ctx, "DID YOU CALL IT?", W / 2, 1360, 60, GOLD, alpha=a,
                  scale=0.9 + 0.1 * ease_out_back((t - 1.0) / 0.4), face=FONT_HEAVY)
+            if t >= 1.6:
+                self.brand_card(ctx, t - 1.6)
+
+    def brand_card(self, ctx, t):
+        """'LOOP LAB' sign-off: a neon pill with a spinning ring logo."""
+        a = clamp01(t / 0.3)
+        cx, cy = W / 2, 1470 + 40 * (1 - ease_out_cubic(t / 0.45))
+        pw, ph = 600, 124
+        ctx.save()
+        ctx.translate(cx, cy)
+        sc = 0.85 + 0.15 * ease_out_back(t / 0.45)
+        ctx.scale(sc, sc)
+        x0, y0, rad = -pw / 2, -ph / 2, ph / 2
+        ctx.new_sub_path()
+        ctx.arc(x0 + pw - rad, 0, rad, -math.pi / 2, math.pi / 2)
+        ctx.arc(x0 + rad, 0, rad, math.pi / 2, 3 * math.pi / 2)
+        ctx.close_path()
+        ctx.set_source_rgba(0.04, 0.02, 0.09, 0.82 * a)
+        ctx.fill_preserve()
+        grad = cairo.LinearGradient(x0, 0, x0 + pw, 0)
+        grad.add_color_stop_rgba(0, *RING_COL[0], a)
+        grad.add_color_stop_rgba(1, *RING_COL[-1], a)
+        for lw, al in ((12, 0.18), (3, 1.0)):
+            ctx.set_line_width(lw)
+            ctx.set_source(grad)
+            ctx.push_group()
+            ctx.paint_with_alpha(al)
+            ctx.pop_group_to_source()
+            ctx.stroke_preserve()
+        ctx.new_path()
+        # logo: a spinning ring with a gap and a ball inside
+        lx = x0 + 72
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        spin = -0.8 + t * 2.4
+        for lw, al in ((14, 0.25), (7, 1.0)):
+            ctx.set_line_width(lw)
+            ctx.set_source_rgba(*RING_COL[8], al * a)
+            ctx.new_sub_path()
+            ctx.arc(lx, 0, 32, spin + 0.55, spin - 0.55 + 2 * math.pi)
+            ctx.stroke()
+        ball_icon(ctx, lx + 9 * math.cos(t * 5), 7 * math.sin(t * 7) + 4, 9,
+                  BALL_COL[self.r.winner], alpha=a)
+        text(ctx, "LOOP LAB", x0 + 128, -18, 54, WHITE, alpha=a, face=FONT_HEAVY,
+             outline=0, left=True)
+        text(ctx, "NEW EXPERIMENT EVERY DAY", x0 + 130, 30, 25, (0.80, 0.76, 0.94),
+             alpha=a, face=FONT_HEAVY, outline=0, left=True)
+        ctx.restore()
 
     def confetti(self, ctx, t):
         c = self.r.confetti
@@ -702,6 +749,8 @@ def build_audio(race, path):
     for i in range(16):
         m = 83 + int(rng.choice([0, 4, 7, 11, 12, 16, 19]))
         add(bell(m, 0.8, 0.3), vw + 0.4 + rng.uniform(0, 1.8), 0.1, rng.uniform(-0.9, 0.9))
+    for i, m in enumerate((83, 90)):
+        add(bell(m, 1.4, 0.6), vw + 1.62 + 0.11 * i, 0.16)
 
     # master: soft clip + normalise
     st = np.stack([L, R], axis=1)
@@ -756,7 +805,7 @@ def cmd_still(args):
     os.makedirs(args.outdir, exist_ok=True)
     print(f"duration {race.duration:.2f}s, final ring at v={race.vT:.2f}s, winner {BALL_NAME[race.winner]}")
     for tv in args.times.split(","):
-        v = float(tv) if tv not in ("end", "final") else (race.vW + 1.6 if tv == "end" else race.vT - 0.4)
+        v = float(tv) if tv not in ("end", "final") else (race.vW + 2.6 if tv == "end" else race.vT - 0.4)
         path = os.path.join(args.outdir, f"still_{tv}.png")
         rd.frame(v).write_to_png(path)
         print(path)
