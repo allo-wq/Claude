@@ -1,0 +1,21 @@
+## Venom Mode
+item.venom.symbiote_sample=Symbiote Sample
+item.venom.crimson_sample=Crimson Symbiote Sample
+item.venom.chocolate=Chocolate Bar
+item.venom.core=Symbiote Core
+item.venom.tendril=Tendril Lash
+item.venom.devour=Devour
+item.venom.roar=Roar
+item.venom.spikes=Spike Burst
+item.venom.suit_head=Symbiote Mask
+item.venom.suit_chest=Symbiote Skin
+item.venom.suit_legs=Symbiote Legs
+item.venom.suit_feet=Symbiote Claws
+item.venom.crimson_head=Crimson Mask
+item.venom.crimson_chest=Crimson Skin
+item.venom.crimson_legs=Crimson Legs
+item.venom.crimson_feet=Crimson Claws
+entity.venom:symbiote.name=Symbiote
+entity.venom:crimson_symbiote.name=Crimson Symbiote
+item.spawn_egg.entity.venom:symbiote.name=Symbiote Spawn Egg
+item.spawn_egg.entity.venom:crimson_symbiote.name=Crimson Symbiote Spawn Egg

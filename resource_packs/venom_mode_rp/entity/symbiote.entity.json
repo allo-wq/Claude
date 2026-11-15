@@ -1,0 +1,36 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "venom:symbiote",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/venom/symbiote"
+      },
+      "geometry": {
+        "default": "geometry.venom.symbiote"
+      },
+      "animations": {
+        "idle": "animation.venom.symbiote.idle",
+        "crawl": "animation.venom.symbiote.crawl",
+        "look": "animation.venom.look_at_target"
+      },
+      "scripts": {
+        "animate": [
+          "idle",
+          "crawl",
+          "look"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.venom.entity"
+      ],
+      "spawn_egg": {
+        "base_color": "#12121a",
+        "overlay_color": "#f4f6fb"
+      }
+    }
+  }
+}

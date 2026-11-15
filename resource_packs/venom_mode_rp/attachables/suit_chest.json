@@ -1,0 +1,29 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "venom:suit_chest",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/venom/venom_suit"
+      },
+      "geometry": {
+        "default": "geometry.venom.suit.chest"
+      },
+      "animations": {
+        "tendrils": "animation.venom.tendrils"
+      },
+      "scripts": {
+        "parent_setup": "variable.chest_layer_visible = 0.0;",
+        "animate": [
+          "tendrils"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.venom.entity"
+      ]
+    }
+  }
+}

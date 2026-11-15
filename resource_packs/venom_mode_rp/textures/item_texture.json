@@ -1,0 +1,36 @@
+{
+  "resource_pack_name": "venom_mode",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "venom_symbiote_sample": {
+      "textures": "textures/items/venom_symbiote_sample"
+    },
+    "venom_crimson_sample": {
+      "textures": "textures/items/venom_crimson_sample"
+    },
+    "venom_chocolate": {
+      "textures": "textures/items/venom_chocolate"
+    },
+    "venom_core": {
+      "textures": "textures/items/venom_core"
+    },
+    "venom_tendril": {
+      "textures": "textures/items/venom_tendril"
+    },
+    "venom_devour": {
+      "textures": "textures/items/venom_devour"
+    },
+    "venom_roar": {
+      "textures": "textures/items/venom_roar"
+    },
+    "venom_spikes": {
+      "textures": "textures/items/venom_spikes"
+    },
+    "venom_suit": {
+      "textures": "textures/items/venom_suit"
+    },
+    "venom_crimson_suit": {
+      "textures": "textures/items/venom_crimson_suit"
+    }
+  }
+}

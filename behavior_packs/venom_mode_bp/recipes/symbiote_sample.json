@@ -1,0 +1,35 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "venom:symbiote_sample"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "ISI",
+      "SES",
+      "ISI"
+    ],
+    "key": {
+      "I": {
+        "item": "minecraft:ink_sac"
+      },
+      "S": {
+        "item": "minecraft:slime_ball"
+      },
+      "E": {
+        "item": "minecraft:ender_eye"
+      }
+    },
+    "unlock": [
+      {
+        "item": "minecraft:slime_ball"
+      }
+    ],
+    "result": {
+      "item": "venom:symbiote_sample"
+    }
+  }
+}

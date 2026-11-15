@@ -1,0 +1,22 @@
+{
+  "format_version": "1.21.90",
+  "minecraft:item": {
+    "description": {
+      "identifier": "venom:symbiote_sample",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "venom_symbiote_sample"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.venom.symbiote_sample"
+      },
+      "minecraft:max_stack_size": 16
+    }
+  }
+}

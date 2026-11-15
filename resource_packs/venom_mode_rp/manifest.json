@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Venom Mode [Resources]",
+    "description": "Models, textures and effects for Venom Mode.",
+    "uuid": "868db9e4-38a1-44d6-b64e-3179ad892556",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      90
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "35f4c555-2624-4b0b-83d6-e97d7ec13e08",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "a87e67f5-2f63-4d12-a9d9-0e53d822506a",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

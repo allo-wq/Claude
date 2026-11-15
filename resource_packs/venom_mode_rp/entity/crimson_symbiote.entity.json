@@ -1,0 +1,46 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "venom:crimson_symbiote",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/venom/crimson_suit"
+      },
+      "geometry": {
+        "default": "geometry.venom.host"
+      },
+      "animations": {
+        "move": "animation.venom.host.move",
+        "idle": "animation.venom.host.idle",
+        "attack": "animation.venom.host.attack",
+        "look": "animation.venom.look_at_target",
+        "tendrils": "animation.venom.tendrils",
+        "tongue": "animation.venom.tongue"
+      },
+      "scripts": {
+        "initialize": [
+          "variable.attack_time = 0.0;"
+        ],
+        "scale": "1.45",
+        "animate": [
+          "move",
+          "idle",
+          "attack",
+          "look",
+          "tendrils",
+          "tongue"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.venom.entity"
+      ],
+      "spawn_egg": {
+        "base_color": "#80121a",
+        "overlay_color": "#1a0608"
+      }
+    }
+  }
+}
