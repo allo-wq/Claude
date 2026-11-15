@@ -1,0 +1,214 @@
+{
+  "format_version": "1.14.0",
+  "sound_definitions": {
+    "venom.roar": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/roar1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/venom/roar2",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/venom/roar3",
+          "volume": 1.0
+        }
+      ],
+      "max_distance": 48.0
+    },
+    "venom.growl": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/venom/growl1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/venom/growl2",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/venom/growl3",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/venom/growl4",
+          "volume": 0.8
+        }
+      ]
+    },
+    "venom.bite": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/bite1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/venom/bite2",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/venom/bite3",
+          "volume": 1.0
+        }
+      ]
+    },
+    "venom.gulp": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/gulp1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/venom/gulp2",
+          "volume": 0.8
+        }
+      ]
+    },
+    "venom.tendril": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/tendril1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/venom/tendril2",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/venom/tendril3",
+          "volume": 1.0
+        }
+      ]
+    },
+    "venom.squelch": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/squelch1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/venom/squelch2",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/venom/squelch3",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/venom/squelch4",
+          "volume": 0.8
+        }
+      ]
+    },
+    "venom.bond": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/bond",
+          "volume": 1.0
+        }
+      ]
+    },
+    "venom.separate": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/separate",
+          "volume": 1.0
+        }
+      ]
+    },
+    "venom.spikes": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/spikes",
+          "volume": 1.0
+        }
+      ]
+    },
+    "venom.pain": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/pain1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/venom/pain2",
+          "volume": 0.9
+        }
+      ]
+    },
+    "venom.symbiote.ambient": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/venom/symbiote_idle1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/venom/symbiote_idle2",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/venom/symbiote_idle3",
+          "volume": 0.6
+        }
+      ]
+    },
+    "venom.symbiote.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/venom/symbiote_hurt1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/venom/symbiote_hurt2",
+          "volume": 0.8
+        }
+      ]
+    },
+    "venom.symbiote.death": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/venom/symbiote_death",
+          "volume": 1.0
+        }
+      ]
+    },
+    "venom.crimson.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/venom/crimson_hurt1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/venom/crimson_hurt2",
+          "volume": 1.0
+        }
+      ]
+    },
+    "venom.crimson.death": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/venom/crimson_death",
+          "volume": 1.0
+        }
+      ],
+      "max_distance": 48.0
+    }
+  }
+}

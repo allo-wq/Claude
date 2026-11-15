@@ -153,8 +153,7 @@ export function bond(player, formId) {
 
   const dimension = player.dimension;
   fx.engulf(player, form.particle.goo);
-  fx.sound(dimension, 'mob.slime.big', player.location, 1, 0.5);
-  fx.sound(dimension, 'mob.ravager.roar', player.location, 1, 0.7);
+  fx.sound(dimension, 'venom.bond', player.location);
   fx.shake(player, 0.5, 0.6);
   player.addEffect('blindness', 25, { showParticles: false });
   player.onScreenDisplay.setTitle(`${form.color}§l${form.cry}`, {
@@ -198,7 +197,7 @@ export function separate(player, forced) {
   }
 
   fx.engulf(player, form.particle.goo);
-  fx.sound(player.dimension, 'mob.slime.big', player.location, 1, 0.8);
+  fx.sound(player.dimension, 'venom.separate', player.location);
   player.onScreenDisplay.setActionBar(forced ? '§cThe symbiote is torn from you!' : '§7The symbiote lets go.');
   return true;
 }

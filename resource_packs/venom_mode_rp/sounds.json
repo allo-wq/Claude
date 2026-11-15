@@ -1,0 +1,30 @@
+{
+  "entity_sounds": {
+    "entities": {
+      "venom:symbiote": {
+        "volume": 1.0,
+        "pitch": [
+          0.9,
+          1.15
+        ],
+        "events": {
+          "ambient": "venom.symbiote.ambient",
+          "hurt": "venom.symbiote.hurt",
+          "death": "venom.symbiote.death"
+        }
+      },
+      "venom:crimson_symbiote": {
+        "volume": 1.0,
+        "pitch": [
+          0.85,
+          1.0
+        ],
+        "events": {
+          "ambient": "venom.growl",
+          "hurt": "venom.crimson.hurt",
+          "death": "venom.crimson.death"
+        }
+      }
+    }
+  }
+}

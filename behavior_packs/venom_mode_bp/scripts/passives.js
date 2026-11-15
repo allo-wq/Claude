@@ -2,6 +2,7 @@ import { EntityDamageCause, system } from '@minecraft/server';
 import { ABILITIES, PROP, SLAM } from './config.js';
 import { landSlam, startSlam, tip } from './abilities.js';
 import { syncSuit } from './bond.js';
+import * as fx from './fx.js';
 import { addBiomass, biomassOf, option, runtimeOf, shouldSay } from './state.js';
 
 /**
@@ -148,9 +149,13 @@ export function secondTick(player, form) {
     grant(player, 'hunger', 1);
     const health = player.getComponent('minecraft:health');
     if (health && health.currentValue > 4) player.applyDamage(1, { cause: EntityDamageCause.starve });
-    if (shouldSay(runtime, 'starving', now, 200)) tip(player, '§4FEED US... OR WE FEED ON YOU.');
+    if (shouldSay(runtime, 'starving', now, 200)) {
+      tip(player, '§4FEED US... OR WE FEED ON YOU.');
+      fx.sound(player.dimension, 'venom.growl', player.location);
+    }
   } else if (biomass < 20 && shouldSay(runtime, 'hungry', now, 600)) {
     tip(player, '§6We are hungry. Hunt, or find chocolate.');
+    fx.sound(player.dimension, 'venom.growl', player.location, 0.7);
   }
 
   // Ringing ears settle after ten quiet seconds.

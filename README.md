@@ -4,7 +4,7 @@ A symbiote add-on for Minecraft Bedrock / Pocket Edition. Bond with a symbiote t
 
 ![The Venom suit, the Crimson form and a wild symbiote](docs/preview.png)
 
-This is a fan-made add-on. It is not affiliated with Marvel, Mojang or Microsoft.
+This is a fan-made add-on. It is not affiliated with Marvel, Mojang or Microsoft. The art is original and the sounds are built from public-domain recordings; see [CREDITS.md](CREDITS.md).
 
 ## Install
 
@@ -83,14 +83,16 @@ npm install
 npm run build       # redraws textures and models, writes dist/VenomMode.mcaddon
 npm test            # runs the scripts against a stand-in for the game
 npm run typecheck   # checks the scripts against the Script API 2.0.0 typings
+npm run sounds      # rebuilds the sound effects from their CC0 sources
 ```
 
-`npm run build` needs Python 3 with Pillow.
+`npm run build` needs Python 3 with Pillow. `npm run sounds` also needs numpy, ffmpeg and access to opengameart.org; the finished sounds are committed, so it is only needed to change them.
 
 | Path | Contents |
 | --- | --- |
 | `behavior_packs/venom_mode_bp` | Items, mobs, recipes, spawn rules and the scripts. Every number worth tuning is in `scripts/config.js` |
 | `resource_packs/venom_mode_rp` | Models, textures, animations, particles and names |
 | `tools/build_assets.py` | Draws every texture and builds every model |
+| `tools/build_sounds.py` | Cuts and layers the sound effects from CC0 recordings |
 | `tools/package.py` | Zips the two packs into the `.mcaddon` |
 | `tests/` | Script tests and the stand-in for the game they run against |

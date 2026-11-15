@@ -2,6 +2,7 @@
 //   node --import ./tests/loader.mjs --test tests/
 
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { beforeEach, test } from 'node:test';
 import { Entity, EntityDamageCause, ItemStack, Player, overworld, system, world } from '@minecraft/server';
 import { answers, shown } from '@minecraft/server-ui';
@@ -467,4 +468,31 @@ test('script events let map makers bond, feed and separate players', () => {
   assert.equal(biomass(player), 100);
   send('venom:separate');
   assert.equal(bonded(player), false);
+});
+
+test('every custom sound is defined, has its file, and the abilities really play them', () => {
+  const pack = new URL('../resource_packs/venom_mode_rp/', import.meta.url);
+  const scripts = new URL('../behavior_packs/venom_mode_bp/scripts/', import.meta.url);
+  const defined = JSON.parse(readFileSync(new URL('sounds/sound_definitions.json', pack), 'utf8')).sound_definitions;
+
+  for (const [id, definition] of Object.entries(defined)) {
+    for (const sound of definition.sounds) {
+      assert.ok(existsSync(new URL(`${sound.name}.ogg`, pack)), `${id} is missing ${sound.name}.ogg`);
+    }
+  }
+
+  const used = new Set();
+  for (const file of readdirSync(scripts)) {
+    for (const match of readFileSync(new URL(file, scripts), 'utf8').matchAll(/'(venom\.[a-z_.]+)'/g)) used.add(match[1]);
+  }
+  const mobs = JSON.parse(readFileSync(new URL('sounds.json', pack), 'utf8')).entity_sounds.entities;
+  for (const mob of Object.values(mobs)) for (const id of Object.values(mob.events)) used.add(id);
+  assert.ok(used.size >= 10);
+  for (const id of used) assert.ok(id in defined, `${id} is played but not defined`);
+  for (const id of Object.keys(defined)) assert.ok(used.has(id), `${id} is defined but never played`);
+
+  // the scenarios above ran the abilities; their sounds must have reached the world
+  for (const id of ['venom.bond', 'venom.separate', 'venom.tendril', 'venom.bite', 'venom.gulp', 'venom.roar', 'venom.spikes', 'venom.pain', 'venom.growl']) {
+    assert.ok(overworld.sounds.includes(id), `${id} was never played`);
+  }
 });

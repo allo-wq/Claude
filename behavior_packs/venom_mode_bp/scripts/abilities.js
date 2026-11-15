@@ -156,7 +156,7 @@ function tendril(player, form) {
   if (target) {
     const grip = { x: target.location.x, y: target.location.y + 0.8, z: target.location.z };
     fx.line(dimension, form.particle.tendril, hand, grip);
-    fx.sound(dimension, 'mob.slime.attack', player.location, 1, 0.6);
+    fx.sound(dimension, 'venom.tendril', player.location);
     if (player.isSneaking) {
       zipTo(player, grip);
     } else {
@@ -186,7 +186,7 @@ function tendril(player, form) {
     z: hit.block.location.z + hit.faceLocation.z,
   };
   fx.line(dimension, form.particle.tendril, hand, anchor);
-  fx.sound(dimension, 'mob.slime.attack', player.location, 1, 0.6);
+  fx.sound(dimension, 'venom.tendril', player.location);
   zipTo(player, anchor);
   return true;
 }
@@ -210,13 +210,13 @@ function devour(player, form) {
 
   const dimension = player.dimension;
   fx.particle(dimension, form.particle.goo, mouth);
-  fx.sound(dimension, 'mob.ravager.bite', player.location, 1, 0.8);
+  fx.sound(dimension, 'venom.bite', player.location);
   const eaten = !target.isValid || (target.getComponent('minecraft:health')?.currentValue ?? 0) <= 0;
   if (eaten) {
     heal(player, DEVOUR.heal);
     addBiomass(player, DEVOUR.biomass);
     player.addEffect('saturation', 2, { amplifier: 3, showParticles: false });
-    fx.sound(dimension, 'random.burp', player.location, 1, 0.7);
+    fx.sound(dimension, 'venom.gulp', player.location);
     tip(player, '§aDelicious.');
   } else {
     heal(player, 3);
@@ -242,8 +242,7 @@ function roar(player, form) {
 
   const dimension = player.dimension;
   fx.particle(dimension, 'minecraft:knockback_roar_particle', player.getHeadLocation());
-  fx.sound(dimension, 'mob.ravager.roar', center, 2, 0.6);
-  fx.sound(dimension, 'mob.enderdragon.growl', center, 0.7, 1.3);
+  fx.sound(dimension, 'venom.roar', center, 2);
   fx.shake(player, 0.8, 0.8);
   return true;
 }
@@ -266,7 +265,7 @@ function spikes(player, form) {
       fx.ring(dimension, form.particle.spike, { x: center.x, y: center.y + 0.1, z: center.z }, radius, Math.round(radius * 5));
     }, (wave - 1) * 2);
   }
-  fx.sound(dimension, 'mob.evocation_fangs.attack', center, 1.5, 0.7);
+  fx.sound(dimension, 'venom.spikes', center, 1.5);
   fx.shake(player, 0.4, 0.4);
   return true;
 }
@@ -340,6 +339,7 @@ export function landSlam(player, form) {
   fx.ring(dimension, form.particle.spike, ground, radius * 0.5, 12);
   fx.ring(dimension, form.particle.goo, ground, radius, 10);
   fx.sound(dimension, 'random.explode', center, 1, 0.7);
+  fx.sound(dimension, 'venom.squelch', center);
   fx.shake(player, clamp(0.3 + drop * 0.04, 0.3, 1.2), 0.5);
   runtime.cooldowns.slam = system.currentTick + SLAM.cooldown;
   addBiomass(player, -SLAM.cost);
@@ -363,7 +363,7 @@ export function sonicHit(player, strength) {
   player.addEffect('nausea', 140);
   player.addEffect('weakness', 160, { amplifier: 1 });
   player.addEffect('slowness', 80, { amplifier: 1 });
-  fx.sound(player.dimension, 'mob.enderdragon.hit', player.location, 1, 1.8);
+  fx.sound(player.dimension, 'venom.pain', player.location);
   breakCamo(player);
 
   if (runtime.stress >= SONIC.separateAt) {

@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "assets": "python3 tools/build_assets.py",
+    "sounds": "python3 tools/build_sounds.py",
     "build": "python3 tools/build_assets.py && python3 tools/package.py",
     "test": "node --import ./tests/loader.mjs --test tests/venom.test.mjs",
     "typecheck": "tsc -p tsconfig.json"
