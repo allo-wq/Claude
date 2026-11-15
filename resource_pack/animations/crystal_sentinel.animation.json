@@ -1,0 +1,106 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.relics.crystal_sentinel.look_at_target": {
+      "loop": true,
+      "bones": {
+        "head": {
+          "rotation": [
+            "query.target_x_rotation",
+            "query.target_y_rotation",
+            0.0
+          ]
+        }
+      }
+    },
+    "animation.relics.crystal_sentinel.idle": {
+      "loop": true,
+      "bones": {
+        "core": {
+          "scale": "1.0 + math.sin(query.life_time * 220.0) * 0.18"
+        },
+        "head": {
+          "position": [
+            0.0,
+            "math.sin(query.life_time * 80.0) * 0.3",
+            0.0
+          ]
+        },
+        "right_arm": {
+          "rotation": [
+            0.0,
+            0.0,
+            "3.0 + math.sin(query.life_time * 80.0) * 2.0"
+          ]
+        },
+        "left_arm": {
+          "rotation": [
+            0.0,
+            0.0,
+            "-3.0 - math.sin(query.life_time * 80.0) * 2.0"
+          ]
+        }
+      }
+    },
+    "animation.relics.crystal_sentinel.walk": {
+      "loop": true,
+      "anim_time_update": "query.modified_distance_moved",
+      "bones": {
+        "right_leg": {
+          "rotation": [
+            "math.cos(query.anim_time * 38.17) * 35.0",
+            0.0,
+            0.0
+          ]
+        },
+        "left_leg": {
+          "rotation": [
+            "math.cos(query.anim_time * 38.17) * -35.0",
+            0.0,
+            0.0
+          ]
+        },
+        "right_arm": {
+          "rotation": [
+            "math.cos(query.anim_time * 38.17) * -25.0",
+            0.0,
+            0.0
+          ]
+        },
+        "left_arm": {
+          "rotation": [
+            "math.cos(query.anim_time * 38.17) * 25.0",
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "animation.relics.crystal_sentinel.attack": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            "math.sin(variable.attack_time * 180.0) * 12.0",
+            0.0,
+            0.0
+          ]
+        },
+        "right_arm": {
+          "rotation": [
+            "-math.sin(variable.attack_time * 180.0) * 120.0",
+            0.0,
+            0.0
+          ]
+        },
+        "left_arm": {
+          "rotation": [
+            "-math.sin(variable.attack_time * 180.0) * 120.0",
+            0.0,
+            0.0
+          ]
+        }
+      }
+    }
+  }
+}

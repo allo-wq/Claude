@@ -1,0 +1,7 @@
+{
+  "format_version": "1.21.40",
+  "relics:arcane_ore": {
+    "textures": "relics_arcane_ore",
+    "sound": "stone"
+  }
+}

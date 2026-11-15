@@ -1,0 +1,12 @@
+## Elemental Relics
+item.relics.storm_staff.name=Storm Staff
+item.relics.inferno_staff.name=Inferno Staff
+item.relics.frost_staff.name=Frost Staff
+item.relics.void_staff.name=Void Staff
+item.relics.gale_staff.name=Gale Staff
+item.relics.verdant_staff.name=Verdant Staff
+item.relics.arcane_shard.name=Arcane Shard
+item.relics.codex.name=Relic Codex
+tile.relics:arcane_ore.name=Arcane Ore
+entity.relics:crystal_sentinel.name=Crystal Sentinel
+item.spawn_egg.entity.relics:crystal_sentinel.name=Crystal Sentinel Spawn Egg

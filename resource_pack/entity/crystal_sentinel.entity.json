@@ -1,0 +1,40 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "relics:crystal_sentinel",
+      "materials": {
+        "default": "entity_emissive"
+      },
+      "textures": {
+        "default": "textures/entity/crystal_sentinel"
+      },
+      "geometry": {
+        "default": "geometry.relics.crystal_sentinel"
+      },
+      "render_controllers": [
+        "controller.render.relics.crystal_sentinel"
+      ],
+      "animations": {
+        "look_at_target": "animation.relics.crystal_sentinel.look_at_target",
+        "idle": "animation.relics.crystal_sentinel.idle",
+        "walk": "animation.relics.crystal_sentinel.walk",
+        "attack": "animation.relics.crystal_sentinel.attack"
+      },
+      "scripts": {
+        "animate": [
+          "look_at_target",
+          "idle",
+          "attack",
+          {
+            "walk": "query.modified_move_speed"
+          }
+        ]
+      },
+      "spawn_egg": {
+        "base_color": "#463e60",
+        "overlay_color": "#6fe3ff"
+      }
+    }
+  }
+}

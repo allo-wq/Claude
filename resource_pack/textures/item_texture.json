@@ -1,0 +1,30 @@
+{
+  "resource_pack_name": "elemental_relics",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "relics_storm_staff": {
+      "textures": "textures/items/relics_storm_staff"
+    },
+    "relics_inferno_staff": {
+      "textures": "textures/items/relics_inferno_staff"
+    },
+    "relics_frost_staff": {
+      "textures": "textures/items/relics_frost_staff"
+    },
+    "relics_void_staff": {
+      "textures": "textures/items/relics_void_staff"
+    },
+    "relics_gale_staff": {
+      "textures": "textures/items/relics_gale_staff"
+    },
+    "relics_verdant_staff": {
+      "textures": "textures/items/relics_verdant_staff"
+    },
+    "relics_arcane_shard": {
+      "textures": "textures/items/relics_arcane_shard"
+    },
+    "relics_codex": {
+      "textures": "textures/items/relics_codex"
+    }
+  }
+}

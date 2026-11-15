@@ -1,0 +1,35 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "relics:void_staff"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " SC",
+      " RS",
+      "R  "
+    ],
+    "key": {
+      "S": {
+        "item": "relics:arcane_shard"
+      },
+      "C": {
+        "item": "minecraft:ender_pearl"
+      },
+      "R": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "item": "relics:arcane_shard"
+      }
+    ],
+    "result": {
+      "item": "relics:void_staff"
+    }
+  }
+}

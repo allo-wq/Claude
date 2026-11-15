@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Elemental Relics Resources",
+    "description": "Textures, models and names for the Elemental Relics add-on.",
+    "uuid": "9f6b3978-7be6-43d1-80a9-c23a57e90ad9",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      90
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "cc395b50-2c49-4348-83c4-ff0845a77392",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "144d1fe0-e856-45a9-bd55-e48e4117b0e0",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

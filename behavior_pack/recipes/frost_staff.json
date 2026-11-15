@@ -1,0 +1,35 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "relics:frost_staff"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      " SC",
+      " RS",
+      "R  "
+    ],
+    "key": {
+      "S": {
+        "item": "relics:arcane_shard"
+      },
+      "C": {
+        "item": "minecraft:packed_ice"
+      },
+      "R": {
+        "item": "minecraft:stick"
+      }
+    },
+    "unlock": [
+      {
+        "item": "relics:arcane_shard"
+      }
+    ],
+    "result": {
+      "item": "relics:frost_staff"
+    }
+  }
+}
