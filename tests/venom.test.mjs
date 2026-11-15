@@ -10,7 +10,9 @@ import '../behavior_packs/venom_mode_bp/scripts/main.js';
 
 const VENOM_SUIT = ['venom:suit_head', 'venom:suit_chest', 'venom:suit_legs', 'venom:suit_feet'];
 const CRIMSON_SUIT = ['venom:crimson_head', 'venom:crimson_chest', 'venom:crimson_legs', 'venom:crimson_feet'];
-const ABILITY_ITEMS = ['venom:core', 'venom:tendril', 'venom:devour', 'venom:roar', 'venom:spikes'];
+const ABILITY_ITEMS = ['venom:core', 'venom:tendril', 'venom:swing', 'venom:devour', 'venom:roar', 'venom:spikes'];
+const CARNAGE_ITEMS = ['venom:core', 'venom:tendril', 'venom:swing', 'venom:slash', 'venom:impale', 'venom:frenzy'];
+const BLOB = [undefined, 'venom:suit_blob', undefined, undefined];
 const NOWHERE = [undefined, undefined, undefined, undefined];
 
 beforeEach(() => {
@@ -19,6 +21,7 @@ beforeEach(() => {
   overworld.entities.length = 0;
   overworld.droppedItems.length = 0;
   overworld.rayHit = () => undefined;
+  overworld.isSolid = () => false;
   answers.length = 0;
   shown.length = 0;
 });
@@ -336,7 +339,7 @@ test('a wild symbiote that touches an unbonded player bonds with them', () => {
 test('the core menu toggles options and separates on request', async () => {
   const player = venom();
   ticks(20);
-  answers.push(2); // Night Vision, then the reopened menu is closed
+  answers.push(3); // Night Vision, then the reopened menu is closed
   use(player, 'venom:core');
   await settle();
   assert.equal(player.getDynamicProperty('venom:night_vision'), false);
@@ -344,7 +347,7 @@ test('the core menu toggles options and separates on request', async () => {
   ticks(20);
   assert.equal(player.getEffect('night_vision'), undefined);
 
-  answers.push(5, 1); // Separate, confirm
+  answers.push(6, 1); // Separate, confirm
   use(player, 'venom:core');
   await settle();
   assert.equal(bonded(player), false);
@@ -354,7 +357,7 @@ test('the core menu toggles options and separates on request', async () => {
 
 test('declining the separation prompt keeps the bond', async () => {
   const player = venom();
-  answers.push(5, 0);
+  answers.push(6, 0);
   use(player, 'venom:core');
   await settle();
   assert.ok(bonded(player));
@@ -362,7 +365,7 @@ test('declining the separation prompt keeps the bond', async () => {
 
 test('camouflage hides the suit until the symbiote attacks', async () => {
   const player = venom();
-  answers.push(1);
+  answers.push(2);
   use(player, 'venom:core');
   await settle();
   assert.deepEqual(player.worn(), NOWHERE);
@@ -384,7 +387,7 @@ test('a full inventory still receives every ability item', () => {
   use(player, 'venom:symbiote_sample');
   for (const id of ABILITY_ITEMS) assert.ok(player.container.ids().includes(id), id);
   const dropped = overworld.droppedItems.map((item) => item.typeId);
-  assert.equal(dropped.filter((id) => id === 'minecraft:dirt').length, 5);
+  assert.equal(dropped.filter((id) => id === 'minecraft:dirt').length, ABILITY_ITEMS.length);
   assert.ok(dropped.includes('minecraft:iron_boots'), 'armor that does not fit is dropped, not deleted');
   assert.equal(player.container.slots[0], undefined, 'the sample is used up');
 });
@@ -470,6 +473,250 @@ test('script events let map makers bond, feed and separate players', () => {
   assert.equal(bonded(player), false);
 });
 
+// ----------------------------------------------------------------------------- web swing
+
+test('web swing hooks something overhead and throws the player forward; it chains in mid-air', () => {
+  const player = venom();
+  overworld.rayHit = (_from, direction) =>
+    direction.y > 0 ? { block: { location: { x: 0, y: 80, z: 12 } }, faceLocation: { x: 0.5, y: 0, z: 0.5 } } : undefined;
+
+  use(player, 'venom:swing');
+  assert.ok(player.knockbacks[0].z > 1.1, 'thrown forward');
+  assert.equal(player.knockbacks[0].y, 0.8, 'lifted off the ground');
+  assert.equal(player.itemCooldowns.venom_swing, 12);
+  assert.equal(biomass(player), 60, 'swinging is free');
+
+  player.isOnGround = false;
+  const drawn = overworld.particles.length;
+  ticks(12);
+  assert.ok(overworld.particles.length > drawn, 'the tendril stays drawn during the swing');
+  use(player, 'venom:swing');
+  assert.equal(player.knockbacks.length, 2);
+  assert.equal(player.knockbacks[1].y, 0.62);
+});
+
+test('with nothing to hook onto, web swing is a leap', () => {
+  const player = venom();
+  use(player, 'venom:swing');
+  assert.equal(player.knockbacks[0].z, 0.85);
+  assert.equal(player.knockbacks[0].y, 0.7);
+});
+
+// ----------------------------------------------------------------------------- blob form
+
+test('sneaking with the core melts the player into a blob and back', () => {
+  const player = venom();
+  player.isSneaking = true;
+  use(player, 'venom:core');
+  assert.deepEqual(player.worn(), BLOB);
+  assert.ok(player.getEffect('invisibility'));
+  ticks(20);
+  assert.equal(player.getEffect('speed').amplifier, 3);
+  ticks(80);
+  assert.match(player.actionBar.at(-1), /BLOB/);
+  assert.equal(player.getEffect('strength'), undefined, 'a blob has none of the suit\'s muscle');
+  for (const id of ABILITY_ITEMS) assert.ok(player.container.ids().includes(id), 'the items stay in the inventory');
+
+  use(player, 'venom:core');
+  assert.deepEqual(player.worn(), VENOM_SUIT);
+  assert.equal(player.getEffect('invisibility'), undefined);
+});
+
+test('a blob cannot use abilities or claws', () => {
+  const player = venom();
+  player.isSneaking = true;
+  use(player, 'venom:core');
+  const mob = zombie(3, 100);
+  player.viewEntities = [mob];
+  use(player, 'venom:devour');
+  player.selectedSlotIndex = 20;
+  world.afterEvents.entityHitEntity.emit({ damagingEntity: player, hitEntity: mob });
+  assert.equal(mob.damageTaken.length, 0);
+  assert.deepEqual(player.worn(), BLOB, 'and it stays a blob');
+});
+
+test('a blob slips into a gap one block high, and is put back if it gets stuck', () => {
+  const player = venom();
+  player.location = { x: 0.5, y: 64, z: 0.5 };
+  player.isSneaking = true;
+  use(player, 'venom:core');
+  // a wall ahead (z = 1) with a hole at foot level
+  overworld.isSolid = (x, y, z) => z === 1 && y >= 65;
+
+  ticks(1);
+  assert.deepEqual(player.location, { x: 0.5, y: 64, z: 1.5 }, 'moved into the hole');
+
+  player.applyDamage(1, { cause: EntityDamageCause.suffocation });
+  assert.deepEqual(player.location, { x: 0.5, y: 64, z: 0.5 }, 'put back outside');
+  ticks(30);
+  assert.equal(player.teleports.length, 2, 'does not try again straight away');
+});
+
+test('only a blob squeezes into gaps, and only when there is one', () => {
+  const player = venom();
+  player.location = { x: 0.5, y: 64, z: 0.5 };
+  overworld.isSolid = (x, y, z) => z === 1 && y >= 65;
+  ticks(5);
+  assert.equal(player.teleports.length, 0, 'the suit does not fit');
+
+  player.isSneaking = true;
+  use(player, 'venom:core');
+  overworld.isSolid = (x, y, z) => z === 1; // a solid wall
+  ticks(15);
+  overworld.isSolid = () => false; // open ground
+  ticks(15);
+  assert.equal(player.teleports.length, 0);
+});
+
+test('the menu also switches blob form, and dying as a blob brings back the suit', async () => {
+  const player = venom();
+  answers.push(1);
+  use(player, 'venom:core');
+  await settle();
+  assert.deepEqual(player.worn(), BLOB);
+  assert.equal(shown.length, 1, 'the menu closes so the player is straight back in the world');
+
+  world.afterEvents.playerSpawn.emit({ player, initialSpawn: false });
+  assert.deepEqual(player.worn(), VENOM_SUIT);
+});
+
+// ----------------------------------------------------------------------------- carnage
+
+test('carnage carries its own abilities, and changing symbiote swaps the items', () => {
+  const player = venom();
+  system.afterEvents.scriptEventReceive.emit({ id: 'venom:separate', message: '', sourceEntity: player });
+  system.afterEvents.scriptEventReceive.emit({ id: 'venom:bond', message: 'carnage', sourceEntity: player });
+  assert.equal(player.getDynamicProperty('venom:form'), 'crimson');
+  const ids = player.container.ids().filter((id) => id !== 'venom:symbiote_sample');
+  assert.deepEqual([...ids].sort(), [...CARNAGE_ITEMS].sort());
+  assert.match(player.titles.at(-1), /I AM CARNAGE/);
+
+  // a venom-only ability does nothing for carnage, even if the item turns up
+  const mob = zombie(3);
+  player.viewEntities = [mob];
+  use(player, 'venom:devour');
+  assert.equal(mob.damageTaken.length, 0);
+});
+
+test('blade slash cuts everything in front and leaves it bleeding, but not what is behind', () => {
+  const player = venom('crimson');
+  const front = zombie(3, 100);
+  const side = new Entity('minecraft:zombie', overworld, { x: 2, y: 64, z: 2.5 }, 100);
+  const behind = zombie(-3, 100);
+  use(player, 'venom:slash');
+  for (const mob of [front, side]) {
+    assert.equal(mob.damageTaken[0].amount, 12 * 1.3);
+    assert.ok(mob.getEffect('wither'));
+  }
+  assert.equal(behind.damageTaken.length, 0);
+  assert.equal(player.itemCooldowns.venom_slash, 40);
+});
+
+test('tendril spears run through every mob in the line of sight', () => {
+  const player = venom('crimson');
+  const near = zombie(5, 100);
+  const far = zombie(14, 100);
+  const aside = new Entity('minecraft:zombie', overworld, { x: 5, y: 64, z: 8 }, 100);
+  const beyond = zombie(25, 100);
+  use(player, 'venom:impale');
+  assert.equal(near.damageTaken.length, 1);
+  assert.equal(far.damageTaken.length, 1);
+  assert.equal(near.getEffect('slowness').amplifier, 5, 'pinned in place');
+  assert.equal(aside.damageTaken.length, 0);
+  assert.equal(beyond.damageTaken.length, 0, 'out of range');
+});
+
+test('frenzy makes carnage stronger and faster, and its claws heal', () => {
+  const player = venom('crimson');
+  use(player, 'venom:frenzy');
+  assert.equal(player.getEffect('strength').amplifier, 2);
+  assert.equal(player.getEffect('speed').amplifier, 3);
+  assert.equal(biomass(player), 52);
+
+  player.hp = 10;
+  player.selectedSlotIndex = 20;
+  const mob = zombie(2, 100);
+  world.afterEvents.entityHitEntity.emit({ damagingEntity: player, hitEntity: mob });
+  assert.equal(mob.damageTaken[0].amount, 10);
+  assert.equal(player.hp, 12);
+  ticks(20);
+  assert.match(player.actionBar.at(-1), /FRENZY/);
+
+  ticks(200);
+  player.hp = 10;
+  world.afterEvents.entityHitEntity.emit({ damagingEntity: player, hitEntity: mob });
+  assert.equal(player.hp, 10, 'the frenzy has worn off');
+});
+
+// ----------------------------------------------------------------------------- the packs themselves
+
+const RESOURCES = new URL('../resource_packs/venom_mode_rp/', import.meta.url);
+const BEHAVIOR = new URL('../behavior_packs/venom_mode_bp/', import.meta.url);
+const readJson = (base, path) => JSON.parse(readFileSync(new URL(path, base), 'utf8'));
+
+test('every item the scripts hand out exists, has a name and an icon', async () => {
+  const { FORMS, ABILITIES, CORE_ITEM } = await import('../behavior_packs/venom_mode_bp/scripts/config.js');
+  const names = readFileSync(new URL('texts/en_US.lang', RESOURCES), 'utf8');
+  const icons = readJson(RESOURCES, 'textures/item_texture.json').texture_data;
+  const wanted = new Set([CORE_ITEM, 'venom:chocolate', ...Object.values(ABILITIES).map((ability) => ability.item)]);
+  for (const form of Object.values(FORMS)) {
+    for (const id of [form.sample, form.blob, ...Object.values(form.suit)]) wanted.add(id);
+    for (const key of form.abilities) assert.ok(key in ABILITIES, `${form.name} lists an unknown ability ${key}`);
+    assert.equal(form.abilities.length, 5);
+  }
+  for (const id of wanted) {
+    const file = `items/${id.split(':')[1]}.json`;
+    assert.ok(existsSync(new URL(file, BEHAVIOR)), `${id} has no item file`);
+    const { description, components } = readJson(BEHAVIOR, file)['minecraft:item'];
+    assert.equal(description.identifier, id);
+    assert.ok(names.includes(`${components['minecraft:display_name'].value}=`), `${id} has no name`);
+    const icon = components['minecraft:icon'].textures.default;
+    assert.ok(existsSync(new URL(`${icons[icon].textures}.png`, RESOURCES)), `${id} has no icon`);
+  }
+  // each ability item's own cooldown matches the script's
+  for (const [key, ability] of Object.entries(ABILITIES)) {
+    const cooldown = readJson(BEHAVIOR, `items/${key}.json`)['minecraft:item'].components['minecraft:cooldown'];
+    assert.equal(cooldown.category, `venom_${key}`);
+    assert.equal(cooldown.duration * 20, ability.cooldown);
+  }
+});
+
+test('everything worn or spawned has a model, a texture and animations that move it', async () => {
+  const { FORMS } = await import('../behavior_packs/venom_mode_bp/scripts/config.js');
+  const models = {};
+  for (const file of readdirSync(new URL('models/entity/', RESOURCES))) {
+    for (const model of readJson(RESOURCES, `models/entity/${file}`)['minecraft:geometry']) {
+      models[model.description.identifier] = new Set(model.bones.map((bone) => bone.name));
+    }
+  }
+  const animations = readJson(RESOURCES, 'animations/venom.animation.json').animations;
+  const check = (file, kind) => {
+    const { description } = readJson(RESOURCES, file)[kind];
+    const bones = models[description.geometry.default];
+    assert.ok(bones, `${file}: unknown model ${description.geometry.default}`);
+    assert.ok(existsSync(new URL(`${description.textures.default}.png`, RESOURCES)), `${file}: missing texture`);
+    for (const id of Object.values(description.animations ?? {})) {
+      assert.ok(id in animations, `${file}: unknown animation ${id}`);
+      assert.ok(Object.keys(animations[id].bones).some((bone) => bones.has(bone)), `${file}: ${id} moves no bone of its model`);
+    }
+    return { description, bones };
+  };
+
+  for (const form of Object.values(FORMS)) {
+    for (const id of [form.blob, ...Object.values(form.suit)]) {
+      const { description } = check(`attachables/${id.split(':')[1]}.json`, 'minecraft:attachable');
+      assert.equal(description.identifier, id);
+    }
+    // the blob must not borrow the player's bone names, or it would bend with the player's limbs
+    const { bones } = check(`attachables/${form.blob.split(':')[1]}.json`, 'minecraft:attachable');
+    for (const name of ['head', 'body', 'root', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg']) assert.ok(!bones.has(name));
+  }
+  for (const mob of ['symbiote', 'crimson_symbiote']) {
+    check(`entity/${mob}.entity.json`, 'minecraft:client_entity');
+    assert.ok(existsSync(new URL(`entities/${mob}.json`, BEHAVIOR)));
+  }
+});
+
 test('every custom sound is defined, has its file, and the abilities really play them', () => {
   const pack = new URL('../resource_packs/venom_mode_rp/', import.meta.url);
   const scripts = new URL('../behavior_packs/venom_mode_bp/scripts/', import.meta.url);
@@ -492,7 +739,7 @@ test('every custom sound is defined, has its file, and the abilities really play
   for (const id of Object.keys(defined)) assert.ok(used.has(id), `${id} is defined but never played`);
 
   // the scenarios above ran the abilities; their sounds must have reached the world
-  for (const id of ['venom.bond', 'venom.separate', 'venom.tendril', 'venom.bite', 'venom.gulp', 'venom.roar', 'venom.spikes', 'venom.pain', 'venom.growl']) {
+  for (const id of ['venom.bond', 'venom.separate', 'venom.tendril', 'venom.bite', 'venom.gulp', 'venom.roar', 'venom.spikes', 'venom.pain', 'venom.growl', 'venom.slash', 'venom.squelch']) {
     assert.ok(overworld.sounds.includes(id), `${id} was never played`);
   }
 });

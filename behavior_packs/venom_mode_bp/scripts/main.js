@@ -3,7 +3,7 @@
 //   config.js     every number and id worth tuning
 //   state.js      what is stored per player
 //   bond.js       bonding, separating, the suit and the ability items
-//   abilities.js  hotbar abilities, ground slam, the sound weakness
+//   abilities.js  hotbar abilities, blob form, ground slam, the sound weakness
 //   passives.js   per-tick movement powers and once-a-second upkeep
 //   ui.js         the Symbiote Core menu
 
@@ -14,16 +14,18 @@ import {
   CORE_ITEM,
   FOOD,
   FORMS,
+  FORM_ALIASES,
+  FRENZY,
   ITEM_TO_ABILITY,
   PROP,
   SAMPLE_TO_FORM,
   SKYFALL,
   SONIC,
 } from './config.js';
-import { breakCamo, sonicHit, sonicPulse, tip, useAbility } from './abilities.js';
-import { bond, cleanUpUnbonded, separate, syncInventory, syncSuit } from './bond.js';
+import { breakCamo, heal, sonicHit, sonicPulse, tip, toggleBlob, useAbility } from './abilities.js';
+import { bond, cleanUpUnbonded, restoreAfterDeath, separate, syncInventory } from './bond.js';
 import * as fx from './fx.js';
-import { movementTick, secondTick, showHud } from './passives.js';
+import { movementTick, secondTick, showHud, undoSqueeze } from './passives.js';
 import { addBiomass, biomassOf, forget, formOf, runtimeOf } from './state.js';
 import { openCore } from './ui.js';
 
@@ -68,9 +70,12 @@ world.afterEvents.itemUse.subscribe(({ source: player, itemStack }) => {
     const form = formOf(player);
     if (!form) return;
     if (id === CORE_ITEM) {
-      openCore(player).catch(report);
+      // Sneaking with the Core is the quick way in and out of blob form.
+      if (player.isSneaking) toggleBlob(player, form);
+      else openCore(player).catch(report);
     } else if (id in ITEM_TO_ABILITY) {
-      useAbility(player, form, /** @type {keyof typeof ABILITIES} */ (ITEM_TO_ABILITY[id]));
+      const key = /** @type {keyof typeof ABILITIES} */ (ITEM_TO_ABILITY[id]);
+      if (form.abilities.includes(key)) useAbility(player, form, key);
     }
   } catch (error) {
     report(error);
@@ -98,9 +103,10 @@ world.afterEvents.entityHitEntity.subscribe(({ damagingEntity: player, hitEntity
     // Claws: a hit with an empty hand (or an ability item) lands much harder.
     const held = player.getComponent('minecraft:equippable')?.getEquipment(EquipmentSlot.Mainhand);
     if ((held && !ABILITY_SET.has(held.typeId)) || !hitEntity.isValid || hitEntity instanceof Player) return;
-    if (hitEntity.getComponent('minecraft:is_tamed')) return;
+    if (runtime.blob || hitEntity.getComponent('minecraft:is_tamed')) return;
     runtime.striking = true;
     hitEntity.applyDamage(form.claws, { cause: EntityDamageCause.entityAttack, damagingEntity: player });
+    if (system.currentTick < runtime.frenzyUntil) heal(player, FRENZY.lifesteal);
   } catch (error) {
     report(error);
   } finally {
@@ -130,6 +136,8 @@ world.afterEvents.entityHurt.subscribe(({ hurtEntity, damageSource, damage }) =>
       health.setCurrentValue(Math.min(health.effectiveMax, health.currentValue + damage));
     } else if (damageSource.cause === EntityDamageCause.sonicBoom || damageSource.cause === EntityDamageCause.lightning) {
       sonicHit(hurtEntity, 2);
+    } else if (damageSource.cause === EntityDamageCause.suffocation) {
+      undoSqueeze(hurtEntity);
     }
   } catch (error) {
     report(error);
@@ -168,8 +176,7 @@ world.afterEvents.playerSpawn.subscribe(({ player }) => {
     }
     // Death does not break the bond, but the symbiote comes back hungry.
     if (biomassOf(player) < 40) player.setDynamicProperty(PROP.biomass, 40);
-    syncSuit(player);
-    syncInventory(player);
+    restoreAfterDeath(player);
   } catch (error) {
     report(error);
   }
@@ -232,7 +239,7 @@ function skyfall() {
 }
 
 // ----------------------------------------------------------------------------- commands for map makers
-//   /scriptevent venom:bond [venom|crimson]
+//   /scriptevent venom:bond [venom|carnage]
 //   /scriptevent venom:separate
 //   /scriptevent venom:feed
 
@@ -241,8 +248,9 @@ system.afterEvents.scriptEventReceive.subscribe(
     if (!(sourceEntity instanceof Player)) return;
     try {
       if (id === 'venom:bond') {
-        const formId = message.trim().toLowerCase() || FORMS.venom.id;
-        if (!(formId in FORMS)) sourceEntity.sendMessage(`§cUnknown symbiote "${formId}". Try: ${Object.keys(FORMS).join(', ')}`);
+        const asked = message.trim().toLowerCase() || FORMS.venom.id;
+        const formId = FORM_ALIASES[/** @type {keyof typeof FORM_ALIASES} */ (asked)] ?? asked;
+        if (!(formId in FORMS)) sourceEntity.sendMessage(`§cUnknown symbiote "${asked}". Try: venom, carnage`);
         else bond(sourceEntity, formId);
       } else if (id === 'venom:separate') {
         separate(sourceEntity, false);

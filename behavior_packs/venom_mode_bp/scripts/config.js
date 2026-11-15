@@ -14,6 +14,48 @@ export const PROP = {
 };
 
 /**
+ * Hotbar abilities. Cooldowns are in ticks (20 = one second) and match the
+ * `minecraft:cooldown` component on each item; cost is biomass spent per use.
+ * Each symbiote carries five of these (see FORMS).
+ */
+export const ABILITIES = {
+  tendril: {
+    item: 'venom:tendril', name: 'Tendril', cooldown: 30, cost: 1,
+    help: 'Tendril Lash: drags a mob to you. Aim at a block, or sneak, to pull yourself there instead.',
+  },
+  swing: {
+    item: 'venom:swing', name: 'Swing', cooldown: 12, cost: 0,
+    help: 'Web Swing: hooks onto whatever is above and ahead and swings you forward. Use it again mid-air to keep going. With nothing to hook, you leap.',
+  },
+  devour: {
+    item: 'venom:devour', name: 'Devour', cooldown: 100, cost: 0,
+    help: 'Devour: a huge bite. Weakened prey is eaten whole, healing you.',
+  },
+  roar: {
+    item: 'venom:roar', name: 'Roar', cooldown: 300, cost: 4,
+    help: 'Roar: staggers and weakens every mob nearby.',
+  },
+  spikes: {
+    item: 'venom:spikes', name: 'Spikes', cooldown: 200, cost: 5,
+    help: 'Spike Burst: spikes erupt all around you.',
+  },
+  slash: {
+    item: 'venom:slash', name: 'Slash', cooldown: 40, cost: 1,
+    help: 'Blade Slash: your arms become blades and carve through everything in front of you. Victims keep bleeding.',
+  },
+  impale: {
+    item: 'venom:impale', name: 'Spears', cooldown: 120, cost: 3,
+    help: 'Tendril Spears: spears shoot out where you look and run through every mob in the line.',
+  },
+  frenzy: {
+    item: 'venom:frenzy', name: 'Frenzy', cooldown: 600, cost: 8,
+    help: 'Frenzy: ten seconds of extra strength and speed. Every claw hit heals you.',
+  },
+};
+
+/** @typedef {keyof typeof ABILITIES} AbilityKey */
+
+/**
  * @typedef {object} Form
  * @property {string} id
  * @property {string} name
@@ -21,6 +63,8 @@ export const PROP = {
  * @property {string} cry  shown on screen when the bond completes
  * @property {string} sample  item that starts the bond and comes back on separation
  * @property {{head: string, chest: string, legs: string, feet: string}} suit
+ * @property {string} blob  worn instead of the suit while in blob form
+ * @property {AbilityKey[]} abilities  the five hotbar abilities of this symbiote
  * @property {{tendril: string, goo: string, spike: string}} particle
  * @property {number} strength  effect amplifiers (0 = level I)
  * @property {number} speed
@@ -32,6 +76,7 @@ export const PROP = {
 
 /** @type {Record<string, Form>} */
 export const FORMS = {
+  // The tank: tough, heals by eating, controls a crowd.
   venom: {
     id: 'venom',
     name: 'Venom',
@@ -44,6 +89,8 @@ export const FORMS = {
       legs: 'venom:suit_legs',
       feet: 'venom:suit_feet',
     },
+    blob: 'venom:suit_blob',
+    abilities: ['tendril', 'swing', 'devour', 'roar', 'spikes'],
     particle: { tendril: 'venom:tendril', goo: 'venom:goo', spike: 'venom:spike' },
     strength: 0,
     speed: 1,
@@ -52,12 +99,13 @@ export const FORMS = {
     claws: 7,
     power: 1,
   },
-  // Dropped by the Crimson Symbiote boss: hits harder and runs faster, but is less tough.
+  // Dropped by the Carnage boss: faster and far deadlier, but less tough.
+  // (The id stays "crimson" so worlds saved with the first version keep working.)
   crimson: {
     id: 'crimson',
-    name: 'Crimson',
+    name: 'Carnage',
     color: '§c',
-    cry: 'WE ARE CRIMSON',
+    cry: 'I AM CARNAGE',
     sample: 'venom:crimson_sample',
     suit: {
       head: 'venom:crimson_head',
@@ -65,6 +113,8 @@ export const FORMS = {
       legs: 'venom:crimson_legs',
       feet: 'venom:crimson_feet',
     },
+    blob: 'venom:crimson_blob',
+    abilities: ['tendril', 'swing', 'slash', 'impale', 'frenzy'],
     particle: { tendril: 'venom:tendril_red', goo: 'venom:goo_red', spike: 'venom:spike_red' },
     strength: 0,
     speed: 2,
@@ -74,6 +124,9 @@ export const FORMS = {
     power: 1.3,
   },
 };
+
+/** Other names accepted by `/scriptevent venom:bond`. */
+export const FORM_ALIASES = { carnage: 'crimson' };
 
 /** Sample item id -> form id. */
 export const SAMPLE_TO_FORM = Object.fromEntries(Object.values(FORMS).map((form) => [form.sample, form.id]));
@@ -86,32 +139,45 @@ export const SUIT_SLOTS = /** @type {[keyof Form['suit'], EquipmentSlot][]} */ (
   ['feet', EquipmentSlot.Feet],
 ]);
 
-export const SUIT_ITEMS = new Set(Object.values(FORMS).flatMap((form) => Object.values(form.suit)));
-
-/**
- * Hotbar abilities. Cooldowns are in ticks (20 = one second) and match the
- * `minecraft:cooldown` component on each item; cost is biomass spent per use.
- */
-export const ABILITIES = {
-  tendril: { item: 'venom:tendril', name: 'Tendril', cooldown: 30, cost: 1 },
-  devour: { item: 'venom:devour', name: 'Devour', cooldown: 100, cost: 0 },
-  roar: { item: 'venom:roar', name: 'Roar', cooldown: 300, cost: 4 },
-  spikes: { item: 'venom:spikes', name: 'Spikes', cooldown: 200, cost: 5 },
-};
+/** Every item that is only ever worn by the scripts, never carried. */
+export const SUIT_ITEMS = new Set(Object.values(FORMS).flatMap((form) => [...Object.values(form.suit), form.blob]));
 
 export const CORE_ITEM = 'venom:core';
 
-/** Everything a bonded player carries, in the order it is handed out. */
+/** Every item a bonded player might carry, across all symbiotes. */
 export const ABILITY_ITEMS = [CORE_ITEM, ...Object.values(ABILITIES).map((ability) => ability.item)];
 
 /** Ability item id -> key in ABILITIES. */
 export const ITEM_TO_ABILITY = Object.fromEntries(Object.entries(ABILITIES).map(([key, ability]) => [ability.item, key]));
+
+/**
+ * The items one symbiote hands out, in hotbar order.
+ * @param {Form} form
+ */
+export function itemsOf(form) {
+  return [CORE_ITEM, ...form.abilities.map((key) => ABILITIES[key].item)];
+}
 
 export const TENDRIL = { range: 24, damage: 5 };
 export const DEVOUR = { range: 5, bite: 12, finishBelow: 24, biggestPrey: 100, heal: 8, biomass: 30 };
 export const ROAR = { radius: 12, damage: 3 };
 export const SPIKES = { radius: 6, damage: 11 };
 export const SLAM = { cooldown: 60, cost: 3, minHeight: 3 };
+
+/**
+ * Web Swing looks for something to hook at these angles above the horizon (in
+ * the direction the player faces), then throws the player forward and up.
+ * `rope` is how long the tendril stays drawn.
+ */
+export const SWING = { range: 30, angles: [45, 65, 25, 80], speed: 1.15, lift: 0.62, liftFromGround: 0.8, rope: 14, leapSpeed: 0.85, leapLift: 0.7 };
+
+/** `arc` is the cosine of the half-angle of the slash: 0.34 is about 70 degrees each side. */
+export const SLASH = { range: 4.5, arc: 0.34, damage: 12, bleedTicks: 80 };
+export const IMPALE = { range: 18, width: 1.3, damage: 10 };
+export const FRENZY = { ticks: 200, lifesteal: 2 };
+
+/** Blob form: tiny, fast, unseen, and able to slip into gaps one block high. */
+export const BLOB = { speed: 3, jump: 0 };
 
 /** Biomass (0-100) is the symbiote's hunger. It starts here on bonding. */
 export const BIOMASS_START = 60;

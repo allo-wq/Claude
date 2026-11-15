@@ -1,5 +1,5 @@
 import { EntityDamageCause, system } from '@minecraft/server';
-import { ABILITIES, DEVOUR, PROP, ROAR, SLAM, SONIC, SPIKES, TENDRIL } from './config.js';
+import { ABILITIES, DEVOUR, FRENZY, IMPALE, PROP, ROAR, SLAM, SLASH, SONIC, SPIKES, SWING, TENDRIL } from './config.js';
 import { separate, syncSuit } from './bond.js';
 import * as fx from './fx.js';
 import { addBiomass, clamp, runtimeOf, shouldSay } from './state.js';
@@ -86,7 +86,7 @@ function afflict(target, effect, ticks, amplifier) {
  * @param {Entity} entity
  * @param {number} amount
  */
-function heal(entity, amount) {
+export function heal(entity, amount) {
   const health = entity.getComponent('minecraft:health');
   if (health && health.currentValue > 0) {
     health.setCurrentValue(Math.min(health.effectiveMax, health.currentValue + amount));
@@ -270,7 +270,188 @@ function spikes(player, form) {
   return true;
 }
 
-const HANDLERS = { tendril, devour, roar, spikes };
+/**
+ * Where the player's tendrils come out: just below and in front of the eyes.
+ * @param {Player} player
+ */
+function handOf(player) {
+  const head = player.getHeadLocation();
+  const view = player.getViewDirection();
+  return { x: head.x + view.x * 0.6, y: head.y - 0.35, z: head.z + view.z * 0.6 };
+}
+
+/**
+ * The way the player is facing, flat along the ground.
+ * @param {Player} player
+ */
+function facing(player) {
+  const yaw = (player.getRotation().y * Math.PI) / 180;
+  return { x: -Math.sin(yaw), z: Math.cos(yaw) };
+}
+
+/**
+ * Something solid to hook a tendril onto, up and ahead of the player.
+ * @param {Player} player
+ * @param {{x: number, z: number}} forward
+ * @returns {Vector3 | undefined}
+ */
+function findAnchor(player, forward) {
+  const head = player.getHeadLocation();
+  for (const degrees of SWING.angles) {
+    const angle = (degrees * Math.PI) / 180;
+    const direction = { x: forward.x * Math.cos(angle), y: Math.sin(angle), z: forward.z * Math.cos(angle) };
+    try {
+      const hit = player.dimension.getBlockFromRay(head, direction, {
+        maxDistance: SWING.range,
+        includeLiquidBlocks: false,
+        includePassableBlocks: false,
+      });
+      if (hit) {
+        return {
+          x: hit.block.location.x + hit.faceLocation.x,
+          y: hit.block.location.y + hit.faceLocation.y,
+          z: hit.block.location.z + hit.faceLocation.z,
+        };
+      }
+    } catch {
+      // that ray left the loaded world; try the next angle
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Web Swing: hook onto whatever is above and ahead and swing forward. Each use
+ * is one arc, so using it again in mid-air chains into the next swing. With
+ * nothing to hook onto it is a plain leap.
+ * @param {Player} player
+ * @param {Form} form
+ */
+function swing(player, form) {
+  const forward = facing(player);
+  const anchor = findAnchor(player, forward);
+  let speed = SWING.leapSpeed;
+  let lift = SWING.leapLift;
+  if (anchor) {
+    const head = player.getHeadLocation();
+    const reach = Math.hypot(anchor.x - head.x, anchor.y - head.y, anchor.z - head.z);
+    speed = clamp(SWING.speed + reach * 0.02, SWING.speed, SWING.speed + 0.6);
+    lift = player.isOnGround ? SWING.liftFromGround : SWING.lift;
+    runtimeOf(player).swing = { anchor, until: system.currentTick + SWING.rope };
+    fx.line(player.dimension, form.particle.tendril, handOf(player), anchor, 0.5, 70);
+  }
+  try {
+    player.applyKnockback({ x: forward.x * speed, z: forward.z * speed }, lift);
+  } catch {
+    // cannot be moved right now (for example while riding something)
+  }
+  fx.sound(player.dimension, 'venom.tendril', player.location);
+  return true;
+}
+
+/**
+ * Keep the hooked tendril drawn while a swing is in the air.
+ * @param {Player} player
+ * @param {Form} form
+ */
+export function drawRope(player, form) {
+  const runtime = runtimeOf(player);
+  if (!runtime.swing) return;
+  const now = system.currentTick;
+  if (now >= runtime.swing.until || player.isOnGround) {
+    runtime.swing = undefined;
+  } else if (now % 3 === 0) {
+    fx.line(player.dimension, form.particle.tendril, handOf(player), runtime.swing.anchor, 0.5, 70);
+  }
+}
+
+/**
+ * Blade Slash (Carnage): a sweep that cuts every mob in a wide arc in front
+ * and leaves them bleeding.
+ * @param {Player} player
+ * @param {Form} form
+ */
+function slash(player, form) {
+  const forward = facing(player);
+  const center = player.location;
+  for (const mob of victimsAround(player, center, SLASH.range)) {
+    const dx = mob.location.x - center.x;
+    const dz = mob.location.z - center.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance > 0.5 && (dx * forward.x + dz * forward.z) / distance < SLASH.arc) continue; // behind or beside
+    hurt(mob, SLASH.damage * form.power, player);
+    afflict(mob, 'wither', SLASH.bleedTicks, 1);
+    launch(mob, center, -0.6, 0.3);
+  }
+  const dimension = player.dimension;
+  for (let step = -4; step <= 4; step++) {
+    const angle = step * 0.28;
+    const x = forward.x * Math.cos(angle) - forward.z * Math.sin(angle);
+    const z = forward.x * Math.sin(angle) + forward.z * Math.cos(angle);
+    for (const reach of [1.6, 2.6, 3.6]) {
+      fx.particle(dimension, form.particle.tendril, { x: center.x + x * reach, y: center.y + 1.1, z: center.z + z * reach });
+    }
+  }
+  fx.sound(dimension, 'venom.slash', center);
+  return true;
+}
+
+/**
+ * Tendril Spears (Carnage): spears shoot along the line of sight and run
+ * through every mob on it, pinning them in place.
+ * @param {Player} player
+ * @param {Form} form
+ */
+function impale(player, form) {
+  const head = player.getHeadLocation();
+  const view = player.getViewDirection();
+  const wall = player.getBlockFromViewDirection({
+    maxDistance: IMPALE.range,
+    includeLiquidBlocks: false,
+    includePassableBlocks: false,
+  });
+  let length = IMPALE.range;
+  if (wall) {
+    length = Math.hypot(
+      wall.block.location.x + wall.faceLocation.x - head.x,
+      wall.block.location.y + wall.faceLocation.y - head.y,
+      wall.block.location.z + wall.faceLocation.z - head.z,
+    );
+  }
+  const along = (/** @type {number} */ t) => ({ x: head.x + view.x * t, y: head.y + view.y * t, z: head.z + view.z * t });
+
+  for (const mob of victimsAround(player, along(length / 2), length / 2 + 2)) {
+    const body = { x: mob.location.x, y: mob.location.y + 0.9, z: mob.location.z };
+    const t = clamp((body.x - head.x) * view.x + (body.y - head.y) * view.y + (body.z - head.z) * view.z, 0, length);
+    const nearest = along(t);
+    if (Math.hypot(body.x - nearest.x, body.y - nearest.y, body.z - nearest.z) > IMPALE.width) continue;
+    hurt(mob, IMPALE.damage * form.power, player);
+    afflict(mob, 'slowness', 50, 5);
+  }
+  const dimension = player.dimension;
+  fx.line(dimension, form.particle.tendril, handOf(player), along(length), 0.3, 80);
+  fx.particle(dimension, form.particle.spike, along(length));
+  fx.sound(dimension, 'venom.spikes', player.location, 1.5);
+  return true;
+}
+
+/**
+ * Frenzy (Carnage): a burst of strength and speed, with every claw hit healing
+ * the host (see the hit handler in main.js).
+ * @param {Player} player
+ * @param {Form} form
+ */
+function frenzy(player, form) {
+  runtimeOf(player).frenzyUntil = system.currentTick + FRENZY.ticks;
+  player.addEffect('strength', FRENZY.ticks, { amplifier: form.strength + 2, showParticles: false });
+  player.addEffect('speed', FRENZY.ticks, { amplifier: form.speed + 1, showParticles: false });
+  fx.engulf(player, form.particle.goo);
+  fx.sound(player.dimension, 'venom.roar', player.location, 2);
+  fx.shake(player, 0.6, 0.6);
+  return true;
+}
+
+const HANDLERS = { tendril, swing, devour, roar, spikes, slash, impale, frenzy };
 const MISS_COOLDOWN = 8;
 
 /**
@@ -282,6 +463,10 @@ const MISS_COOLDOWN = 8;
 export function useAbility(player, form, key) {
   const now = system.currentTick;
   const runtime = runtimeOf(player);
+  if (runtime.blob) {
+    tip(player, '§7A blob cannot do that. Sneak and use the Core to rise again.');
+    return;
+  }
   if (now < (runtime.cooldowns[key] ?? 0)) return;
   const ability = ABILITIES[key];
   // A miss only costs a moment. The item's own cooldown is set to match, so
@@ -296,6 +481,34 @@ export function useAbility(player, form, key) {
   if (wait !== ability.cooldown) return;
   if (ability.cost) addBiomass(player, -ability.cost);
   breakCamo(player);
+}
+
+// ----------------------------------------------------------------------------- blob form
+
+/**
+ * Melt down into a small blob, or rise back into the suit. The blob is fast
+ * and unseen, and can slip into gaps one block high (see passives.js), but it
+ * has no armor and cannot use abilities.
+ * @param {Player} player
+ * @param {Form} form
+ */
+export function toggleBlob(player, form) {
+  const runtime = runtimeOf(player);
+  runtime.blob = !runtime.blob;
+  runtime.camo = false;
+  runtime.slam = undefined;
+  runtime.swing = undefined;
+  runtime.squeeze = undefined;
+  if (runtime.blob) {
+    player.addEffect('invisibility', 60, { showParticles: false });
+  } else {
+    player.removeEffect('invisibility');
+    player.removeEffect('speed'); // the suit's own speed returns within a second
+  }
+  syncSuit(player);
+  fx.engulf(player, form.particle.goo);
+  fx.sound(player.dimension, 'venom.squelch', player.location);
+  tip(player, runtime.blob ? '§7You melt into a blob. Sneak and use the Core to rise again.' : `${form.color}§l${form.cry}`);
 }
 
 // ----------------------------------------------------------------------------- ground slam

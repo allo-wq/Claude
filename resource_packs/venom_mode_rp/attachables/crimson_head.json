@@ -10,15 +10,15 @@
         "default": "textures/entity/venom/crimson_suit"
       },
       "geometry": {
-        "default": "geometry.venom.suit.head"
+        "default": "geometry.venom.carnage.head"
       },
       "animations": {
-        "tongue": "animation.venom.tongue"
+        "mouth": "animation.venom.mouth"
       },
       "scripts": {
         "parent_setup": "variable.helmet_layer_visible = 0.0;",
         "animate": [
-          "tongue"
+          "mouth"
         ]
       },
       "render_controllers": [

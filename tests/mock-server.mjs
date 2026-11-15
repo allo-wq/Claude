@@ -13,11 +13,12 @@ export const EntityDamageCause = {
   starve: 'starve',
   sonicBoom: 'sonicBoom',
   lightning: 'lightning',
+  suffocation: 'suffocation',
 };
 
 const EFFECTS = new Set([
   'strength', 'speed', 'jump_boost', 'resistance', 'night_vision', 'regeneration', 'invisibility', 'levitation',
-  'blindness', 'weakness', 'slowness', 'nausea', 'hunger', 'saturation', 'fire_resistance',
+  'blindness', 'weakness', 'slowness', 'nausea', 'hunger', 'saturation', 'fire_resistance', 'wither',
 ]);
 
 export class ItemStack {
@@ -79,6 +80,8 @@ export class Dimension {
     this.sounds = [];
     /** Tests replace this to put blocks in the way of rays. */
     this.rayHit = (_from, _direction, _options) => undefined;
+    /** Tests replace this to say which block positions are solid. */
+    this.isSolid = (_x, _y, _z) => false;
   }
   spawnParticle(id, location) {
     assertVector(location);
@@ -115,6 +118,11 @@ export class Dimension {
     assertVector(from);
     assertVector(direction);
     return this.rayHit(from, direction, options);
+  }
+  getBlock(location) {
+    assertVector(location);
+    const solid = this.isSolid(Math.floor(location.x), Math.floor(location.y), Math.floor(location.z));
+    return { isAir: !solid, isLiquid: false };
   }
   getTopmostBlock(xz) {
     return { location: { x: Math.floor(xz.x), y: 63, z: Math.floor(xz.z) }, dimension: this };
@@ -267,6 +275,7 @@ export class Player extends Entity {
     this.titles = [];
     this.commands = [];
     this.itemCooldowns = {};
+    this.teleports = [];
     const player = this;
     this.inputInfo = { getMovementVector: () => ({ ...player.movement }) };
     this.onScreenDisplay = {
@@ -338,6 +347,16 @@ export class Player extends Entity {
   }
   getBlockFromViewDirection() {
     return this.viewBlock;
+  }
+  teleport(location, options = {}) {
+    assertVector(location);
+    for (const key of Object.keys(options)) {
+      if (!['checkForBlocks', 'dimension', 'facingLocation', 'keepVelocity', 'rotation'].includes(key)) {
+        throw new TypeError(`unknown teleport option ${key}`);
+      }
+    }
+    this.location = { ...location };
+    this.teleports.push({ ...location });
   }
   startItemCooldown(category, ticks) {
     this.itemCooldowns[category] = ticks;

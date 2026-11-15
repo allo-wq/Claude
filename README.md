@@ -2,7 +2,7 @@
 
 A symbiote add-on for Minecraft Bedrock / Pocket Edition. Bond with a symbiote to get a full-body suit, new powers, a hunger to manage and two weaknesses to watch out for.
 
-![The Venom suit, the Crimson form and a wild symbiote](docs/preview.png)
+![Venom, Carnage and a wild symbiote](docs/preview.png)
 
 This is a fan-made add-on. It is not affiliated with Marvel, Mojang or Microsoft. The art is original and the sounds are built from public-domain recordings; see [CREDITS.md](CREDITS.md).
 
@@ -30,22 +30,45 @@ Any one of these:
 | Power | How |
 | --- | --- |
 | Claws | Hit with an empty hand |
-| Strength, speed, jump, toughness, healing, night vision | Always on |
+| Strength, speed, jump, healing, night vision | Always on |
 | Wall-crawl | Hold jump while pushing into a wall |
 | Ground slam | Sneak while high in the air |
 | No fall damage | Always on |
+| Blob form | Sneak and use the Symbiote Core (see below) |
 
-Bonding puts five items in your inventory. They cannot be dropped and stay with you through death.
+Bonding puts six items in your inventory: the Symbiote Core and five abilities. They cannot be dropped and stay with you through death. Each symbiote has its own set.
+
+**Venom** is the tank: tough, heals by eating, and controls a crowd.
 
 | Item | What it does | Recharge |
 | --- | --- | --- |
 | Tendril Lash | Drags a mob to you. Aimed at a block, or while sneaking, it pulls you there instead | 1.5 s |
+| Web Swing | Hooks onto whatever is above and ahead and swings you forward. Use it again in mid-air to keep swinging. With nothing to hook onto, you leap | 0.6 s |
 | Devour | A huge bite. Prey at 12 hearts or less is eaten whole, which heals you | 5 s |
 | Roar | Staggers and weakens every mob within 12 blocks | 15 s |
 | Spike Burst | Spikes erupt around you | 10 s |
-| Symbiote Core | Menu: guide, camouflage, night vision, wall-crawl, status bar, separate | none |
+
+**Carnage** is faster and far deadlier, but less tough.
+
+| Item | What it does | Recharge |
+| --- | --- | --- |
+| Tendril Lash | Same as Venom's | 1.5 s |
+| Web Swing | Same as Venom's | 0.6 s |
+| Blade Slash | Your arms become blades and cut every mob in a wide arc in front of you. Victims keep bleeding | 2 s |
+| Tendril Spears | Spears shoot out where you look and run through every mob in the line, pinning them | 6 s |
+| Frenzy | Ten seconds of extra strength and speed. Every claw hit heals you | 30 s |
+
+The **Symbiote Core** opens a menu: a guide, blob form, camouflage, night vision, wall-crawl, the status bar, and separating.
 
 Claws and abilities never hurt other players or tamed pets.
+
+## Blob form
+
+Sneak and use the Symbiote Core to melt into a small blob. Do it again to rise back into the suit.
+
+- A blob is fast, cannot be seen as a player, and climbs walls.
+- It slips into gaps one block high: walk into the hole and keep going.
+- It has no armor and cannot use abilities or claws.
 
 ## Biomass
 
@@ -59,9 +82,9 @@ The bar next to your name is the symbiote's hunger, from 0 to 100. It drains slo
 - **Fire** burns much harder and stops your healing.
 - **Loud noise** sickens you: bells, note blocks, goat horns, a Warden's sonic boom, lightning. Three in a row tear the symbiote off and throw its sample on the ground.
 
-## The Crimson Symbiote
+## Carnage
 
-A rare red boss that hunts at night (160 health, weak to fire). It drops a **Crimson Symbiote Sample**, which bonds you with a second form: faster and harder-hitting than Venom, but less tough.
+A rare red boss that hunts at night (160 health, weak to fire). It drops a **Carnage Symbiote Sample**, which bonds you with Carnage instead of Venom.
 
 ## Commands
 
@@ -69,7 +92,7 @@ With cheats on:
 
 ```
 /scriptevent venom:bond            bond with the black symbiote
-/scriptevent venom:bond crimson    bond with the red one
+/scriptevent venom:bond carnage    bond with Carnage
 /scriptevent venom:separate
 /scriptevent venom:feed            fill biomass
 /summon venom:symbiote

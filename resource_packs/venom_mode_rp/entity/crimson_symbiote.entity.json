@@ -10,7 +10,7 @@
         "default": "textures/entity/venom/crimson_suit"
       },
       "geometry": {
-        "default": "geometry.venom.host"
+        "default": "geometry.venom.carnage_host"
       },
       "animations": {
         "move": "animation.venom.host.move",
@@ -18,7 +18,7 @@
         "attack": "animation.venom.host.attack",
         "look": "animation.venom.look_at_target",
         "tendrils": "animation.venom.tendrils",
-        "tongue": "animation.venom.tongue"
+        "mouth": "animation.venom.mouth"
       },
       "scripts": {
         "initialize": [
@@ -31,7 +31,7 @@
           "attack",
           "look",
           "tendrils",
-          "tongue"
+          "mouth"
         ]
       },
       "render_controllers": [

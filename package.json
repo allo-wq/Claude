@@ -1,6 +1,6 @@
 {
   "name": "venom-mode-addon",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Venom Mode: a symbiote add-on for Minecraft Bedrock / Pocket Edition",
   "private": true,
   "type": "module",

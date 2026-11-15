@@ -8,6 +8,10 @@ import { FORMS, PROP } from './config.js';
  * @property {number} stressTick  tick of the last hit or decay
  * @property {{fromY: number, tick: number} | undefined} slam  set while a ground slam is falling
  * @property {boolean} camo
+ * @property {boolean} blob  true while melted down into blob form
+ * @property {{anchor: import('@minecraft/server').Vector3, until: number} | undefined} swing  the tendril currently hooked
+ * @property {number} frenzyUntil  tick the Carnage frenzy ends
+ * @property {{from: import('@minecraft/server').Vector3, tick: number} | undefined} squeeze  where the blob last slipped into a gap
  * @property {boolean} menuOpen
  * @property {number} tipUntil  the status bar stays quiet until this tick
  * @property {number} seconds  seconds spent bonded, drives slow timers
@@ -28,6 +32,10 @@ export function runtimeOf(player) {
       stressTick: 0,
       slam: undefined,
       camo: false,
+      blob: false,
+      swing: undefined,
+      frenzyUntil: 0,
+      squeeze: undefined,
       menuOpen: false,
       tipUntil: 0,
       seconds: 0,

@@ -18,41 +18,76 @@
       "bones": {
         "tendril_1": {
           "rotation": [
-            "math.sin(q.life_time * 150 + 0) * 14",
-            "math.sin(q.life_time * 110 + 40) * 12",
+            "math.sin(q.life_time * 120 + 47) * 11",
+            "math.sin(q.life_time * 90 + 31) * 10",
             0
           ]
         },
         "tendril_2": {
           "rotation": [
-            "math.sin(q.life_time * 150 + 90) * 14",
-            "math.sin(q.life_time * 110 + 40) * -12",
+            "math.sin(q.life_time * 134 + 94) * 11",
+            "math.sin(q.life_time * 101 + 62) * -10",
             0
           ]
         },
         "tendril_3": {
           "rotation": [
-            "math.sin(q.life_time * 130 + 180) * 12",
-            "math.sin(q.life_time * 100 + 10) * 14",
+            "math.sin(q.life_time * 134 + 141) * 11",
+            "math.sin(q.life_time * 101 + 93) * 10",
             0
           ]
         },
         "tendril_4": {
           "rotation": [
-            "math.sin(q.life_time * 130 + 270) * 12",
-            "math.sin(q.life_time * 100 + 10) * -14",
+            "math.sin(q.life_time * 148 + 188) * 11",
+            "math.sin(q.life_time * 112 + 124) * -10",
+            0
+          ]
+        },
+        "tendril_5": {
+          "rotation": [
+            "math.sin(q.life_time * 148 + 235) * 11",
+            "math.sin(q.life_time * 112 + 155) * 10",
+            0
+          ]
+        },
+        "tendril_6": {
+          "rotation": [
+            "math.sin(q.life_time * 162 + 282) * 11",
+            "math.sin(q.life_time * 123 + 186) * -10",
+            0
+          ]
+        },
+        "tendril_7": {
+          "rotation": [
+            "math.sin(q.life_time * 162 + 329) * 11",
+            "math.sin(q.life_time * 123 + 217) * 10",
+            0
+          ]
+        },
+        "tendril_8": {
+          "rotation": [
+            "math.sin(q.life_time * 176 + 376) * 11",
+            "math.sin(q.life_time * 134 + 248) * -10",
             0
           ]
         }
       }
     },
-    "animation.venom.tongue": {
+    "animation.venom.mouth": {
       "loop": true,
       "bones": {
         "tongue": {
           "rotation": [
-            "math.sin(q.life_time * 210 + 0) * 7",
-            "math.sin(q.life_time * 140 + 0) * 12",
+            "math.sin(q.life_time * 210 + 0) * 6",
+            "math.sin(q.life_time * 140 + 0) * 11",
+            0
+          ]
+        },
+        "jaw": {
+          "rotation": [
+            "3 + math.sin(q.life_time * 110 + 0) * 3",
+            0,
             0
           ]
         }
@@ -194,6 +229,79 @@
           ]
         },
         "leg_l_b": {
+          "rotation": [
+            0,
+            "math.sin(q.modified_distance_moved * 140 + 60) * 24",
+            0
+          ]
+        }
+      }
+    },
+    "animation.venom.blob_worn.idle": {
+      "loop": true,
+      "bones": {
+        "blob_body": {
+          "scale": [
+            "1 + math.sin(q.life_time * 220 + 0) * 0.05",
+            "1 - math.sin(q.life_time * 220 + 0) * 0.08",
+            "1 + math.sin(q.life_time * 220 + 0) * 0.05"
+          ]
+        },
+        "blob_feeler_r": {
+          "rotation": [
+            "math.sin(q.life_time * 160 + 0) * 10",
+            0,
+            "math.sin(q.life_time * 130 + 90) * 8"
+          ]
+        },
+        "blob_feeler_l": {
+          "rotation": [
+            "math.sin(q.life_time * 160 + 90) * 10",
+            0,
+            "math.sin(q.life_time * 130 + 90) * -8"
+          ]
+        }
+      }
+    },
+    "animation.venom.blob_worn.crawl": {
+      "loop": true,
+      "bones": {
+        "blob_leg_r_f": {
+          "rotation": [
+            0,
+            "math.sin(q.modified_distance_moved * 140) * 24",
+            0
+          ]
+        },
+        "blob_leg_l_f": {
+          "rotation": [
+            0,
+            "math.sin(q.modified_distance_moved * 140 + 180) * 24",
+            0
+          ]
+        },
+        "blob_leg_r_m": {
+          "rotation": [
+            0,
+            "math.sin(q.modified_distance_moved * 140 + 120) * 24",
+            0
+          ]
+        },
+        "blob_leg_l_m": {
+          "rotation": [
+            0,
+            "math.sin(q.modified_distance_moved * 140 + 300) * 24",
+            0
+          ]
+        },
+        "blob_leg_r_b": {
+          "rotation": [
+            0,
+            "math.sin(q.modified_distance_moved * 140 + 240) * 24",
+            0
+          ]
+        },
+        "blob_leg_l_b": {
           "rotation": [
             0,
             "math.sin(q.modified_distance_moved * 140 + 60) * 24",

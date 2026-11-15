@@ -31,6 +31,18 @@
     },
     "venom_crimson_suit": {
       "textures": "textures/items/venom_crimson_suit"
+    },
+    "venom_swing": {
+      "textures": "textures/items/venom_swing"
+    },
+    "venom_slash": {
+      "textures": "textures/items/venom_slash"
+    },
+    "venom_impale": {
+      "textures": "textures/items/venom_impale"
+    },
+    "venom_frenzy": {
+      "textures": "textures/items/venom_frenzy"
     }
   }
 }

@@ -209,6 +209,19 @@
         }
       ],
       "max_distance": 48.0
+    },
+    "venom.slash": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/venom/slash1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/venom/slash2",
+          "volume": 1.0
+        }
+      ]
     }
   }
 }

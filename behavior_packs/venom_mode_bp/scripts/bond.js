@@ -1,4 +1,4 @@
-import { ItemLockMode, ItemStack } from '@minecraft/server';
+import { EquipmentSlot, ItemLockMode, ItemStack } from '@minecraft/server';
 import {
   ABILITY_ITEMS,
   BIOMASS_START,
@@ -8,6 +8,7 @@ import {
   SUIT_ITEMS,
   SUIT_SLOTS,
   TAG_BONDED,
+  itemsOf,
 } from './config.js';
 import * as fx from './fx.js';
 import { formOf, runtimeOf } from './state.js';
@@ -50,19 +51,35 @@ function giveBack(player, stack) {
 }
 
 /**
- * Make the four armor slots match the player's state: the suit while bonded
- * (unless camouflaged), nothing of ours otherwise. Armor the player was already
- * wearing is handed back rather than destroyed.
+ * Reset everything about a player's current shape (suit, blob or hidden).
+ * @param {Player} player
+ */
+function resetShape(player) {
+  const runtime = runtimeOf(player);
+  runtime.camo = false;
+  runtime.blob = false;
+  runtime.slam = undefined;
+  runtime.swing = undefined;
+  runtime.squeeze = undefined;
+  runtime.frenzyUntil = 0;
+}
+
+/**
+ * Make the four armor slots match the player's state: the suit while bonded,
+ * only the blob body while in blob form, nothing of ours while camouflaged or
+ * unbonded. Armor the player was already wearing is handed back, not destroyed.
  * @param {Player} player
  */
 export function syncSuit(player) {
   const equippable = player.getComponent('minecraft:equippable');
   if (!equippable) return;
   const form = formOf(player);
-  const wearing = form !== undefined && !runtimeOf(player).camo;
+  const runtime = runtimeOf(player);
   for (const [piece, slot] of SUIT_SLOTS) {
     const current = equippable.getEquipment(slot);
-    const wanted = wearing ? form.suit[piece] : undefined;
+    let wanted;
+    if (form && runtime.blob) wanted = slot === EquipmentSlot.Chest ? form.blob : undefined;
+    else if (form && !runtime.camo) wanted = form.suit[piece];
     if (current?.typeId === wanted) continue;
     if (current && !SUIT_ITEMS.has(current.typeId)) {
       if (!wanted) continue; // the player's own armor: leave it alone
@@ -73,27 +90,28 @@ export function syncSuit(player) {
 }
 
 /**
- * Make the inventory match the player's state: one of each ability item while
- * bonded, none otherwise, and never a loose suit piece.
+ * Make the inventory match the player's state: exactly one of each item their
+ * symbiote hands out, nothing from another symbiote, and never a loose suit
+ * piece.
  * @param {Player} player
  */
 export function syncInventory(player) {
   const container = player.getComponent('minecraft:inventory')?.container;
   if (!container) return;
-  const bonded = formOf(player) !== undefined;
+  const form = formOf(player);
+  const wanted = form ? itemsOf(form) : [];
   const held = new Set();
   for (let slot = 0; slot < container.size; slot++) {
     const id = container.getItem(slot)?.typeId;
     if (!id) continue;
     const isAbility = ABILITY_SET.has(id);
-    if (SUIT_ITEMS.has(id) || (isAbility && (!bonded || held.has(id)))) {
+    if (SUIT_ITEMS.has(id) || (isAbility && (!wanted.includes(id) || held.has(id)))) {
       container.setItem(slot, undefined);
     } else if (isAbility) {
       held.add(id);
     }
   }
-  if (!bonded) return;
-  for (const id of ABILITY_ITEMS) {
+  for (const id of wanted) {
     if (!held.has(id)) placeAbility(player, container, abilityStack(id));
   }
 }
@@ -143,8 +161,7 @@ export function bond(player, formId) {
   player.setDynamicProperty(PROP.biomass, BIOMASS_START);
   player.addTag(TAG_BONDED);
   const runtime = runtimeOf(player);
-  runtime.camo = false;
-  runtime.slam = undefined;
+  resetShape(player);
   runtime.stress = 0;
   runtime.seconds = 0;
   syncSuit(player);
@@ -177,10 +194,8 @@ export function separate(player, forced) {
 
   player.setDynamicProperty(PROP.form, undefined);
   player.removeTag(TAG_BONDED);
-  const runtime = runtimeOf(player);
-  runtime.camo = false;
-  runtime.slam = undefined;
-  runtime.stress = 0;
+  resetShape(player);
+  runtimeOf(player).stress = 0;
   syncSuit(player);
   syncInventory(player);
   for (const effect of SUIT_EFFECTS) player.removeEffect(effect);
@@ -200,6 +215,17 @@ export function separate(player, forced) {
   fx.sound(player.dimension, 'venom.separate', player.location);
   player.onScreenDisplay.setActionBar(forced ? '§cThe symbiote is torn from you!' : '§7The symbiote lets go.');
   return true;
+}
+
+/**
+ * A bonded player came back from the dead: they stand up in the suit again,
+ * whatever shape they died in.
+ * @param {Player} player
+ */
+export function restoreAfterDeath(player) {
+  resetShape(player);
+  syncSuit(player);
+  syncInventory(player);
 }
 
 /**

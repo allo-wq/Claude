@@ -10,7 +10,7 @@
         "default": "textures/entity/venom/crimson_suit"
       },
       "geometry": {
-        "default": "geometry.venom.suit.legs"
+        "default": "geometry.venom.carnage.legs"
       },
       "scripts": {
         "parent_setup": "variable.leg_layer_visible = 0.0;"

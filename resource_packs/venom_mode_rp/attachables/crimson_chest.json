@@ -10,7 +10,7 @@
         "default": "textures/entity/venom/crimson_suit"
       },
       "geometry": {
-        "default": "geometry.venom.suit.chest"
+        "default": "geometry.venom.carnage.chest"
       },
       "animations": {
         "tendrils": "animation.venom.tendrils"

@@ -193,6 +193,13 @@ def build(lib):
         (pitch(swish[9], 1.2), 0, 1.0), (slime[1], 0.03, 0.9), (slime[5], 0.10, 0.9), (pitch(swish[7], 1.2), 0.15, 0.8),
         (slime[8], 0.18, 0.9), (slime[13], 0.27, 0.9))
 
+    # Carnage's blade slash: two quick cuts, a snarl and a wet hit.
+    cuts = [("swish-3.wav", "swish-6.wav", "roar_03.ogg"), ("swish-4.wav", "swish-10.wav", "troll_02.ogg")]
+    for i, (first, second, snarl) in enumerate(cuts, 1):
+        made[f"slash{i}"] = mix(
+            (pitch(c("swish", first), 0.7), 0, 1.0), (pitch(c("swish", second), 0.7), 0.09, 1.0),
+            (pitch(c("creature", snarl), 0.8), 0.02, 0.7), (slime[5], 0.12, 0.6))
+
     # The noise weakness: a shriek.
     for i in (1, 2):
         made[f"pain{i}"] = monstrous(c("creature", f"scream_0{i}.ogg"), 0.7)
